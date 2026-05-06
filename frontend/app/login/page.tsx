@@ -28,7 +28,7 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <section className="hidden bg-[var(--color-navy)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="hidden bg-(--color-navy) p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
           <Image src="/promexma-logo.png" alt="Promexma" width={220} height={52} />
           <h1 className="mt-20 max-w-sm text-5xl font-semibold leading-tight">Cotizador Promexma</h1>
