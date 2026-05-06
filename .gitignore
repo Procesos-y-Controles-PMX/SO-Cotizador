@@ -48,10 +48,7 @@ dist/
 build/
 
 # Database
-db/schema.sql
+db/
 
-# CSV
-CTZ-CLIENTES.csv
-MATERIALES COTIZADOR.csv
-PMX-SUCURSALES.csv
-Requerimientos Funcionales - Cotizador Promexma Web.pdf
+# other
+other/

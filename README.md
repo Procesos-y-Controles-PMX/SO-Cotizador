@@ -1,51 +1,41 @@
 # SO Cotizador
 
-Proyecto base con:
-- Backend: FastAPI
-- Frontend: Next.js + TypeScript
-- Base de datos objetivo: Supabase
+Aplicacion web de cotizaciones para Promexma.
+
+## Stack actual
+
+- Frontend: Next.js + TypeScript + Tailwind + Supabase JS
+- Base de datos: Supabase (`ctz_*`)
+- PDF: `@react-pdf/renderer`
+- Backend: carpeta disponible, pero no requerida para el flujo actual
 
 ## Requisitos
 
-- Node.js 20 (`nvm use 20`)
-- Python 3
+- Node.js 20 recomendado
 
-## Backend (FastAPI)
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
-```
-
-## Frontend (Next.js)
+## Arranque rapido
 
 ```bash
 cd frontend
-nvm use 20
 npm install
-cp .env.local.example .env.local
 npm run dev
 ```
 
-## Conexion frontend -> backend
+## Variables de entorno
 
-El frontend consume `GET /api/message` usando `NEXT_PUBLIC_API_URL`.
+En `frontend/.env`:
 
-## Variables para Supabase
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-- Frontend (`frontend/.env.local`):
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Backend (`backend/.env`):
-  - `SUPABASE_URL`
-  - `SUPABASE_SERVICE_ROLE_KEY`
+## Flujo principal
 
-## Endpoints utiles
-
-- `GET /api/health`
-- `GET /api/message`
-- `GET /api/supabase-status`
+- `GET /` redirige a `/login`
+- Login por correo contra `ctz_usuarios` (sin password, segun RF)
+- Modulo de cotizaciones:
+  - `/cotizaciones`
+  - `/cotizaciones/nueva`
+  - `/cotizaciones/[id]`
+  - `/cotizaciones/[id]/pdf`
+- Inventario (solo admin):
+  - `/inventario`

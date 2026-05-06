@@ -2,8 +2,19 @@
 
 :root {
   color-scheme: light;
+  --color-primary: #e01f1f;
+  --color-navy: #0f1a2e;
 }
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm transition;
+  background-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  filter: brightness(0.95);
 }
