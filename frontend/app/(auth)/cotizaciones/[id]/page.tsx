@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
 import { getCurrentUser } from "@/lib/auth";
-import { getCotizacionById } from "@/lib/queries/cotizaciones";
+import { deleteCotizacion, getCotizacionById } from "@/lib/queries/cotizaciones";
 
 export default function CotizacionDetallePage() {
   const params = useParams<{ id: string }>();
@@ -55,7 +55,18 @@ export default function CotizacionDetallePage() {
       </div>
 
       {allowed ? (
-        <CotizacionForm mode="edit" initial={initial} onSaved={(id) => router.push(`/cotizaciones/${id}`)} />
+        <CotizacionForm
+          mode="edit"
+          initial={initial}
+          onSaved={(id) => router.push(`/cotizaciones/${id}`)}
+          canDelete={user?.rol === "admin"}
+          onDelete={async () => {
+            if (!initial.id) return false;
+            const ok = await deleteCotizacion(initial.id);
+            if (ok) router.push("/cotizaciones");
+            return ok;
+          }}
+        />
       ) : (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
           Solo puedes editar tus propias cotizaciones.

@@ -117,3 +117,13 @@ export async function updateCotizacion(
   return !insertItemsError;
 }
 
+export async function deleteCotizacion(id: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  const { error: itemsError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);
+  if (itemsError) return false;
+
+  const { error: cotizacionError } = await supabase.from("ctz_cotizaciones").delete().eq("id", id);
+  return !cotizacionError;
+}
+
