@@ -22,9 +22,11 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-hook-form": "^7.75.0",
+    "read-excel-file": "^9.0.9",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.4",
+    "write-excel-file": "^4.0.6",
     "zod": "^4.4.3"
   },
   "devDependencies": {

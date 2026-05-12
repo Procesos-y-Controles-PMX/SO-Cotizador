@@ -1,6 +1,8 @@
 import { supabase } from "../supabase";
 import type { CtzProducto } from "../types/db";
 
+const PAGE_SIZE = 1000;
+
 export async function listProductos(search = ""): Promise<CtzProducto[]> {
   if (!supabase) return [];
   const query = supabase.from("ctz_productos").select("*").eq("activo", true).order("descripcion");
@@ -11,6 +13,28 @@ export async function listProductos(search = ""): Promise<CtzProducto[]> {
   const term = `%${search.trim()}%`;
   const { data } = await query.or(`descripcion.ilike.${term},sku.ilike.${term}`).limit(100);
   return (data as CtzProducto[] | null) ?? [];
+}
+
+/** Todos los productos activos (paginado). Para cotizador e import Excel por SKU. */
+export async function listAllProductosActivos(): Promise<CtzProducto[]> {
+  if (!supabase) return [];
+  const all: CtzProducto[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("ctz_productos")
+      .select("*")
+      .eq("activo", true)
+      .order("descripcion")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) break;
+    const batch = (data as CtzProducto[] | null) ?? [];
+    if (!batch.length) break;
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
 }
 
 export async function createProducto(payload: {
@@ -42,4 +66,3 @@ export async function updateProducto(
   const { error } = await supabase.from("ctz_productos").update(payload).eq("id", id);
   return !error;
 }
-

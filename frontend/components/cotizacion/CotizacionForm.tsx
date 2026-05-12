@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  buildSkuProductMap,
+  downloadCotizacionItemsExcelTemplate,
+  parseExcelFile,
+  previewOkToItemInputs,
+  resolveExcelRowsToImport,
+  type ExcelImportPreview,
+} from "@/lib/excel/importCotizacionItems";
 import { generarFolio } from "@/lib/folio";
 import { createCliente, listClientes } from "@/lib/queries/clientes";
 import { createCotizacion, updateCotizacion, type ItemInput } from "@/lib/queries/cotizaciones";
-import { createProducto, listProductos } from "@/lib/queries/productos";
+import { createProducto, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales } from "@/lib/queries/sucursales";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 
@@ -65,6 +73,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [modalLoading, setModalLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement>(null);
+  const [importExcelOpen, setImportExcelOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<ExcelImportPreview | null>(null);
+  const [excelParsing, setExcelParsing] = useState(false);
+  const [templateDownloading, setTemplateDownloading] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [items, setItems] = useState<LocalItem[]>(
     initial?.items.map((item, index) => ({ ...item, tempId: `temp-${index}` })) ?? [
       {
@@ -82,11 +96,13 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   );
 
   useEffect(() => {
-    Promise.all([listSucursales(), listClientes(), listProductos()]).then(([s, c, p]) => {
+    setCatalogLoading(true);
+    Promise.all([listSucursales(), listClientes(), listAllProductosActivos()]).then(([s, c, p]) => {
       setSucursales(s);
       setClientes(c);
       setProductos(p);
       if (!idSucursal && s[0]) setIdSucursal(s[0].id);
+      setCatalogLoading(false);
     });
   }, [idSucursal]);
 
@@ -106,6 +122,71 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
   function updateItem(tempId: string, next: Partial<LocalItem>) {
     setItems((prev) => prev.map((item) => (item.tempId === tempId ? recalc({ ...item, ...next }) : item)));
+  }
+
+  async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (catalogLoading) {
+      toast.error("Espera a que termine de cargar el catalogo.");
+      return;
+    }
+    if (!productos.length) {
+      toast.error("No hay productos en el catalogo.");
+      return;
+    }
+    setExcelParsing(true);
+    try {
+      const rows = await parseExcelFile(file);
+      const skuMap = buildSkuProductMap(productos);
+      const { preview, error } = resolveExcelRowsToImport(rows, skuMap);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      setImportPreview(preview);
+      setImportExcelOpen(true);
+    } catch {
+      toast.error("No se pudo leer el Excel. Usa .xlsx con fila de encabezados.");
+    } finally {
+      setExcelParsing(false);
+    }
+  }
+
+  function confirmExcelImport() {
+    if (!importPreview?.ok.length) {
+      toast.error("No hay filas validas para importar.");
+      return;
+    }
+    const inputs = previewOkToItemInputs(importPreview.ok);
+    const newRows: LocalItem[] = inputs.map((item) => ({ ...item, tempId: crypto.randomUUID() }));
+    setItems((prev) => {
+      const kept = prev.filter((i) => i.id_producto);
+      return [...kept, ...newRows];
+    });
+    const nOk = importPreview.ok.length;
+    const nFail = importPreview.failed.length;
+    setImportExcelOpen(false);
+    setImportPreview(null);
+    toast.success(`Se agregaron ${nOk} renglon(es) a Items.`);
+    if (nFail) toast.warning(`${nFail} fila(s) no se encontraron en el catalogo.`);
+  }
+
+  function cancelExcelImport() {
+    setImportExcelOpen(false);
+    setImportPreview(null);
+  }
+
+  async function handleDownloadItemsTemplate() {
+    setTemplateDownloading(true);
+    try {
+      await downloadCotizacionItemsExcelTemplate();
+    } catch {
+      toast.error("No se pudo generar la plantilla.");
+    } finally {
+      setTemplateDownloading(false);
+    }
   }
 
   function openModal(type: "cliente" | "producto") {
@@ -172,7 +253,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       });
       setModalLoading(false);
       if (!created) return toast.error("No se pudo crear producto.");
-      setProductos((prev) => [created, ...prev]);
+      const refreshed = await listAllProductosActivos();
+      setProductos(refreshed);
       toast.success("Producto creado.");
       setModalType(null);
       return;
@@ -344,6 +426,29 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 onChange={(event) => setMostrarConIva(event.target.checked)}
               />
             </label>
+            <input
+              ref={excelInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => void handleExcelFileChange(e)}
+            />
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
+              disabled={templateDownloading}
+              onClick={() => void handleDownloadItemsTemplate()}
+            >
+              {templateDownloading ? "Generando..." : "Descargar plantilla"}
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
+              disabled={catalogLoading || excelParsing || !productos.length}
+              onClick={() => excelInputRef.current?.click()}
+            >
+              {excelParsing ? "Leyendo..." : "Importar Excel"}
+            </button>
             <button
               type="button"
               className="rounded-md border border-slate-300 px-3 py-1 text-sm"
@@ -604,6 +709,65 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               >
                 {modalLoading ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importExcelOpen && importPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <h4 className="text-base font-semibold text-slate-900">Importar desde Excel</h4>
+              <p className="mt-1 text-sm text-slate-500">
+                Primera fila: encabezados. Obligatorio: <strong>SKU</strong> o <strong>SKU (obligatorio)</strong>.
+                Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional), IVA / IVA (opcional). La unidad de medida siempre viene del catalogo (no se lee del Excel).
+                Puedes usar el botón <strong>Descargar plantilla</strong> en Items para obtener un .xlsx con esos títulos.
+              </p>
+            </div>
+            <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 py-4 text-sm">
+              {importPreview.ok.length > 0 && (
+                <div>
+                  <p className="mb-2 font-semibold text-emerald-800">Listos para agregar ({importPreview.ok.length})</p>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-emerald-100 bg-emerald-50/50 p-2 text-xs text-slate-800">
+                    {importPreview.ok.map((row, i) => (
+                      <li key={`ok-${row.excelRowIndex}-${i}`}>
+                        Fila {row.excelRowIndex}: {row.skuRaw} · {row.product.descripcion.slice(0, 40)}
+                        {row.product.descripcion.length > 40 ? "…" : ""} — Cant. {row.cantidad}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {importPreview.failed.length > 0 && (
+                <div>
+                  <p className="mb-2 font-semibold text-red-800">Sin match ({importPreview.failed.length})</p>
+                  <ul className="max-h-32 space-y-1 overflow-y-auto rounded border border-red-100 bg-red-50/50 p-2 text-xs text-red-900">
+                    {importPreview.failed.map((row) => (
+                      <li key={`f-${row.excelRowIndex}-${row.skuRaw}`}>
+                        Fila {row.excelRowIndex}: SKU &quot;{row.skuRaw}&quot; — {row.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={cancelExcelImport}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Descartar
+              </button>
+              <button
+                type="button"
+                disabled={!importPreview.ok.length}
+                onClick={confirmExcelImport}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Agregar a Items
               </button>
             </div>
           </div>
