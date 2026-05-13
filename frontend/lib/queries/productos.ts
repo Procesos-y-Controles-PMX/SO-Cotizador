@@ -3,15 +3,69 @@ import type { CtzProducto } from "../types/db";
 
 const PAGE_SIZE = 1000;
 
-export async function listProductos(search = ""): Promise<CtzProducto[]> {
+const INVENTARIO_INITIAL_LIMIT = 10;
+const INVENTARIO_SEARCH_LIMIT = 50;
+/** Mínimo de caracteres para disparar búsqueda (reduce escaneos con términos de 1 letra). */
+export const INVENTARIO_SEARCH_MIN_CHARS = 2;
+
+const INVENTARIO_SELECT = "id,sku,descripcion,unidad_medida,precio_unitario_base,activo,created_at";
+
+/** Patrón ILIKE: se eliminan comas (rompen `.or()`), % y _ del término para evitar comodines arbitrarios. */
+function inventarioIlikePattern(raw: string): string | null {
+  const core = raw.replace(/,/g, " ").replace(/%/g, "").replace(/_/g, "").trim();
+  if (!core) return null;
+  return `%${core}%`;
+}
+
+/**
+ * Lista para la pantalla de inventario (activos e inactivos): sin texto, los primeros N por descripción;
+ * con texto (≥ {@link INVENTARIO_SEARCH_MIN_CHARS}), búsqueda server-side por SKU, descripción, U.M.
+ * y coincidencia exacta de precio base si el término es solo numérico.
+ */
+export async function listInventarioProductos(q: string): Promise<CtzProducto[]> {
   if (!supabase) return [];
-  const query = supabase.from("ctz_productos").select("*").eq("activo", true).order("descripcion");
-  if (!search.trim()) {
-    const { data } = await query.limit(100);
+  const trimmed = q.trim();
+  if (!trimmed) {
+    const { data, error } = await supabase
+      .from("ctz_productos")
+      .select(INVENTARIO_SELECT)
+      .order("activo", { ascending: false })
+      .order("descripcion")
+      .limit(INVENTARIO_INITIAL_LIMIT);
+    if (error) return [];
     return (data as CtzProducto[] | null) ?? [];
   }
-  const term = `%${search.trim()}%`;
-  const { data } = await query.or(`descripcion.ilike.${term},sku.ilike.${term}`).limit(100);
+  if (trimmed.length < INVENTARIO_SEARCH_MIN_CHARS) {
+    return [];
+  }
+
+  const pattern = inventarioIlikePattern(trimmed);
+  const parts: string[] = [];
+  if (pattern) {
+    parts.push(`sku.ilike.${pattern}`, `descripcion.ilike.${pattern}`, `unidad_medida.ilike.${pattern}`);
+  }
+
+  const numCandidate = trimmed.replace(/\s/g, "").replace(/,/g, ".");
+  if (/^\d+(\.\d+)?$/.test(numCandidate)) {
+    const n = Number.parseFloat(numCandidate);
+    if (Number.isFinite(n) && n >= 0) {
+      parts.push(`precio_unitario_base.eq.${n}`);
+    }
+  }
+
+  if (!parts.length) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("ctz_productos")
+    .select(INVENTARIO_SELECT)
+    .or(parts.join(","))
+    .order("activo", { ascending: false })
+    .order("descripcion")
+    .limit(INVENTARIO_SEARCH_LIMIT);
+
+  if (error) return [];
   return (data as CtzProducto[] | null) ?? [];
 }
 

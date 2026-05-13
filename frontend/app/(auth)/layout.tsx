@@ -82,7 +82,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     .filter((group) => group.items.length > 0);
 
   const isActive = (href: string) => {
-    if (href === "/cotizaciones") return pathname.startsWith("/cotizaciones");
+    if (href === "/cotizaciones") {
+      if (pathname === "/cotizaciones/nueva") return false;
+      return pathname === "/cotizaciones" || pathname.startsWith("/cotizaciones/");
+    }
     return pathname === href;
   };
 
