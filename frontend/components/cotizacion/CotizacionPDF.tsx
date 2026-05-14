@@ -20,6 +20,16 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX");
 }
 
+function pdfIvaCotizacionPct(quote: CotizacionWithRelations): number {
+  const h = quote.iva_porcentaje;
+  const hn = Math.round(Number(h));
+  if (hn === 0 || hn === 8 || hn === 16) return hn;
+  const fromItem = quote.ctz_cotizacion_items[0]?.iva_porcentaje;
+  const n = Math.round(Number(fromItem));
+  if (n === 0 || n === 8 || n === 16) return n;
+  return 16;
+}
+
 const styles = StyleSheet.create({
   page: {
     fontSize: 9.5,
@@ -137,15 +147,42 @@ const styles = StyleSheet.create({
     color: "#64748B",
     textAlign: "center",
   },
+  cuentasPage: {
+    fontSize: 9.5,
+    fontFamily: "Helvetica",
+    backgroundColor: "#FFFFFF",
+    color: "#0F172A",
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  cuentasTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#0F172A",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  cuentasImageWrap: { width: "100%", alignItems: "center" },
+  cuentasImage: { width: 440, objectFit: "contain" },
 });
 
 export function CotizacionPDFDocument({
   quote,
   logoSrc,
+  cuentasSrc,
 }: {
   quote: CotizacionWithRelations;
   logoSrc: string;
+  cuentasSrc: string;
 }) {
+  const ivaPct = pdfIvaCotizacionPct(quote);
+  const terminosExtra =
+    quote.ctz_sucursales?.terminos_adicionales
+      ?.split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0) ?? [];
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -200,7 +237,7 @@ export function CotizacionPDFDocument({
           <View style={styles.tableHeader}>
             <Text style={[styles.tableHeaderText, { width: "43%" }]}>Producto</Text>
             <Text style={[styles.tableHeaderText, { width: "9%" }]}>Cant.</Text>
-            <Text style={[styles.tableHeaderText, { width: "14%" }]}>P.U.</Text>
+            <Text style={[styles.tableHeaderText, { width: "14%" }]}>P.U. (neto)</Text>
             <Text style={[styles.tableHeaderText, { width: "8%" }]}>IVA</Text>
             <Text style={[styles.tableHeaderText, { width: "11%" }]}>Subtotal</Text>
             <Text style={[styles.tableHeaderText, { width: "15%", textAlign: "right" }]}>Importe</Text>
@@ -210,7 +247,7 @@ export function CotizacionPDFDocument({
               <Text style={[styles.tableCell, { width: "43%" }]}>{item.descripcion_registro}</Text>
               <Text style={[styles.tableCell, { width: "9%" }]}>{item.cantidad}</Text>
               <Text style={[styles.tableCell, { width: "14%" }]}>{money(item.precio_unitario)}</Text>
-              <Text style={[styles.tableCell, { width: "8%" }]}>{item.iva_porcentaje}%</Text>
+              <Text style={[styles.tableCell, { width: "8%" }]}>{ivaPct}%</Text>
               <Text style={[styles.tableCell, { width: "11%" }]}>{money(item.subtotal_item)}</Text>
               <Text style={[styles.tableCell, styles.tableCellRight, { width: "15%" }]}>{money(item.total_item)}</Text>
             </View>
@@ -239,8 +276,15 @@ export function CotizacionPDFDocument({
             <Text style={styles.termsTitle}>Terminos y Condiciones</Text>
             <Text style={styles.termsText}>- Sujeto a disponibilidad de inventario.</Text>
             <Text style={styles.termsText}>- Precio sujeto a cambio sin previo aviso.</Text>
-            <Text style={styles.termsText}>- Vigencia de cotizacion: 15 dias naturales.</Text>
             <Text style={styles.termsText}>- Precios expresados en moneda nacional.</Text>
+            <Text style={styles.termsText}>
+              - Pregunte su referencia de pago a su asesor comercial antes de hacer su depósito/transferencia.
+            </Text>
+            {terminosExtra.map((line, i) => (
+              <Text key={`term-ex-${i}`} style={styles.termsText}>
+                - {line}
+              </Text>
+            ))}
           </View>
           <View style={styles.termsColRight}>
             <Text style={styles.termsTitle}>Observaciones</Text>
@@ -258,28 +302,35 @@ export function CotizacionPDFDocument({
           Este documento es de caracter informativo y tiene fines de cotizacion. Uso exclusivo interno de Promexma.
         </Text>
       </Page>
+
+      <Page size="A4" style={styles.cuentasPage}>
+        <Text style={styles.cuentasTitle}>Cuentas bancarias</Text>
+        <View style={styles.cuentasImageWrap}>
+          <Image src={cuentasSrc} style={styles.cuentasImage} />
+        </View>
+      </Page>
     </Document>
   );
 }
 
 const PDF_LOGO_PATH = "/construrama_promexma.png";
+const PDF_CUENTAS_PATH = "/Cuentas.png";
 
 export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations }) {
-  const logoSrc =
-    typeof window === "undefined"
-      ? "https://dummyimage.com/880x120/ffffff/0f1a2e&text=Construrama+Promexma"
-      : `${window.location.origin}${PDF_LOGO_PATH}`;
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const logoSrc = origin ? `${origin}${PDF_LOGO_PATH}` : "https://dummyimage.com/880x120/ffffff/0f1a2e&text=Construrama+Promexma";
+  const cuentasSrc = origin ? `${origin}${PDF_CUENTAS_PATH}` : "https://dummyimage.com/880x400/e2e8f0/334155&text=Cuentas+bancarias";
   return (
     <div className="space-y-3">
       <PDFDownloadLink
-        document={<CotizacionPDFDocument quote={quote} logoSrc={logoSrc} />}
+        document={<CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />}
         fileName={`${quote.folio}.pdf`}
       >
         {({ loading }) => <button className="btn-primary">{loading ? "Preparando..." : "Descargar PDF"}</button>}
       </PDFDownloadLink>
       <div className="h-[75vh] overflow-hidden rounded-lg border border-slate-200 bg-white">
         <PDFViewer width="100%" height="100%">
-          <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} />
+          <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
         </PDFViewer>
       </div>
     </div>

@@ -29,6 +29,7 @@ export default function CotizacionDetallePage() {
         referencia_pago: data.referencia_pago,
         comentarios: data.comentarios,
         mostrar_con_iva: data.mostrar_con_iva,
+        iva_porcentaje: data.iva_porcentaje ?? data.ctz_cotizacion_items[0]?.iva_porcentaje ?? 16,
         items: data.ctz_cotizacion_items.map((row) => ({
           id_producto: row.id_producto,
           descripcion_registro: row.descripcion_registro,

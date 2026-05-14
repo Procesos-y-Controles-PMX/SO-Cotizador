@@ -8,7 +8,6 @@ export const COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS = [
   "SKU (obligatorio)",
   "Cantidad (opcional)",
   "Precio (opcional)",
-  "IVA (opcional)",
 ] as const;
 
 export const COTIZACION_ITEMS_EXCEL_TEMPLATE_FILENAME = "plantilla-items-cotizacion.xlsx";
@@ -90,7 +89,6 @@ export type ExcelImportOkRow = {
   product: CtzProducto;
   cantidad: number;
   precio_unitario: number;
-  iva_porcentaje: number;
 };
 
 export type ExcelImportFailRow = {
@@ -104,21 +102,13 @@ export type ExcelImportPreview = {
   failed: ExcelImportFailRow[];
 };
 
-function parseIva(raw: string): number {
-  const s = raw.replace("%", "").trim();
-  const n = parseDecimal(s);
-  if (n === null) return 16;
-  if (n === 0 || n === 8 || n === 16) return n;
-  return 16;
-}
-
 /**
  * rows: primera fila = encabezados; siguientes = datos.
  * Encabezados reconocidos (mayúsculas/minúsculas indistinto; se ignoran acentos en la búsqueda):
  * - SKU (obligatorio) o "SKU", "clave", "codigo", etc.
  * - Cantidad (opcional) o "cantidad", "qty", etc.
  * - Precio (opcional) o "precio", "p.u.", etc.
- * - IVA (opcional) o "iva", "% iva", etc.
+ * El IVA es global en la cotización (no se lee del Excel; si el archivo trae columna IVA, se ignora).
  * La unidad de medida no se toma del Excel: siempre la del catalogo al hacer match por SKU.
  * Los sufijos "(obligatorio)" y "(opcional)" en el título se quitan solo para emparejar la columna.
  */
@@ -157,12 +147,6 @@ export function resolveExcelRowsToImport(
     "precio unitario",
     "precio unit.",
   ]);
-  const ivaCol = findColumnIndex(headerRow, [
-    COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS[3],
-    "iva",
-    "iva (opcional)",
-    "% iva",
-  ]);
 
   const ok: ExcelImportOkRow[] = [];
   const failed: ExcelImportFailRow[] = [];
@@ -199,18 +183,12 @@ export function resolveExcelRowsToImport(
       if (p !== null && p >= 0) precio_unitario = p;
     }
 
-    let iva_porcentaje = 16;
-    if (ivaCol >= 0) {
-      iva_porcentaje = parseIva(cellToString(row[ivaCol]));
-    }
-
     ok.push({
       excelRowIndex,
       skuRaw,
       product,
       cantidad,
       precio_unitario,
-      iva_porcentaje,
     });
   });
 
@@ -229,17 +207,18 @@ export async function parseExcelFile(file: File): Promise<unknown[][]> {
   return first as unknown[][];
 }
 
-export function previewOkToItemInputs(rows: ExcelImportOkRow[]): ItemInput[] {
+export function previewOkToItemInputs(rows: ExcelImportOkRow[], ivaPorcentaje: number): ItemInput[] {
+  const iva = ivaPorcentaje === 0 || ivaPorcentaje === 8 || ivaPorcentaje === 16 ? ivaPorcentaje : 16;
   return rows.map((r) => {
     const subtotal_item = Number((r.cantidad * r.precio_unitario).toFixed(2));
-    const total_item = Number((subtotal_item * (1 + r.iva_porcentaje / 100)).toFixed(2));
+    const total_item = Number((subtotal_item * (1 + iva / 100)).toFixed(2));
     return {
       id_producto: r.product.id,
       descripcion_registro: r.product.descripcion,
       cantidad: r.cantidad,
       unidad_medida: r.product.unidad_medida,
       precio_unitario: r.precio_unitario,
-      iva_porcentaje: r.iva_porcentaje,
+      iva_porcentaje: iva,
       subtotal_item,
       total_item,
     };

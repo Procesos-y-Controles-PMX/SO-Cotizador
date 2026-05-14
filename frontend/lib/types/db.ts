@@ -18,6 +18,7 @@ export type CtzSucursal = {
   ciudad: string | null;
   centro: string | null;
   direccion: string | null;
+  terminos_adicionales: string | null;
   activo: boolean;
   created_at: string;
 };
@@ -54,6 +55,7 @@ export type CtzCotizacion = {
   referencia_pago: string | null;
   comentarios: string | null;
   mostrar_con_iva: boolean;
+  iva_porcentaje: number;
   subtotal: number;
   iva_total: number;
   total: number;

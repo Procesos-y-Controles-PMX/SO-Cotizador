@@ -15,7 +15,7 @@ import { generarFolio } from "@/lib/folio";
 import { createCliente, listClientes } from "@/lib/queries/clientes";
 import { createCotizacion, updateCotizacion, type ItemInput } from "@/lib/queries/cotizaciones";
 import { listAllProductosActivos } from "@/lib/queries/productos";
-import { listSucursales } from "@/lib/queries/sucursales";
+import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 
@@ -30,6 +30,8 @@ type Props = {
     referencia_pago: string | null;
     comentarios: string | null;
     mostrar_con_iva: boolean;
+    /** IVA global de la cotizacion (BD); si falta en datos viejos, se toma del primer item al guardar. */
+    iva_porcentaje?: number;
     items: ItemInput[];
   };
   onSaved: (id: string) => void;
@@ -38,6 +40,20 @@ type Props = {
 };
 
 type LocalItem = ItemInput & { tempId: string };
+
+type IvaCotizacionPct = 0 | 8 | 16;
+
+function normalizeIvaPct(value: number | undefined | null): IvaCotizacionPct {
+  const n = Math.round(Number(value));
+  if (n === 0 || n === 8 || n === 16) return n;
+  return 16;
+}
+
+function initialIvaFromProps(initial: Props["initial"]): IvaCotizacionPct {
+  const fromHeader = initial?.iva_porcentaje;
+  const fromItem = initial?.items?.[0]?.iva_porcentaje;
+  return normalizeIvaPct(fromHeader ?? fromItem ?? 16);
+}
 
 function toNumber(value: string): number {
   const parsed = Number(value);
@@ -57,6 +73,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [referenciaPago, setReferenciaPago] = useState(initial?.referencia_pago ?? "");
   const [comentarios, setComentarios] = useState(initial?.comentarios ?? "");
   const [mostrarConIva, setMostrarConIva] = useState(initial?.mostrar_con_iva ?? true);
+  const [ivaCotizacion, setIvaCotizacion] = useState<IvaCotizacionPct>(() => initialIvaFromProps(initial));
   const [modalType, setModalType] = useState<"cliente" | "producto" | null>(null);
   const [clienteDraft, setClienteDraft] = useState({
     nombre_cliente: "",
@@ -74,8 +91,18 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [excelParsing, setExcelParsing] = useState(false);
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [items, setItems] = useState<LocalItem[]>(
-    initial?.items.map((item, index) => ({ ...item, tempId: `temp-${index}` })) ?? [
+  const [sucursalTerminosDraft, setSucursalTerminosDraft] = useState("");
+  const [savingSucursalTerminos, setSavingSucursalTerminos] = useState(false);
+  const [items, setItems] = useState<LocalItem[]>(() => {
+    const iva0 = initialIvaFromProps(initial);
+    if (initial?.items?.length) {
+      return initial.items.map((item, index) => {
+        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
+        const total_item = Number((subtotal_item * (1 + iva0 / 100)).toFixed(2));
+        return { ...item, tempId: `temp-${index}`, iva_porcentaje: iva0, subtotal_item, total_item };
+      });
+    }
+    return [
       {
         tempId: crypto.randomUUID(),
         id_producto: null,
@@ -83,12 +110,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         cantidad: 1,
         unidad_medida: null,
         precio_unitario: 0,
-        iva_porcentaje: 16,
+        iva_porcentaje: iva0,
         subtotal_item: 0,
         total_item: 0,
       },
-    ]
-  );
+    ];
+  });
 
   useEffect(() => {
     setCatalogLoading(true);
@@ -101,6 +128,32 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     });
   }, [idSucursal]);
 
+  useEffect(() => {
+    if (mode !== "create" || !idSucursal || !sucursales.length) return;
+    const s = sucursales.find((row) => row.id === idSucursal);
+    if (!s) return;
+    setIvaCotizacion(normalizeIvaPct(s.iva_predeterminado));
+  }, [mode, idSucursal, sucursales]);
+
+  useEffect(() => {
+    setItems((prev) =>
+      prev.map((item) => {
+        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
+        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
+        return { ...item, iva_porcentaje: ivaCotizacion, subtotal_item, total_item };
+      })
+    );
+  }, [ivaCotizacion]);
+
+  useEffect(() => {
+    if (!idSucursal) {
+      setSucursalTerminosDraft("");
+      return;
+    }
+    const s = sucursales.find((row) => row.id === idSucursal);
+    setSucursalTerminosDraft(s?.terminos_adicionales ?? "");
+  }, [idSucursal, sucursales]);
+
   const totals = useMemo(() => {
     const subtotal = Number(items.reduce((acc, item) => acc + item.subtotal_item, 0).toFixed(2));
     const totalConIva = Number(items.reduce((acc, item) => acc + item.total_item, 0).toFixed(2));
@@ -109,14 +162,40 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     return { subtotal, ivaTotal, total };
   }, [items, mostrarConIva]);
 
-  function recalc(item: LocalItem): LocalItem {
-    const subtotalItem = Number((item.cantidad * item.precio_unitario).toFixed(2));
-    const totalItem = Number((subtotalItem * (1 + item.iva_porcentaje / 100)).toFixed(2));
-    return { ...item, subtotal_item: subtotalItem, total_item: totalItem };
+  const selectedSucursalNombre = useMemo(
+    () => sucursales.find((row) => row.id === idSucursal)?.nombre ?? null,
+    [sucursales, idSucursal]
+  );
+
+  async function saveSucursalTerminos() {
+    if (!idSucursal) {
+      toast.error("Selecciona una sucursal primero.");
+      return;
+    }
+    setSavingSucursalTerminos(true);
+    const text = sucursalTerminosDraft.trim();
+    const ok = await updateSucursal(idSucursal, { terminos_adicionales: text ? text : null });
+    setSavingSucursalTerminos(false);
+    if (!ok) {
+      toast.error("No se pudieron guardar los términos de la sucursal.");
+      return;
+    }
+    setSucursales((prev) =>
+      prev.map((row) => (row.id === idSucursal ? { ...row, terminos_adicionales: text ? text : null } : row))
+    );
+    toast.success("Términos de sucursal guardados.");
   }
 
   function updateItem(tempId: string, next: Partial<LocalItem>) {
-    setItems((prev) => prev.map((item) => (item.tempId === tempId ? recalc({ ...item, ...next }) : item)));
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.tempId !== tempId) return item;
+        const merged = { ...item, ...next };
+        const subtotal_item = Number((merged.cantidad * merged.precio_unitario).toFixed(2));
+        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
+        return { ...merged, iva_porcentaje: ivaCotizacion, subtotal_item, total_item };
+      })
+    );
   }
 
   async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -154,7 +233,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       toast.error("No hay filas validas para importar.");
       return;
     }
-    const inputs = previewOkToItemInputs(importPreview.ok);
+    const inputs = previewOkToItemInputs(importPreview.ok, ivaCotizacion);
     const newRows: LocalItem[] = inputs.map((item) => ({ ...item, tempId: crypto.randomUUID() }));
     setItems((prev) => {
       const kept = prev.filter((i) => i.id_producto);
@@ -247,6 +326,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       return;
     }
 
+    const ivaPorCotizacion = ivaCotizacion;
+
     setLoading(true);
     if (mode === "create") {
       const sucursal = sucursales.find((row) => row.id === idSucursal);
@@ -267,11 +348,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           referencia_pago: referenciaPago || null,
           comentarios: comentarios || null,
           mostrar_con_iva: mostrarConIva,
+          iva_porcentaje: ivaPorCotizacion,
           subtotal: totals.subtotal,
           iva_total: totals.ivaTotal,
           total: totals.total,
         },
-        items: readyItems,
+        items: readyItems.map((row) => ({ ...row, iva_porcentaje: ivaPorCotizacion })),
       });
       setLoading(false);
       if (!id) return toast.error("No fue posible registrar la cotizacion.");
@@ -294,11 +376,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         referencia_pago: referenciaPago || null,
         comentarios: comentarios || null,
         mostrar_con_iva: mostrarConIva,
+        iva_porcentaje: ivaPorCotizacion,
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
         total: totals.total,
       },
-      readyItems
+      readyItems.map((row) => ({ ...row, iva_porcentaje: ivaPorCotizacion }))
     );
     setLoading(false);
     if (!ok) return toast.error("No fue posible actualizar.");
@@ -376,9 +459,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
           <h3 className="font-semibold text-slate-900">Items</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm text-slate-600">
               Mostrar con IVA
               <input
@@ -387,6 +470,18 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 checked={mostrarConIva}
                 onChange={(event) => setMostrarConIva(event.target.checked)}
               />
+            </label>
+            <label className="text-sm text-slate-600">
+              IVA (toda la cotizacion)
+              <select
+                className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                value={ivaCotizacion}
+                onChange={(event) => setIvaCotizacion(normalizeIvaPct(Number(event.target.value)))}
+              >
+                <option value={16}>16%</option>
+                <option value={8}>8%</option>
+                <option value={0}>0%</option>
+              </select>
             </label>
             <input
               ref={excelInputRef}
@@ -424,7 +519,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                     cantidad: 1,
                     unidad_medida: null,
                     precio_unitario: 0,
-                    iva_porcentaje: 16,
+                    iva_porcentaje: ivaCotizacion,
                     subtotal_item: 0,
                     total_item: 0,
                   },
@@ -437,15 +532,14 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         </div>
 
         <div className="space-y-3">
-          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-10">
+          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-9">
             <p className="md:col-span-4">Producto (Catalogo)</p>
             <p className="md:col-span-2">Cantidad</p>
-            <p className="md:col-span-2">Precio unitario</p>
-            <p className="md:col-span-1">IVA</p>
+            <p className="md:col-span-2">Precio unitario (neto)</p>
             <p className="md:col-span-1">Accion</p>
           </div>
           {items.map((item) => (
-            <div key={item.tempId} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-10">
+            <div key={item.tempId} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-9">
               <select
                 className="md:col-span-4 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 value={item.id_producto ?? ""}
@@ -476,19 +570,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               />
               <input
                 className="md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
-                placeholder="Precio unit."
+                placeholder="Precio unitario (neto)"
                 value={item.precio_unitario}
                 onChange={(event) => updateItem(item.tempId, { precio_unitario: toNumber(event.target.value) })}
               />
-              <select
-                className="md:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
-                value={item.iva_porcentaje}
-                onChange={(event) => updateItem(item.tempId, { iva_porcentaje: toNumber(event.target.value) })}
-              >
-                <option value={16}>16%</option>
-                <option value={8}>8%</option>
-                <option value={0}>0%</option>
-              </select>
               <button
                 type="button"
                 className="md:col-span-1 rounded-md border border-slate-300 px-2 text-sm text-red-600"
@@ -506,6 +591,40 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           <p className="font-semibold">Total: ${totals.total.toFixed(2)}</p>
         </div>
       </div>
+
+      {idSucursal && selectedSucursalNombre && !catalogLoading && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="font-semibold text-slate-900">Términos adicionales de la sucursal (PDF)</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Se aplican a las cotizaciones con sucursal <strong>{selectedSucursalNombre}</strong>. Una línea nueva por
+                viñeta o párrafo. Guarda aquí cuando termines de editarlos (no se guardan al registrar solo la cotización).
+              </p>
+            </div>
+          </div>
+          <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Texto para el PDF
+          </div>
+          <textarea
+            className="min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+            value={sucursalTerminosDraft}
+            onChange={(e) => setSucursalTerminosDraft(e.target.value)}
+            placeholder="Ej. Condiciones especiales de esta tienda..."
+            aria-label="Términos adicionales para el PDF"
+          />
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              disabled={savingSucursalTerminos}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              onClick={() => void saveSucursalTerminos()}
+            >
+              {savingSucursalTerminos ? "Guardando..." : "Guardar términos de sucursal"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap justify-center gap-2">
         <button type="button" disabled={loading} className="btn-primary disabled:opacity-50" onClick={save}>
@@ -638,8 +757,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               <h4 className="text-base font-semibold text-slate-900">Importar desde Excel</h4>
               <p className="mt-1 text-sm text-slate-500">
                 Primera fila: encabezados. Obligatorio: <strong>SKU</strong> o <strong>SKU (obligatorio)</strong>.
-                Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional), IVA / IVA (opcional). La unidad de medida siempre viene del catalogo (no se lee del Excel).
-                Puedes usar el botón <strong>Descargar plantilla</strong> en Items para obtener un .xlsx con esos títulos.
+                Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional). El IVA de las filas importadas
+                usa el <strong>IVA (toda la cotizacion)</strong> del formulario. La unidad de medida siempre viene del
+                catalogo (no se lee del Excel). Puedes usar el botón <strong>Descargar plantilla</strong> en Items para
+                obtener un .xlsx con esos títulos.
               </p>
             </div>
             <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 py-4 text-sm">
