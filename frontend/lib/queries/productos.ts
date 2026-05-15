@@ -1,20 +1,18 @@
+import { ilikePattern, SEARCH_MIN_CHARS, SEARCH_RESULT_LIMIT } from "../search";
 import { supabase } from "../supabase";
 import type { CtzProducto } from "../types/db";
 
 const PAGE_SIZE = 1000;
 
 const INVENTARIO_INITIAL_LIMIT = 10;
-const INVENTARIO_SEARCH_LIMIT = 50;
+const INVENTARIO_SEARCH_LIMIT = SEARCH_RESULT_LIMIT;
 /** Mínimo de caracteres para disparar búsqueda (reduce escaneos con términos de 1 letra). */
-export const INVENTARIO_SEARCH_MIN_CHARS = 2;
+export const INVENTARIO_SEARCH_MIN_CHARS = SEARCH_MIN_CHARS;
 
 const INVENTARIO_SELECT = "id,sku,descripcion,unidad_medida,precio_unitario_base,activo,created_at";
 
-/** Patrón ILIKE: se eliminan comas (rompen `.or()`), % y _ del término para evitar comodines arbitrarios. */
 function inventarioIlikePattern(raw: string): string | null {
-  const core = raw.replace(/,/g, " ").replace(/%/g, "").replace(/_/g, "").trim();
-  if (!core) return null;
-  return `%${core}%`;
+  return ilikePattern(raw);
 }
 
 /**
@@ -67,6 +65,58 @@ export async function listInventarioProductos(q: string): Promise<CtzProducto[]>
 
   if (error) return [];
   return (data as CtzProducto[] | null) ?? [];
+}
+
+const COTIZACION_PRODUCTO_SELECT =
+  "id,sku,descripcion,unidad_medida,precio_unitario_base,activo,created_at";
+
+async function searchProductosActivos(field: "sku" | "descripcion", q: string): Promise<CtzProducto[]> {
+  if (!supabase) return [];
+  const trimmed = q.trim();
+  if (trimmed.length < SEARCH_MIN_CHARS) return [];
+  const pattern = ilikePattern(trimmed);
+  if (!pattern) return [];
+
+  const { data, error } = await supabase
+    .from("ctz_productos")
+    .select(COTIZACION_PRODUCTO_SELECT)
+    .eq("activo", true)
+    .ilike(field, pattern)
+    .order("descripcion")
+    .limit(SEARCH_RESULT_LIMIT);
+
+  if (error) return [];
+  return (data as CtzProducto[] | null) ?? [];
+}
+
+export function searchProductosActivosPorSku(q: string): Promise<CtzProducto[]> {
+  return searchProductosActivos("sku", q);
+}
+
+export function searchProductosActivosPorDescripcion(q: string): Promise<CtzProducto[]> {
+  return searchProductosActivos("descripcion", q);
+}
+
+export async function getProductoById(id: string): Promise<CtzProducto | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("ctz_productos").select("*").eq("id", id).maybeSingle();
+  if (error) return null;
+  return (data as CtzProducto | null) ?? null;
+}
+
+export async function getProductosByIds(ids: string[]): Promise<CtzProducto[]> {
+  if (!supabase || !ids.length) return [];
+  const unique = [...new Set(ids)];
+  const all: CtzProducto[] = [];
+  const chunkSize = 100;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const { data, error } = await supabase.from("ctz_productos").select("*").in("id", chunk);
+    if (error) break;
+    const batch = (data as CtzProducto[] | null) ?? [];
+    all.push(...batch);
+  }
+  return all;
 }
 
 /** Todos los productos activos (paginado). Para cotizador e import Excel por SKU. */

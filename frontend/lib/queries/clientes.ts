@@ -1,16 +1,28 @@
+import { ilikePattern, SEARCH_RESULT_LIMIT } from "../search";
 import { supabase } from "../supabase";
 import type { CtzCliente } from "../types/db";
 
 export async function listClientes(search = ""): Promise<CtzCliente[]> {
   if (!supabase) return [];
   const query = supabase.from("ctz_clientes").select("*").eq("activo", true).order("nombre_cliente");
-  if (!search.trim()) {
-    const { data } = await query.limit(50);
+  const trimmed = search.trim();
+  if (!trimmed) {
+    const { data } = await query.limit(SEARCH_RESULT_LIMIT);
     return (data as CtzCliente[] | null) ?? [];
   }
-  const term = `%${search.trim()}%`;
-  const { data } = await query.or(`nombre_cliente.ilike.${term},num_cliente.ilike.${term}`).limit(50);
+  const pattern = ilikePattern(trimmed);
+  if (!pattern) return [];
+  const { data } = await query
+    .or(`nombre_cliente.ilike.${pattern},num_cliente.ilike.${pattern},empresa.ilike.${pattern}`)
+    .limit(SEARCH_RESULT_LIMIT);
   return (data as CtzCliente[] | null) ?? [];
+}
+
+export async function getClienteById(id: string): Promise<CtzCliente | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("ctz_clientes").select("*").eq("id", id).maybeSingle();
+  if (error) return null;
+  return (data as CtzCliente | null) ?? null;
 }
 
 export async function createCliente(payload: {

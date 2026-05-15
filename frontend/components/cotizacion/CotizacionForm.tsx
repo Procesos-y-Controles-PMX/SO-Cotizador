@@ -12,12 +12,14 @@ import {
   type ExcelImportPreview,
 } from "@/lib/excel/importCotizacionItems";
 import { generarFolio } from "@/lib/folio";
-import { createCliente, listClientes } from "@/lib/queries/clientes";
-import { createCotizacion, updateCotizacion, type ItemInput } from "@/lib/queries/cotizaciones";
-import { listAllProductosActivos } from "@/lib/queries/productos";
-import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
-import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
+import CotizacionItemProductPickers from "@/components/cotizacion/CotizacionItemProductPickers";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
+import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
+import { createCotizacion, updateCotizacion, type ItemInput } from "@/lib/queries/cotizaciones";
+import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
+import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
+import type { CtzProducto, CtzSucursal } from "@/lib/types/db";
 
 type Props = {
   mode: "create" | "edit";
@@ -39,7 +41,32 @@ type Props = {
   onDelete?: () => Promise<boolean>;
 };
 
-type LocalItem = ItemInput & { tempId: string };
+type LocalItem = ItemInput & {
+  tempId: string;
+  productoSku: string;
+  productoDescripcion: string;
+};
+
+function itemFromProduct(product: CtzProducto, base: Omit<LocalItem, keyof ItemInput | "productoSku" | "productoDescripcion"> & Partial<ItemInput>): LocalItem {
+  const cantidad = base.cantidad ?? 1;
+  const precio = base.precio_unitario ?? product.precio_unitario_base;
+  const iva = base.iva_porcentaje ?? 16;
+  const subtotal_item = Number((cantidad * precio).toFixed(2));
+  const total_item = Number((subtotal_item * (1 + iva / 100)).toFixed(2));
+  return {
+    tempId: base.tempId,
+    id_producto: product.id,
+    descripcion_registro: product.descripcion,
+    cantidad,
+    unidad_medida: product.unidad_medida,
+    precio_unitario: precio,
+    iva_porcentaje: iva,
+    subtotal_item,
+    total_item,
+    productoSku: product.sku?.trim() ?? "",
+    productoDescripcion: product.descripcion,
+  };
+}
 
 type IvaCotizacionPct = 0 | 8 | 16;
 
@@ -62,8 +89,9 @@ function toNumber(value: string): number {
 
 export default function CotizacionForm({ mode, initial, onSaved, canDelete = false, onDelete }: Props) {
   const [sucursales, setSucursales] = useState<CtzSucursal[]>([]);
-  const [clientes, setClientes] = useState<CtzCliente[]>([]);
   const [productos, setProductos] = useState<CtzProducto[]>([]);
+  const [sucursalSelected, setSucursalSelected] = useState<SearchComboboxOption | null>(null);
+  const [clienteSelected, setClienteSelected] = useState<SearchComboboxOption | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [idSucursal, setIdSucursal] = useState(initial?.id_sucursal ?? "");
@@ -99,7 +127,15 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       return initial.items.map((item, index) => {
         const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
         const total_item = Number((subtotal_item * (1 + iva0 / 100)).toFixed(2));
-        return { ...item, tempId: `temp-${index}`, iva_porcentaje: iva0, subtotal_item, total_item };
+        return {
+          ...item,
+          tempId: `temp-${index}`,
+          iva_porcentaje: iva0,
+          subtotal_item,
+          total_item,
+          productoSku: "",
+          productoDescripcion: item.descripcion_registro,
+        };
       });
     }
     return [
@@ -113,20 +149,74 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         iva_porcentaje: iva0,
         subtotal_item: 0,
         total_item: 0,
+        productoSku: "",
+        productoDescripcion: "",
       },
     ];
   });
 
   useEffect(() => {
+    let cancelled = false;
     setCatalogLoading(true);
-    Promise.all([listSucursales(), listClientes(), listAllProductosActivos()]).then(([s, c, p]) => {
+    void (async () => {
+      const [s, p] = await Promise.all([listSucursales(), listAllProductosActivos()]);
+      if (cancelled) return;
       setSucursales(s);
-      setClientes(c);
       setProductos(p);
-      if (!idSucursal && s[0]) setIdSucursal(s[0].id);
-      setCatalogLoading(false);
-    });
-  }, [idSucursal]);
+
+      const sid = initial?.id_sucursal ?? idSucursal;
+      const suc = s.find((row) => row.id === sid) ?? s[0];
+      if (suc) {
+        setIdSucursal(suc.id);
+        setSucursalSelected({ id: suc.id, label: suc.nombre });
+      }
+
+      if (initial?.id_cliente) {
+        const cliente = await getClienteById(initial.id_cliente);
+        if (cliente && !cancelled) {
+          setIdCliente(cliente.id);
+          setClienteSelected({
+            id: cliente.id,
+            label: cliente.nombre_cliente,
+            sublabel: cliente.num_cliente ?? cliente.empresa ?? undefined,
+          });
+        }
+      }
+
+      const productIds = [
+        ...new Set(
+          (initial?.items ?? [])
+            .map((row) => row.id_producto)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
+      if (productIds.length) {
+        const catalog = await getProductosByIds(productIds);
+        const byId = new Map(catalog.map((row) => [row.id, row]));
+        if (!cancelled) {
+          setItems((prev) =>
+            prev.map((row) => {
+              if (!row.id_producto) return row;
+              const product = byId.get(row.id_producto);
+              if (!product) return row;
+              return {
+                ...row,
+                productoSku: product.sku?.trim() ?? "",
+                productoDescripcion: product.descripcion,
+                descripcion_registro: product.descripcion,
+              };
+            })
+          );
+        }
+      }
+
+      if (!cancelled) setCatalogLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial una vez
+  }, []);
 
   useEffect(() => {
     if (mode !== "create" || !idSucursal || !sucursales.length) return;
@@ -198,6 +288,55 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     );
   }
 
+  function applyProductToItem(tempId: string, product: CtzProducto) {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.tempId !== tempId) return item;
+        return itemFromProduct(product, {
+          tempId: item.tempId,
+          cantidad: item.cantidad,
+          precio_unitario: product.precio_unitario_base,
+          iva_porcentaje: ivaCotizacion,
+        });
+      })
+    );
+  }
+
+  function clearProductFromItem(tempId: string) {
+    updateItem(tempId, {
+      id_producto: null,
+      descripcion_registro: "",
+      unidad_medida: null,
+      precio_unitario: 0,
+      productoSku: "",
+      productoDescripcion: "",
+    });
+  }
+
+  const searchSucursales = useMemo(
+    () => async (query: string) => {
+      const lower = query.trim().toLowerCase();
+      if (!lower) return sucursales.slice(0, 50).map((s) => ({ id: s.id, label: s.nombre }));
+      return sucursales
+        .filter((s) => s.nombre.toLowerCase().includes(lower))
+        .slice(0, 50)
+        .map((s) => ({ id: s.id, label: s.nombre }));
+    },
+    [sucursales]
+  );
+
+  const searchClientesCb = useMemo(
+    () => async (query: string) => {
+      const rows = await listClientes(query);
+      return rows.map((c) => ({
+        id: c.id,
+        label: c.nombre_cliente,
+        sublabel: c.num_cliente ?? c.empresa ?? undefined,
+      }));
+    },
+    []
+  );
+
   async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -233,8 +372,15 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       toast.error("No hay filas validas para importar.");
       return;
     }
-    const inputs = previewOkToItemInputs(importPreview.ok, ivaCotizacion);
-    const newRows: LocalItem[] = inputs.map((item) => ({ ...item, tempId: crypto.randomUUID() }));
+    const newRows: LocalItem[] = importPreview.ok.map((row) => {
+      const [item] = previewOkToItemInputs([row], ivaCotizacion);
+      return {
+        ...item,
+        tempId: crypto.randomUUID(),
+        productoSku: row.product.sku?.trim() ?? "",
+        productoDescripcion: row.product.descripcion,
+      };
+    });
     setItems((prev) => {
       const kept = prev.filter((i) => i.id_producto);
       return [...kept, ...newRows];
@@ -298,8 +444,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     });
     setModalLoading(false);
     if (!created) return toast.error("No se pudo crear cliente.");
-    setClientes((prev) => [created, ...prev]);
     setIdCliente(created.id);
+    setClienteSelected({
+      id: created.id,
+      label: created.nombre_cliente,
+      sublabel: created.num_cliente ?? created.empresa ?? undefined,
+    });
     toast.success("Cliente creado.");
     setModalType(null);
   }
@@ -394,32 +544,34 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
           Sucursal
-          <select
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            value={idSucursal}
-            onChange={(event) => setIdSucursal(event.target.value)}
-          >
-            {sucursales.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.nombre}
-              </option>
-            ))}
-          </select>
+          <SearchCombobox
+            className="mt-1"
+            inputClassName="px-3 py-2"
+            disabled={catalogLoading}
+            minChars={1}
+            placeholder="Buscar sucursal..."
+            value={sucursalSelected}
+            onSearch={searchSucursales}
+            onChange={(opt) => {
+              setSucursalSelected(opt);
+              setIdSucursal(opt?.id ?? "");
+            }}
+          />
         </label>
         <label className="text-sm font-medium text-slate-700">
           Cliente
-          <select
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            value={idCliente}
-            onChange={(event) => setIdCliente(event.target.value)}
-          >
-            <option value="">Selecciona cliente</option>
-            {clientes.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.nombre_cliente}
-              </option>
-            ))}
-          </select>
+          <SearchCombobox
+            className="mt-1"
+            inputClassName="px-3 py-2"
+            disabled={catalogLoading}
+            placeholder="Buscar cliente..."
+            value={clienteSelected}
+            onSearch={searchClientesCb}
+            onChange={(opt) => {
+              setClienteSelected(opt);
+              setIdCliente(opt?.id ?? "");
+            }}
+          />
         </label>
         <label className="text-sm font-medium text-slate-700">
           Nombre de la obra
@@ -522,6 +674,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                     iva_porcentaje: ivaCotizacion,
                     subtotal_item: 0,
                     total_item: 0,
+                    productoSku: "",
+                    productoDescripcion: "",
                   },
                 ])
               }
@@ -533,35 +687,22 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
         <div className="space-y-3">
           <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-9">
-            <p className="md:col-span-4">Producto (Catalogo)</p>
+            <p className="md:col-span-2">SKU</p>
+            <p className="md:col-span-2">Descripcion</p>
             <p className="md:col-span-2">Cantidad</p>
             <p className="md:col-span-2">Precio unitario (neto)</p>
             <p className="md:col-span-1">Accion</p>
           </div>
           {items.map((item) => (
             <div key={item.tempId} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-9">
-              <select
-                className="md:col-span-4 rounded-md border border-slate-300 px-2 py-1 text-sm"
-                value={item.id_producto ?? ""}
-                onChange={(event) => {
-                  const product = productos.find((p) => p.id === event.target.value);
-                  if (!product) return;
-                  updateItem(item.tempId, {
-                    id_producto: product.id,
-                    descripcion_registro: product.descripcion,
-                    unidad_medida: product.unidad_medida,
-                    precio_unitario: product.precio_unitario_base,
-                  });
-                }}
-              >
-                <option value="">Selecciona producto</option>
-                {productos.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.sku ? `${row.sku} · ` : ""}
-                    {row.descripcion}
-                  </option>
-                ))}
-              </select>
+              <CotizacionItemProductPickers
+                productoId={item.id_producto}
+                skuLabel={item.productoSku}
+                descripcionLabel={item.productoDescripcion}
+                disabled={catalogLoading}
+                onProductSelected={(product) => applyProductToItem(item.tempId, product)}
+                onProductCleared={() => clearProductFromItem(item.tempId)}
+              />
               <input
                 className="md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 placeholder="Cantidad"
