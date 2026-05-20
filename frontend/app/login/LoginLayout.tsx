@@ -28,9 +28,10 @@ export default function LoginLayout({ children }: LoginLayoutProps) {
           <Image
             src="/promexma-logo.png"
             alt="Promexma"
-            width={180}
-            height={48}
-            className="brightness-0 invert"
+            width={2640}
+            height={554}
+            className="h-auto w-auto max-w-[180px] brightness-0 invert"
+            style={{ width: "auto", height: "auto" }}
             priority
           />
         </div>

@@ -209,7 +209,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-4">
           <Link href="/cotizaciones" className="flex items-center gap-2.5" onClick={() => setMobileNavOpen(false)}>
-            <Image src="/promexma-logo.png" alt="Promexma" width={30} height={30} className="shrink-0 object-contain" />
+            <Image
+              src="/promexma-logo.png"
+              alt="Promexma"
+              width={2640}
+              height={554}
+              className="h-7 w-auto max-w-[30px] shrink-0"
+              style={{ width: "auto", height: "auto" }}
+            />
             <div className="min-w-0">
               <p className="text-sm font-bold leading-none text-slate-800">Promexma</p>
               <p className="mt-0.5 text-[10px] font-medium text-blue-500">SO Cotizador</p>
@@ -237,7 +244,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-5">
           <Link href="/cotizaciones" className="flex items-center gap-2.5 overflow-hidden">
-            <Image src="/promexma-logo.png" alt="Promexma" width={30} height={30} className="shrink-0 object-contain" />
+            <Image
+              src="/promexma-logo.png"
+              alt="Promexma"
+              width={2640}
+              height={554}
+              className="h-7 w-auto max-w-[30px] shrink-0"
+              style={{ width: "auto", height: "auto" }}
+            />
             {!sidebarCollapsed && (
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-none text-slate-800">Promexma</p>
