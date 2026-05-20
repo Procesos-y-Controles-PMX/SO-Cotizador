@@ -43,10 +43,15 @@ export default function SearchCombobox({
     setInputText(value?.label ?? "");
   }, [value?.id, value?.label]);
 
+  const canSearch = useCallback(
+    (query: string) => minChars === 0 || query.trim().length >= minChars,
+    [minChars]
+  );
+
   const runSearch = useCallback(
     async (query: string) => {
       const trimmed = query.trim();
-      if (trimmed.length < minChars) {
+      if (!canSearch(query)) {
         setOptions([]);
         setLoading(false);
         return;
@@ -60,21 +65,20 @@ export default function SearchCombobox({
         setLoading(false);
       }
     },
-    [minChars, onSearch]
+    [canSearch, onSearch]
   );
 
   useEffect(() => {
     if (!open) return;
-    const trimmed = inputText.trim();
-    if (trimmed.length < minChars) {
+    if (!canSearch(inputText)) {
       setOptions([]);
       return;
     }
     const timer = window.setTimeout(() => {
       void runSearch(inputText);
-    }, SEARCH_DEBOUNCE_MS);
+    }, minChars === 0 && !inputText.trim() ? 0 : SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [inputText, open, minChars, runSearch]);
+  }, [inputText, open, minChars, canSearch, runSearch]);
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -100,8 +104,8 @@ export default function SearchCombobox({
   }
 
   const trimmed = inputText.trim();
-  const showMinHint = open && trimmed.length > 0 && trimmed.length < minChars;
-  const showEmpty = open && !loading && trimmed.length >= minChars && options.length === 0;
+  const showMinHint = open && minChars > 0 && trimmed.length > 0 && trimmed.length < minChars;
+  const showEmpty = open && !loading && canSearch(inputText) && options.length === 0;
   const showList = open && options.length > 0;
 
   return (
@@ -144,7 +148,7 @@ export default function SearchCombobox({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg"
         >
           {loading && <li className="px-3 py-2 text-slate-500">Buscando...</li>}
           {showMinHint && !loading && (

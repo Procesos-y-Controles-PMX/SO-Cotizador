@@ -70,22 +70,28 @@ export default function CotizacionItemProductPickers({
 
   return (
     <>
-      <SearchCombobox
-        className="md:col-span-2"
-        disabled={disabled}
-        placeholder="Buscar SKU..."
-        value={skuValue}
-        onChange={handleSelect}
-        onSearch={searchSku}
-      />
-      <SearchCombobox
-        className="md:col-span-2"
-        disabled={disabled}
-        placeholder="Buscar descripcion..."
-        value={descripcionValue}
-        onChange={handleSelect}
-        onSearch={searchDescripcion}
-      />
+      <div className="md:col-span-2">
+        <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">SKU</span>
+        <SearchCombobox
+          className="w-full"
+          disabled={disabled}
+          placeholder="Buscar SKU..."
+          value={skuValue}
+          onChange={handleSelect}
+          onSearch={searchSku}
+        />
+      </div>
+      <div className="md:col-span-2">
+        <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Descripcion</span>
+        <SearchCombobox
+          className="w-full"
+          disabled={disabled}
+          placeholder="Buscar descripcion..."
+          value={descripcionValue}
+          onChange={handleSelect}
+          onSearch={searchDescripcion}
+        />
+      </div>
     </>
   );
 }

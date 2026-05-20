@@ -1,11 +1,33 @@
-import { ilikePattern, SEARCH_MIN_CHARS, SEARCH_RESULT_LIMIT } from "../search";
+import { ilikePattern, SEARCH_MIN_CHARS, SEARCH_RESULT_LIMIT, stripAccents } from "../search";
 import { supabase } from "../supabase";
 import type { CtzProducto } from "../types/db";
 
 const PAGE_SIZE = 1000;
 
 const INVENTARIO_INITIAL_LIMIT = 10;
+/** Cuántos productos escanear para elegir los 10 iniciales con descripción textual. */
+const INVENTARIO_INITIAL_SCAN = 800;
 const INVENTARIO_SEARCH_LIMIT = SEARCH_RESULT_LIMIT;
+
+/** true si la descripción incluye al menos una letra (no solo números/símbolos). */
+function descripcionPareceTexto(descripcion: string): boolean {
+  const plain = stripAccents(descripcion.trim());
+  return /[a-zA-Z]/.test(plain);
+}
+
+async function listInventarioProductosIniciales(): Promise<CtzProducto[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("ctz_productos")
+    .select(INVENTARIO_SELECT)
+    .order("activo", { ascending: false })
+    .order("descripcion")
+    .limit(INVENTARIO_INITIAL_SCAN);
+  if (error) return [];
+  const rows = (data as CtzProducto[] | null) ?? [];
+  const conTexto = rows.filter((p) => descripcionPareceTexto(p.descripcion));
+  return conTexto.slice(0, INVENTARIO_INITIAL_LIMIT);
+}
 /** Mínimo de caracteres para disparar búsqueda (reduce escaneos con términos de 1 letra). */
 export const INVENTARIO_SEARCH_MIN_CHARS = SEARCH_MIN_CHARS;
 
@@ -16,7 +38,7 @@ function inventarioIlikePattern(raw: string): string | null {
 }
 
 /**
- * Lista para la pantalla de inventario (activos e inactivos): sin texto, los primeros N por descripción;
+ * Lista para la pantalla de inventario (activos e inactivos): sin texto, los primeros N con descripción textual;
  * con texto (≥ {@link INVENTARIO_SEARCH_MIN_CHARS}), búsqueda server-side por SKU, descripción, U.M.
  * y coincidencia exacta de precio base si el término es solo numérico.
  */
@@ -24,14 +46,7 @@ export async function listInventarioProductos(q: string): Promise<CtzProducto[]>
   if (!supabase) return [];
   const trimmed = q.trim();
   if (!trimmed) {
-    const { data, error } = await supabase
-      .from("ctz_productos")
-      .select(INVENTARIO_SELECT)
-      .order("activo", { ascending: false })
-      .order("descripcion")
-      .limit(INVENTARIO_INITIAL_LIMIT);
-    if (error) return [];
-    return (data as CtzProducto[] | null) ?? [];
+    return listInventarioProductosIniciales();
   }
   if (trimmed.length < INVENTARIO_SEARCH_MIN_CHARS) {
     return [];

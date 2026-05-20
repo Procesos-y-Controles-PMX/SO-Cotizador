@@ -15,6 +15,7 @@ import { generarFolio } from "@/lib/folio";
 import CotizacionItemProductPickers from "@/components/cotizacion/CotizacionItemProductPickers";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import { matchesSearch } from "@/lib/search";
 import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
 import {
   createCotizacion,
@@ -25,7 +26,7 @@ import {
 } from "@/lib/queries/cotizaciones";
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
-import type { CtzProducto, CtzSucursal } from "@/lib/types/db";
+import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 
 type Props = {
   mode: "create" | "edit";
@@ -98,6 +99,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [productos, setProductos] = useState<CtzProducto[]>([]);
   const [sucursalSelected, setSucursalSelected] = useState<SearchComboboxOption | null>(null);
   const [clienteSelected, setClienteSelected] = useState<SearchComboboxOption | null>(null);
+  const [clientesSucursal, setClientesSucursal] = useState<CtzCliente[]>([]);
+  const [loadingClientesSucursal, setLoadingClientesSucursal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [idSucursal, setIdSucursal] = useState(initial?.id_sucursal ?? "");
@@ -171,10 +174,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       setProductos(p);
 
       const sid = initial?.id_sucursal ?? idSucursal;
-      const suc = s.find((row) => row.id === sid) ?? s[0];
+      const suc = sid ? s.find((row) => row.id === sid) : undefined;
       if (suc) {
         setIdSucursal(suc.id);
-        setSucursalSelected({ id: suc.id, label: suc.nombre });
+        setSucursalSelected(sucursalToOption(suc));
       }
 
       const cotSucursalId = suc?.id ?? sid;
@@ -235,6 +238,24 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     if (!s) return;
     setIvaCotizacion(normalizeIvaPct(s.iva_predeterminado));
   }, [mode, idSucursal, sucursales]);
+
+  useEffect(() => {
+    if (!idSucursal) {
+      setClientesSucursal([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingClientesSucursal(true);
+    void listClientes("", idSucursal).then((rows) => {
+      if (!cancelled) {
+        setClientesSucursal(rows);
+        setLoadingClientesSucursal(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [idSucursal]);
 
   useEffect(() => {
     setItems((prev) =>
@@ -324,14 +345,22 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     });
   }
 
+  function sucursalToOption(s: CtzSucursal): SearchComboboxOption {
+    const label = s.centro ? `${s.nombre} (${s.centro})` : s.nombre;
+    return { id: s.id, label, sublabel: s.region ?? undefined };
+  }
+
   const searchSucursales = useMemo(
     () => async (query: string) => {
-      const lower = query.trim().toLowerCase();
-      if (!lower) return sucursales.slice(0, 50).map((s) => ({ id: s.id, label: s.nombre }));
-      return sucursales
-        .filter((s) => s.nombre.toLowerCase().includes(lower))
-        .slice(0, 50)
-        .map((s) => ({ id: s.id, label: s.nombre }));
+      const filtered = query.trim()
+        ? sucursales.filter(
+            (s) =>
+              matchesSearch(s.nombre, query) ||
+              (s.centro ? matchesSearch(s.centro, query) : false) ||
+              (s.region ? matchesSearch(s.region, query) : false)
+          )
+        : sucursales;
+      return filtered.map(sucursalToOption);
     },
     [sucursales]
   );
@@ -339,14 +368,21 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const searchClientesCb = useMemo(
     () => async (query: string) => {
       if (!idSucursal) return [];
-      const rows = await listClientes(query, idSucursal);
-      return rows.map((c) => ({
+      const filtered = query.trim()
+        ? clientesSucursal.filter(
+            (c) =>
+              matchesSearch(c.nombre_cliente, query) ||
+              (c.num_cliente ? matchesSearch(c.num_cliente, query) : false) ||
+              (c.empresa ? matchesSearch(c.empresa, query) : false)
+          )
+        : clientesSucursal;
+      return filtered.map((c) => ({
         id: c.id,
         label: c.nombre_cliente,
         sublabel: c.num_cliente ?? c.empresa ?? undefined,
       }));
     },
-    [idSucursal]
+    [idSucursal, clientesSucursal]
   );
 
   const sucursalNombre = useMemo(
@@ -488,6 +524,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       id: created.id,
       label: created.nombre_cliente,
       sublabel: created.num_cliente ?? created.empresa ?? undefined,
+    });
+    setClientesSucursal((prev) => {
+      if (prev.some((c) => c.id === created.id)) return prev;
+      return [...prev, created].sort((a, b) => a.nombre_cliente.localeCompare(b.nombre_cliente));
     });
     toast.success("Cliente creado.");
     setModalType(null);
@@ -633,9 +673,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           <SearchCombobox
             className="mt-1"
             inputClassName="px-3 py-2"
-            disabled={catalogLoading}
-            minChars={1}
-            placeholder="Buscar sucursal..."
+            disabled={catalogLoading || sucursales.length === 0}
+            minChars={0}
+            placeholder={catalogLoading ? "Cargando sucursales..." : "Buscar o seleccionar sucursal..."}
             value={sucursalSelected}
             onSearch={searchSucursales}
             onChange={(opt) => {
@@ -650,8 +690,15 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           <SearchCombobox
             className="mt-1"
             inputClassName="px-3 py-2"
-            disabled={catalogLoading || !idSucursal}
-            placeholder={idSucursal ? "Buscar cliente..." : "Selecciona sucursal primero"}
+            disabled={catalogLoading || !idSucursal || loadingClientesSucursal}
+            minChars={0}
+            placeholder={
+              !idSucursal
+                ? "Selecciona sucursal primero"
+                : loadingClientesSucursal
+                  ? "Cargando clientes..."
+                  : "Buscar o seleccionar cliente..."
+            }
             value={clienteSelected}
             onSearch={searchClientesCb}
             onChange={(opt) => {
@@ -780,8 +827,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             <p className="md:col-span-2">Precio unitario (neto)</p>
             <p className="md:col-span-1">Accion</p>
           </div>
-          {items.map((item) => (
-            <div key={item.tempId} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-9">
+          {items.map((item, index) => (
+            <div key={item.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-9 md:gap-2">
+              {items.length > 1 ? (
+                <p className="text-xs font-semibold text-slate-500 md:col-span-9 md:hidden">Item {index + 1}</p>
+              ) : null}
               <CotizacionItemProductPickers
                 productoId={item.id_producto}
                 skuLabel={item.productoSku}
@@ -790,25 +840,34 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 onProductSelected={(product) => applyProductToItem(item.tempId, product)}
                 onProductCleared={() => clearProductFromItem(item.tempId)}
               />
-              <input
-                className="md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
-                placeholder="Cantidad"
-                value={item.cantidad}
-                onChange={(event) => updateItem(item.tempId, { cantidad: toNumber(event.target.value) })}
-              />
-              <input
-                className="md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
-                placeholder="Precio unitario (neto)"
-                value={item.precio_unitario}
-                onChange={(event) => updateItem(item.tempId, { precio_unitario: toNumber(event.target.value) })}
-              />
-              <button
-                type="button"
-                className="md:col-span-1 rounded-md border border-slate-300 px-2 text-sm text-red-600"
-                onClick={() => setItems((prev) => prev.filter((row) => row.tempId !== item.tempId))}
-              >
-                X
-              </button>
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Cantidad</span>
+                <input
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  placeholder="Cantidad"
+                  value={item.cantidad}
+                  onChange={(event) => updateItem(item.tempId, { cantidad: toNumber(event.target.value) })}
+                />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Precio unitario (neto)</span>
+                <input
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  placeholder="Precio unitario (neto)"
+                  value={item.precio_unitario}
+                  onChange={(event) => updateItem(item.tempId, { precio_unitario: toNumber(event.target.value) })}
+                />
+              </label>
+              <div className="md:col-span-1">
+                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Accion</span>
+                <button
+                  type="button"
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-red-600 md:py-1"
+                  onClick={() => setItems((prev) => prev.filter((row) => row.tempId !== item.tempId))}
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           ))}
         </div>

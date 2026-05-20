@@ -93,15 +93,15 @@ export default function InventarioPage() {
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white [-webkit-overflow-scrolling:touch]">
+        <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3">SKU</th>
-              <th className="px-4 py-3">Descripcion</th>
-              <th className="px-4 py-3">U.M.</th>
-              <th className="px-4 py-3">Precio base</th>
-              <th className="px-4 py-3">Activo</th>
+              <th className="whitespace-nowrap px-4 py-3">SKU</th>
+              <th className="min-w-[200px] px-4 py-3">Descripcion</th>
+              <th className="whitespace-nowrap px-4 py-3">U.M.</th>
+              <th className="whitespace-nowrap px-4 py-3">Precio base</th>
+              <th className="whitespace-nowrap px-4 py-3">Activo</th>
             </tr>
           </thead>
           <tbody>
@@ -123,11 +123,11 @@ export default function InventarioPage() {
                   key={row.id}
                   className={`border-t border-slate-100 ${row.activo ? "" : "bg-slate-50 text-slate-600"}`}
                 >
-                  <td className="px-4 py-3">{row.sku ?? "-"}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{row.sku ?? "-"}</td>
                   <td className="px-4 py-3">{row.descripcion}</td>
-                  <td className="px-4 py-3">{row.unidad_medida ?? "-"}</td>
-                  <td className="px-4 py-3">${row.precio_unitario_base.toFixed(2)}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">{row.unidad_medida ?? "-"}</td>
+                  <td className="whitespace-nowrap px-4 py-3">${row.precio_unitario_base.toFixed(2)}</td>
+                  <td className="whitespace-nowrap px-4 py-3">
                     <input
                       type="checkbox"
                       checked={row.activo}

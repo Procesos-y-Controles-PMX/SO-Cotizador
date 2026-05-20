@@ -1,6 +1,9 @@
-import { ilikePattern, SEARCH_RESULT_LIMIT } from "../search";
+import { matchesSearch, SEARCH_RESULT_LIMIT } from "../search";
 import { supabase } from "../supabase";
 import type { CtzCliente } from "../types/db";
+
+/** Máximo de clientes por sucursal a traer para listado y filtro en memoria. */
+const CLIENTES_FETCH_CAP = 5000;
 
 export type CreateClienteResult =
   | { ok: true; cliente: CtzCliente }
@@ -14,17 +17,20 @@ export async function listClientes(search: string, idSucursal: string): Promise<
     .eq("activo", true)
     .eq("id_sucursal", idSucursal)
     .order("nombre_cliente");
+
+  const { data } = await query.limit(CLIENTES_FETCH_CAP);
+  const rows = (data as CtzCliente[] | null) ?? [];
   const trimmed = search.trim();
-  if (!trimmed) {
-    const { data } = await query.limit(SEARCH_RESULT_LIMIT);
-    return (data as CtzCliente[] | null) ?? [];
-  }
-  const pattern = ilikePattern(trimmed);
-  if (!pattern) return [];
-  const { data } = await query
-    .or(`nombre_cliente.ilike.${pattern},num_cliente.ilike.${pattern},empresa.ilike.${pattern}`)
-    .limit(SEARCH_RESULT_LIMIT);
-  return (data as CtzCliente[] | null) ?? [];
+  if (!trimmed) return rows;
+
+  return rows
+    .filter(
+      (c) =>
+        matchesSearch(c.nombre_cliente, trimmed) ||
+        (c.num_cliente ? matchesSearch(c.num_cliente, trimmed) : false) ||
+        (c.empresa ? matchesSearch(c.empresa, trimmed) : false)
+    )
+    .slice(0, SEARCH_RESULT_LIMIT);
 }
 
 export async function getClienteById(id: string): Promise<CtzCliente | null> {

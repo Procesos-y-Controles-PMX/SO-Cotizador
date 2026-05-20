@@ -32,27 +32,27 @@ export default function CotizacionesPage() {
         onChange={(event) => setSearch(event.target.value)}
       />
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white [-webkit-overflow-scrolling:touch]">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-4 py-3">Folio</th>
-              <th className="px-4 py-3">Cliente</th>
-              <th className="px-4 py-3">Obra</th>
-              <th className="px-4 py-3">Sucursal</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3"></th>
+              <th className="whitespace-nowrap px-4 py-3">Folio</th>
+              <th className="whitespace-nowrap px-4 py-3">Cliente</th>
+              <th className="whitespace-nowrap px-4 py-3">Obra</th>
+              <th className="whitespace-nowrap px-4 py-3">Sucursal</th>
+              <th className="whitespace-nowrap px-4 py-3">Total</th>
+              <th className="whitespace-nowrap px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-slate-100">
-                <td className="px-4 py-3 font-medium">{row.folio}</td>
+                <td className="whitespace-nowrap px-4 py-3 font-medium">{row.folio}</td>
                 <td className="px-4 py-3">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
                 <td className="px-4 py-3">{row.nombre_obra ?? "-"}</td>
-                <td className="px-4 py-3">{row.ctz_sucursales?.nombre ?? "-"}</td>
-                <td className="px-4 py-3">{money(row.total)}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="whitespace-nowrap px-4 py-3">{row.ctz_sucursales?.nombre ?? "-"}</td>
+                <td className="whitespace-nowrap px-4 py-3">{money(row.total)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right">
                   <Link href={`/cotizaciones/${row.id}`} className="text-red-700 hover:underline">
                     Ver detalle
                   </Link>
