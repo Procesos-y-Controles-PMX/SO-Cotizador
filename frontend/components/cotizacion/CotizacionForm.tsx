@@ -2,7 +2,7 @@
 
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, loginByEmail } from "@/lib/auth";
 import {
   buildSkuProductMap,
   downloadCotizacionItemsExcelTemplate,
@@ -16,7 +16,13 @@ import CotizacionItemProductPickers from "@/components/cotizacion/CotizacionItem
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
 import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
-import { createCotizacion, updateCotizacion, type ItemInput } from "@/lib/queries/cotizaciones";
+import {
+  createCotizacion,
+  toItemInput,
+  updateCotizacion,
+  type CreateCotizacionError,
+  type ItemInput,
+} from "@/lib/queries/cotizaciones";
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
 import type { CtzProducto, CtzSucursal } from "@/lib/types/db";
@@ -171,15 +177,20 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         setSucursalSelected({ id: suc.id, label: suc.nombre });
       }
 
-      if (initial?.id_cliente) {
+      const cotSucursalId = suc?.id ?? sid;
+      if (initial?.id_cliente && cotSucursalId) {
         const cliente = await getClienteById(initial.id_cliente);
         if (cliente && !cancelled) {
-          setIdCliente(cliente.id);
-          setClienteSelected({
-            id: cliente.id,
-            label: cliente.nombre_cliente,
-            sublabel: cliente.num_cliente ?? cliente.empresa ?? undefined,
-          });
+          if (cliente.id_sucursal !== cotSucursalId) {
+            toast.warning("El cliente de esta cotizacion no coincide con la sucursal seleccionada.");
+          } else {
+            setIdCliente(cliente.id);
+            setClienteSelected({
+              id: cliente.id,
+              label: cliente.nombre_cliente,
+              sublabel: cliente.num_cliente ?? cliente.empresa ?? undefined,
+            });
+          }
         }
       }
 
@@ -327,14 +338,20 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
   const searchClientesCb = useMemo(
     () => async (query: string) => {
-      const rows = await listClientes(query);
+      if (!idSucursal) return [];
+      const rows = await listClientes(query, idSucursal);
       return rows.map((c) => ({
         id: c.id,
         label: c.nombre_cliente,
         sublabel: c.num_cliente ?? c.empresa ?? undefined,
       }));
     },
-    []
+    [idSucursal]
+  );
+
+  const sucursalNombre = useMemo(
+    () => sucursales.find((row) => row.id === idSucursal)?.nombre ?? "",
+    [sucursales, idSucursal]
   );
 
   async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -409,7 +426,16 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     }
   }
 
+  function clearClienteSelection() {
+    setClienteSelected(null);
+    setIdCliente("");
+  }
+
   function openModal(type: "cliente" | "producto") {
+    if (type === "cliente" && !idSucursal) {
+      toast.error("Selecciona una sucursal antes de registrar un cliente.");
+      return;
+    }
     setModalType(type);
     if (type === "cliente") {
       setClienteDraft({
@@ -429,13 +455,18 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
   async function handleModalSave() {
     if (modalType !== "cliente") return;
+    if (!idSucursal) {
+      toast.error("Selecciona una sucursal antes de registrar un cliente.");
+      return;
+    }
     setModalLoading(true);
     if (!clienteDraft.nombre_cliente.trim()) {
       setModalLoading(false);
       toast.error("El nombre del cliente es obligatorio.");
       return;
     }
-    const created = await createCliente({
+    const result = await createCliente({
+      id_sucursal: idSucursal,
       nombre_cliente: clienteDraft.nombre_cliente.trim(),
       num_cliente: clienteDraft.num_cliente.trim(),
       empresa: clienteDraft.empresa.trim(),
@@ -443,7 +474,15 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       correo: clienteDraft.correo.trim(),
     });
     setModalLoading(false);
-    if (!created) return toast.error("No se pudo crear cliente.");
+    if (!result.ok) {
+      if (result.error === "duplicate") {
+        toast.error("Ya existe ese cliente en esta sucursal.");
+      } else {
+        toast.error("No se pudo crear cliente.");
+      }
+      return;
+    }
+    const created = result.cliente;
     setIdCliente(created.id);
     setClienteSelected({
       id: created.id,
@@ -454,9 +493,30 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     setModalType(null);
   }
 
+  function toastCreateCotizacionError(error: CreateCotizacionError) {
+    switch (error) {
+      case "duplicate_folio":
+        toast.error("El folio ya existe. Intenta de nuevo.");
+        break;
+      case "invalid_reference":
+        toast.error("Datos invalidos. Cierra sesion y vuelve a entrar, o revisa sucursal y cliente.");
+        break;
+      case "cliente_sucursal":
+        toast.error("El cliente no pertenece a la sucursal seleccionada.");
+        break;
+      case "items":
+        toast.error("No se pudieron guardar los items de la cotizacion.");
+        break;
+      default:
+        toast.error("No fue posible registrar la cotizacion.");
+    }
+  }
+
   async function save() {
-    const user = getCurrentUser();
-    if (!user) return;
+    if (loading) return;
+    const sessionUser = getCurrentUser();
+    if (!sessionUser) return;
+    const user = (await loginByEmail(sessionUser.email)) ?? sessionUser;
     if (!idSucursal || !idCliente || !items.length) {
       toast.error("Selecciona sucursal, cliente y al menos un item.");
       return;
@@ -464,12 +524,17 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
     const readyItems = items
       .filter((item) => item.id_producto && item.cantidad > 0)
-      .map(({ tempId, ...rest }) => {
-        const selectedProduct = productos.find((product) => product.id === rest.id_producto);
-        return {
-          ...rest,
-          descripcion_registro: selectedProduct?.descripcion ?? rest.descripcion_registro,
-        };
+      .map(({ tempId, productoSku, productoDescripcion, ...item }) => {
+        const selectedProduct = productos.find((product) => product.id === item.id_producto);
+        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
+        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
+        return toItemInput({
+          ...item,
+          descripcion_registro: selectedProduct?.descripcion ?? item.descripcion_registro,
+          iva_porcentaje: ivaCotizacion,
+          subtotal_item,
+          total_item,
+        });
       });
     if (!readyItems.length) {
       toast.error("Agrega al menos un item valido.");
@@ -477,6 +542,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     }
 
     const ivaPorCotizacion = ivaCotizacion;
+    const itemsPayload = readyItems.map((row) =>
+      toItemInput({ ...row, iva_porcentaje: ivaPorCotizacion })
+    );
 
     setLoading(true);
     if (mode === "create") {
@@ -486,29 +554,47 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         setLoading(false);
         return;
       }
-      const folio = generarFolio(sucursal.prefijo_folio);
-      const id = await createCotizacion({
-        cotizacion: {
-          folio,
-          id_usuario: user.id,
-          id_sucursal: idSucursal,
-          id_cliente: idCliente,
-          nombre_obra: nombreObra || null,
-          tipo_pago: tipoPago,
-          referencia_pago: referenciaPago || null,
-          comentarios: comentarios || null,
-          mostrar_con_iva: mostrarConIva,
-          iva_porcentaje: ivaPorCotizacion,
-          subtotal: totals.subtotal,
-          iva_total: totals.ivaTotal,
-          total: totals.total,
-        },
-        items: readyItems.map((row) => ({ ...row, iva_porcentaje: ivaPorCotizacion })),
-      });
+      const cotizacionBase = {
+        id_usuario: user.id,
+        id_sucursal: idSucursal,
+        id_cliente: idCliente,
+        nombre_obra: nombreObra || null,
+        tipo_pago: tipoPago,
+        referencia_pago: referenciaPago || null,
+        comentarios: comentarios || null,
+        mostrar_con_iva: mostrarConIva,
+        iva_porcentaje: ivaPorCotizacion,
+        subtotal: totals.subtotal,
+        iva_total: totals.ivaTotal,
+        total: totals.total,
+      };
+      let result: Awaited<ReturnType<typeof createCotizacion>> = { ok: false, error: "unknown" };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        result = await createCotizacion({
+          cotizacion: {
+            folio: generarFolio(sucursal.prefijo_folio),
+            ...cotizacionBase,
+          },
+          items: itemsPayload,
+        });
+        if (result.ok) break;
+        if (result.error !== "duplicate_folio") break;
+      }
+
       setLoading(false);
-      if (!id) return toast.error("No fue posible registrar la cotizacion.");
+      if (!result.ok) {
+        if (result.error === "invalid_reference") {
+          const fresh = await loginByEmail(sessionUser.email);
+          if (!fresh) {
+            toast.error("Tu sesion ya no es valida (base de datos reiniciada). Vuelve a iniciar sesion.");
+            return;
+          }
+        }
+        toastCreateCotizacionError(result.error);
+        return;
+      }
       toast.success("Cotizacion registrada.");
-      onSaved(id);
+      onSaved(result.id);
       return;
     }
 
@@ -531,7 +617,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         iva_total: totals.ivaTotal,
         total: totals.total,
       },
-      readyItems.map((row) => ({ ...row, iva_porcentaje: ivaPorCotizacion }))
+      itemsPayload
     );
     setLoading(false);
     if (!ok) return toast.error("No fue posible actualizar.");
@@ -555,6 +641,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             onChange={(opt) => {
               setSucursalSelected(opt);
               setIdSucursal(opt?.id ?? "");
+              clearClienteSelection();
             }}
           />
         </label>
@@ -563,8 +650,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           <SearchCombobox
             className="mt-1"
             inputClassName="px-3 py-2"
-            disabled={catalogLoading}
-            placeholder="Buscar cliente..."
+            disabled={catalogLoading || !idSucursal}
+            placeholder={idSucursal ? "Buscar cliente..." : "Selecciona sucursal primero"}
             value={clienteSelected}
             onSearch={searchClientesCb}
             onChange={(opt) => {
@@ -800,7 +887,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
           <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
             <h4 className="text-base font-semibold text-slate-900">Nuevo cliente</h4>
-            <p className="mt-1 text-sm text-slate-500">Completa los campos del cliente.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {sucursalNombre
+                ? `Se registrara en la sucursal: ${sucursalNombre}.`
+                : "Completa los campos del cliente."}
+            </p>
 
             <div className="mt-4 grid gap-3">
               <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">

@@ -9,7 +9,11 @@ export function generarFolio(prefijo: string, now = new Date()): string {
   const hh = pad(now.getHours());
   const min = pad(now.getMinutes());
   const ss = pad(now.getSeconds());
+  const ms = now.getMilliseconds().toString().padStart(3, "0");
+  const rnd = Math.floor(Math.random() * 100)
+    .toString()
+    .padStart(2, "0");
 
-  return `${prefijo.toUpperCase()}-${yyyy}${mm}${dd}-${hh}${min}${ss}`;
+  return `${prefijo.toUpperCase()}-${yyyy}${mm}${dd}-${hh}${min}${ss}${ms}${rnd}`;
 }
 

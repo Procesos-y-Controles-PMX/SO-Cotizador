@@ -12,6 +12,20 @@ export type ItemInput = {
   total_item: number;
 };
 
+/** Solo columnas de ctz_cotizacion_items (evita enviar campos UI a PostgREST). */
+export function toItemInput(item: ItemInput): ItemInput {
+  return {
+    id_producto: item.id_producto,
+    descripcion_registro: item.descripcion_registro,
+    cantidad: item.cantidad,
+    unidad_medida: item.unidad_medida,
+    precio_unitario: item.precio_unitario,
+    iva_porcentaje: item.iva_porcentaje,
+    subtotal_item: item.subtotal_item,
+    total_item: item.total_item,
+  };
+}
+
 export type CotizacionWithRelations = CtzCotizacion & {
   ctz_clientes: { nombre_cliente: string } | null;
   ctz_sucursales: { nombre: string; prefijo_folio: string; terminos_adicionales: string | null } | null;
@@ -67,11 +81,32 @@ export async function getCotizacionById(id: string): Promise<CotizacionWithRelat
   return (data as CotizacionWithRelations | null) ?? null;
 }
 
+export type CreateCotizacionError =
+  | "duplicate_folio"
+  | "invalid_reference"
+  | "cliente_sucursal"
+  | "items"
+  | "unknown";
+
+export type CreateCotizacionResult =
+  | { ok: true; id: string }
+  | { ok: false; error: CreateCotizacionError; message?: string };
+
+function mapCotizacionInsertError(error: { code?: string; message?: string }): CreateCotizacionResult {
+  const message = error.message ?? "";
+  if (error.code === "23505") return { ok: false, error: "duplicate_folio" };
+  if (error.code === "23503") return { ok: false, error: "invalid_reference", message };
+  if (message.toLowerCase().includes("cliente no pertenece")) {
+    return { ok: false, error: "cliente_sucursal", message };
+  }
+  return { ok: false, error: "unknown", message };
+}
+
 export async function createCotizacion(payload: {
   cotizacion: Omit<CtzCotizacion, "id" | "created_at" | "updated_at">;
   items: ItemInput[];
-}): Promise<string | null> {
-  if (!supabase) return null;
+}): Promise<CreateCotizacionResult> {
+  if (!supabase) return { ok: false, error: "unknown" };
 
   const { data: inserted, error: insertHeaderError } = await supabase
     .from("ctz_cotizaciones")
@@ -79,21 +114,23 @@ export async function createCotizacion(payload: {
     .select("id")
     .single();
 
-  if (insertHeaderError || !inserted?.id) return null;
+  if (insertHeaderError || !inserted?.id) {
+    return mapCotizacionInsertError(insertHeaderError ?? { message: "Sin id" });
+  }
 
   const { error: insertItemsError } = await supabase.from("ctz_cotizacion_items").insert(
     payload.items.map((item) => ({
       id_cotizacion: inserted.id,
-      ...item,
+      ...toItemInput(item),
     }))
   );
 
   if (insertItemsError) {
     await supabase.from("ctz_cotizaciones").delete().eq("id", inserted.id);
-    return null;
+    return { ok: false, error: "items", message: insertItemsError.message };
   }
 
-  return inserted.id;
+  return { ok: true, id: inserted.id };
 }
 
 export async function updateCotizacion(
@@ -111,7 +148,7 @@ export async function updateCotizacion(
   const { error: insertItemsError } = await supabase.from("ctz_cotizacion_items").insert(
     items.map((item) => ({
       id_cotizacion: id,
-      ...item,
+      ...toItemInput(item),
     }))
   );
   return !insertItemsError;

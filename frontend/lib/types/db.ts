@@ -25,6 +25,7 @@ export type CtzSucursal = {
 
 export type CtzCliente = {
   id: string;
+  id_sucursal: string;
   nombre_cliente: string;
   num_cliente: string | null;
   empresa: string | null;
