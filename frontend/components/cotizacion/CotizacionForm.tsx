@@ -56,8 +56,10 @@ type LocalItem = ItemInput & {
 
 function itemFromProduct(product: CtzProducto, base: Omit<LocalItem, keyof ItemInput | "productoSku" | "productoDescripcion"> & Partial<ItemInput>): LocalItem {
   const cantidad = base.cantidad ?? 1;
-  const precio = base.precio_unitario ?? product.precio_unitario_base;
+  const precio = base.precio_unitario ?? 0;
   const iva = base.iva_porcentaje ?? 16;
+  const unidad_medida =
+    base.unidad_medida !== undefined ? base.unidad_medida : product.unidad_medida ?? null;
   const subtotal_item = Number((cantidad * precio).toFixed(2));
   const total_item = Number((subtotal_item * (1 + iva / 100)).toFixed(2));
   return {
@@ -65,7 +67,7 @@ function itemFromProduct(product: CtzProducto, base: Omit<LocalItem, keyof ItemI
     id_producto: product.id,
     descripcion_registro: product.descripcion,
     cantidad,
-    unidad_medida: product.unidad_medida,
+    unidad_medida,
     precio_unitario: precio,
     iva_porcentaje: iva,
     subtotal_item,
@@ -324,10 +326,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     setItems((prev) =>
       prev.map((item) => {
         if (item.tempId !== tempId) return item;
+        const sameProduct = item.id_producto === product.id;
         return itemFromProduct(product, {
           tempId: item.tempId,
           cantidad: item.cantidad,
-          precio_unitario: product.precio_unitario_base,
+          unidad_medida: sameProduct ? item.unidad_medida : product.unidad_medida ?? null,
+          precio_unitario: sameProduct ? item.precio_unitario : 0,
           iva_porcentaje: ivaCotizacion,
         });
       })
@@ -820,17 +824,21 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         </div>
 
         <div className="space-y-3">
-          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-9">
+          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-10">
             <p className="md:col-span-2">SKU</p>
             <p className="md:col-span-2">Descripcion</p>
+            <p className="md:col-span-1">U.M.</p>
             <p className="md:col-span-2">Cantidad</p>
             <p className="md:col-span-2">Precio unitario (neto)</p>
             <p className="md:col-span-1">Accion</p>
           </div>
-          {items.map((item, index) => (
-            <div key={item.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-9 md:gap-2">
+          {items.map((item, index) => {
+            const productoCatalogo = productos.find((p) => p.id === item.id_producto);
+            const umDefault = productoCatalogo?.unidad_medida?.trim() || "";
+            return (
+            <div key={item.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
               {items.length > 1 ? (
-                <p className="text-xs font-semibold text-slate-500 md:col-span-9 md:hidden">Item {index + 1}</p>
+                <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Item {index + 1}</p>
               ) : null}
               <CotizacionItemProductPickers
                 productoId={item.id_producto}
@@ -840,6 +848,19 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 onProductSelected={(product) => applyProductToItem(item.tempId, product)}
                 onProductCleared={() => clearProductFromItem(item.tempId)}
               />
+              <label className="block md:col-span-1">
+                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">U.M.</span>
+                <input
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  placeholder={umDefault || "U.M."}
+                  value={item.unidad_medida ?? ""}
+                  onChange={(event) =>
+                    updateItem(item.tempId, {
+                      unidad_medida: event.target.value.trim() ? event.target.value.trim() : null,
+                    })
+                  }
+                />
+              </label>
               <label className="block md:col-span-2">
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Cantidad</span>
                 <input
@@ -869,7 +890,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-700">

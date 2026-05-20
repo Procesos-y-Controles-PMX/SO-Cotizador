@@ -12,23 +12,17 @@ type Props = {
   onCreated: (producto: CtzProducto) => void | Promise<void>;
 };
 
-function toNumber(value: string): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 export default function NuevoProductoModal({ open, onClose, onCreated }: Props) {
   const [draft, setDraft] = useState({
     sku: "",
     descripcion: "",
     unidad_medida: "",
-    precio_unitario_base: "0",
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDraft({ sku: "", descripcion: "", unidad_medida: "", precio_unitario_base: "0" });
+      setDraft({ sku: "", descripcion: "", unidad_medida: "" });
       setSaving(false);
     }
   }, [open]);
@@ -46,7 +40,6 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
       sku: draft.sku.trim(),
       descripcion: draft.descripcion.trim(),
       unidad_medida: draft.unidad_medida.trim(),
-      precio_unitario_base: toNumber(draft.precio_unitario_base),
     });
     setSaving(false);
     if (!created) {
@@ -60,7 +53,9 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
         <h4 className="text-base font-semibold text-slate-900">Nuevo producto</h4>
-        <p className="mt-1 text-sm text-slate-500">Completa los campos del producto.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          El precio se define en cada cotización; en catálogo queda en $0.00.
+        </p>
 
         <div className="mt-4 grid gap-3">
           <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -88,18 +83,6 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
               value={draft.unidad_medida}
               onChange={(event) => setDraft((prev) => ({ ...prev, unidad_medida: event.target.value }))}
               placeholder="Ej. Bulto, Pieza, m3"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
-            />
-          </label>
-          <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-            Precio Unitario Base
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={draft.precio_unitario_base}
-              onChange={(event) => setDraft((prev) => ({ ...prev, precio_unitario_base: event.target.value }))}
-              placeholder="Ej. 125.50"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
               onKeyDown={(event) => {
                 if (event.key === "Enter") {

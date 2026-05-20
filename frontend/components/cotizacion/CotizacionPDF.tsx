@@ -20,6 +20,13 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX");
 }
 
+/** Marca Promexma / Cemex (PDF) */
+const BRAND_RED = "#DA291C";
+const BRAND_GRAY = "#54565A";
+const BRAND_RED_LIGHT = "#FDEBEA";
+const BRAND_RED_BORDER = "#F5C4C0";
+const BRAND_RED_MUTED = "#B82218";
+
 function pdfIvaCotizacionPct(quote: CotizacionWithRelations): number {
   const h = quote.iva_porcentaje;
   const hn = Math.round(Number(h));
@@ -35,7 +42,7 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
-    color: "#0F172A",
+    color: BRAND_GRAY,
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 24,
@@ -51,7 +58,7 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
   topBar: {
-    backgroundColor: "#B91C1C",
+    backgroundColor: BRAND_RED,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -59,9 +66,9 @@ const styles = StyleSheet.create({
   },
   topBarRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   topBarTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: 700 },
-  topBarSubtitle: { color: "#FEE2E2", fontSize: 9 },
+  topBarSubtitle: { color: "#FADBD8", fontSize: 9 },
   folioBadge: {
-    border: "1 solid #FCA5A5",
+    border: "1 solid #FFFFFF",
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 5,
@@ -72,12 +79,12 @@ const styles = StyleSheet.create({
   companyTagline: {
     fontSize: 8.5,
     textAlign: "center",
-    color: "#64748B",
+    color: BRAND_GRAY,
     marginTop: 4,
     marginBottom: 10,
   },
   card: {
-    border: "1 solid #E2E8F0",
+    border: `1 solid ${BRAND_GRAY}`,
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
@@ -85,46 +92,46 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 9,
     textTransform: "uppercase",
-    color: "#94A3B8",
+    color: BRAND_GRAY,
     marginBottom: 6,
     fontWeight: 700,
     letterSpacing: 0.8,
   },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   infoCol: { width: "50%", paddingHorizontal: 4, marginBottom: 6 },
-  infoLabel: { fontSize: 8, color: "#64748B", marginBottom: 1 },
-  infoValue: { fontSize: 9.3, color: "#0F172A", fontWeight: 600 },
-  tableBox: { border: "1 solid #E2E8F0", borderRadius: 8, overflow: "hidden", marginBottom: 12 },
+  infoLabel: { fontSize: 8, color: BRAND_GRAY, marginBottom: 1 },
+  infoValue: { fontSize: 9.3, color: BRAND_GRAY, fontWeight: 600 },
+  tableBox: { border: `1 solid ${BRAND_GRAY}`, borderRadius: 8, overflow: "hidden", marginBottom: 12 },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#F8FAFC",
-    borderBottom: "1 solid #E2E8F0",
+    backgroundColor: BRAND_RED_LIGHT,
+    borderBottom: `1 solid ${BRAND_GRAY}`,
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  tableHeaderText: { fontSize: 8, textTransform: "uppercase", color: "#64748B", fontWeight: 700 },
-  tableRow: { flexDirection: "row", borderBottom: "1 solid #EEF2F7", paddingVertical: 6, paddingHorizontal: 8 },
-  tableRowAlt: { backgroundColor: "#FCFDFE" },
-  tableCell: { fontSize: 8.8, color: "#0F172A" },
+  tableHeaderText: { fontSize: 8, textTransform: "uppercase", color: BRAND_GRAY, fontWeight: 700 },
+  tableRow: { flexDirection: "row", borderBottom: `1 solid ${BRAND_RED_BORDER}`, paddingVertical: 6, paddingHorizontal: 8 },
+  tableRowAlt: { backgroundColor: "#FFFFFF" },
+  tableCell: { fontSize: 8.8, color: BRAND_GRAY },
   tableCellRight: { textAlign: "right" },
   tableFooterRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 4, marginBottom: 8, paddingRight: 8 },
   totalsCard: {
     width: 220,
-    border: "1 solid #FECACA",
+    border: `1 solid ${BRAND_RED}`,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: BRAND_RED_LIGHT,
   },
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  totalLabel: { fontSize: 8.8, color: "#7F1D1D" },
-  totalValue: { fontSize: 8.8, color: "#7F1D1D", fontWeight: 600 },
-  grandTotalLabel: { fontSize: 10, fontWeight: 700, color: "#991B1B" },
-  grandTotalValue: { fontSize: 11, fontWeight: 800, color: "#991B1B" },
+  totalLabel: { fontSize: 8.8, color: BRAND_RED_MUTED },
+  totalValue: { fontSize: 8.8, color: BRAND_RED_MUTED, fontWeight: 600 },
+  grandTotalLabel: { fontSize: 10, fontWeight: 700, color: BRAND_RED },
+  grandTotalValue: { fontSize: 11, fontWeight: 800, color: BRAND_RED },
   termsGrid: { flexDirection: "row", marginTop: 2 },
   termsColLeft: {
     width: "52%",
-    border: "1 solid #E2E8F0",
+    border: `1 solid ${BRAND_GRAY}`,
     borderRadius: 8,
     padding: 9,
     minHeight: 84,
@@ -132,26 +139,26 @@ const styles = StyleSheet.create({
   },
   termsColRight: {
     width: "48%",
-    border: "1 solid #E2E8F0",
+    border: `1 solid ${BRAND_GRAY}`,
     borderRadius: 8,
     padding: 9,
     minHeight: 84,
   },
-  termsTitle: { fontSize: 8.5, textTransform: "uppercase", color: "#64748B", fontWeight: 700, marginBottom: 6 },
-  termsText: { fontSize: 8.2, color: "#334155", lineHeight: 1.35, marginBottom: 3 },
+  termsTitle: { fontSize: 8.5, textTransform: "uppercase", color: BRAND_GRAY, fontWeight: 700, marginBottom: 6 },
+  termsText: { fontSize: 8.2, color: BRAND_GRAY, lineHeight: 1.35, marginBottom: 3 },
   footerNote: {
     marginTop: 10,
-    borderTop: "1 solid #E2E8F0",
+    borderTop: `1 solid ${BRAND_GRAY}`,
     paddingTop: 6,
     fontSize: 7.8,
-    color: "#64748B",
+    color: BRAND_GRAY,
     textAlign: "center",
   },
   cuentasPage: {
     fontSize: 9.5,
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
-    color: "#0F172A",
+    color: BRAND_GRAY,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,
@@ -159,7 +166,7 @@ const styles = StyleSheet.create({
   cuentasTitle: {
     fontSize: 11,
     fontWeight: 700,
-    color: "#0F172A",
+    color: BRAND_GRAY,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -235,21 +242,23 @@ export function CotizacionPDFDocument({
 
         <View style={styles.tableBox}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, { width: "43%" }]}>Producto</Text>
-            <Text style={[styles.tableHeaderText, { width: "9%" }]}>Cant.</Text>
-            <Text style={[styles.tableHeaderText, { width: "14%" }]}>P.U. (neto)</Text>
-            <Text style={[styles.tableHeaderText, { width: "8%" }]}>IVA</Text>
+            <Text style={[styles.tableHeaderText, { width: "34%" }]}>Producto</Text>
+            <Text style={[styles.tableHeaderText, { width: "8%" }]}>U.M.</Text>
+            <Text style={[styles.tableHeaderText, { width: "8%" }]}>Cant.</Text>
+            <Text style={[styles.tableHeaderText, { width: "13%" }]}>P.U. (neto)</Text>
+            <Text style={[styles.tableHeaderText, { width: "7%" }]}>IVA</Text>
             <Text style={[styles.tableHeaderText, { width: "11%" }]}>Subtotal</Text>
-            <Text style={[styles.tableHeaderText, { width: "15%", textAlign: "right" }]}>Importe</Text>
+            <Text style={[styles.tableHeaderText, { width: "19%", textAlign: "right" }]}>Importe</Text>
           </View>
           {quote.ctz_cotizacion_items.map((item, index) => (
             <View key={item.id} style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
-              <Text style={[styles.tableCell, { width: "43%" }]}>{item.descripcion_registro}</Text>
-              <Text style={[styles.tableCell, { width: "9%" }]}>{item.cantidad}</Text>
-              <Text style={[styles.tableCell, { width: "14%" }]}>{money(item.precio_unitario)}</Text>
-              <Text style={[styles.tableCell, { width: "8%" }]}>{ivaPct}%</Text>
+              <Text style={[styles.tableCell, { width: "34%" }]}>{item.descripcion_registro}</Text>
+              <Text style={[styles.tableCell, { width: "8%" }]}>{item.unidad_medida ?? "-"}</Text>
+              <Text style={[styles.tableCell, { width: "8%" }]}>{item.cantidad}</Text>
+              <Text style={[styles.tableCell, { width: "13%" }]}>{money(item.precio_unitario)}</Text>
+              <Text style={[styles.tableCell, { width: "7%" }]}>{ivaPct}%</Text>
               <Text style={[styles.tableCell, { width: "11%" }]}>{money(item.subtotal_item)}</Text>
-              <Text style={[styles.tableCell, styles.tableCellRight, { width: "15%" }]}>{money(item.total_item)}</Text>
+              <Text style={[styles.tableCell, styles.tableCellRight, { width: "19%" }]}>{money(item.total_item)}</Text>
             </View>
           ))}
 
@@ -263,7 +272,7 @@ export function CotizacionPDFDocument({
                 <Text style={styles.totalLabel}>IVA</Text>
                 <Text style={styles.totalValue}>{money(quote.iva_total)}</Text>
               </View>
-              <View style={[styles.totalRow, { marginBottom: 0, borderTop: "1 solid #FCA5A5", paddingTop: 4 }]}>
+              <View style={[styles.totalRow, { marginBottom: 0, borderTop: `1 solid ${BRAND_RED}`, paddingTop: 4 }]}>
                 <Text style={styles.grandTotalLabel}>Total</Text>
                 <Text style={styles.grandTotalValue}>{money(quote.total)}</Text>
               </View>

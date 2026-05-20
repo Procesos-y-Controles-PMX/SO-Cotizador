@@ -160,7 +160,8 @@ export async function createProducto(payload: {
   sku?: string;
   descripcion: string;
   unidad_medida?: string;
-  precio_unitario_base: number;
+  /** Siempre 0 en alta; el precio se define en cada cotización. */
+  precio_unitario_base?: number;
 }): Promise<CtzProducto | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
@@ -169,7 +170,7 @@ export async function createProducto(payload: {
       sku: payload.sku || null,
       descripcion: payload.descripcion,
       unidad_medida: payload.unidad_medida || null,
-      precio_unitario_base: payload.precio_unitario_base,
+      precio_unitario_base: payload.precio_unitario_base ?? 0,
     })
     .select("*")
     .single();
