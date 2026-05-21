@@ -1,18 +1,18 @@
+"use client";
+
+import { useCallback, useState } from "react";
 import {
   Document,
   Image,
   Page,
-  PDFDownloadLink,
   PDFViewer,
   StyleSheet,
   Text,
   View,
+  pdf,
 } from "@react-pdf/renderer";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
-
-function money(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
+import { money } from "@/lib/utils";
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -20,12 +20,17 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX");
 }
 
+function pdfFileNameFromFolio(folio: string): string {
+  const safe = folio.replace(/[^\w.-]+/g, "_");
+  return `${safe}.pdf`;
+}
+
 /** Marca Promexma / Cemex (PDF) */
 const BRAND_RED = "#DA291C";
 const BRAND_GRAY = "#54565A";
-const BRAND_RED_LIGHT = "#FDEBEA";
-const BRAND_RED_BORDER = "#F5C4C0";
-const BRAND_RED_MUTED = "#B82218";
+const TEXT_BLACK = "#000000";
+const TEXT_ON_GRAY = "#FFFFFF";
+const BORDER_LIGHT = "#D1D3D4";
 
 function pdfIvaCotizacionPct(quote: CotizacionWithRelations): number {
   const h = quote.iva_porcentaje;
@@ -42,7 +47,7 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 24,
@@ -50,38 +55,23 @@ const styles = StyleSheet.create({
   headerLogoWrap: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   headerLogo: {
-    width: 440,
-    height: 72,
+    width: 280,
+    height: 46,
     objectFit: "contain",
   },
-  topBar: {
-    backgroundColor: BRAND_RED,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  headerDivider: {
+    borderBottom: `2.5 solid ${BRAND_RED}`,
     marginBottom: 10,
-  },
-  topBarRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  topBarTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: 700 },
-  topBarSubtitle: { color: "#FADBD8", fontSize: 9 },
-  folioBadge: {
-    border: "1 solid #FFFFFF",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: 700,
   },
   companyTagline: {
     fontSize: 8.5,
     textAlign: "center",
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     marginTop: 4,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   card: {
     border: `1 solid ${BRAND_GRAY}`,
@@ -92,73 +82,71 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 9,
     textTransform: "uppercase",
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     marginBottom: 6,
     fontWeight: 700,
     letterSpacing: 0.8,
   },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
   infoCol: { width: "50%", paddingHorizontal: 4, marginBottom: 6 },
-  infoLabel: { fontSize: 8, color: BRAND_GRAY, marginBottom: 1 },
-  infoValue: { fontSize: 9.3, color: BRAND_GRAY, fontWeight: 600 },
+  infoLabel: { fontSize: 8, color: TEXT_BLACK, marginBottom: 1 },
+  infoValue: { fontSize: 9.3, color: TEXT_BLACK, fontWeight: 600 },
   tableBox: { border: `1 solid ${BRAND_GRAY}`, borderRadius: 8, overflow: "hidden", marginBottom: 12 },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: BRAND_RED_LIGHT,
+    backgroundColor: BRAND_GRAY,
     borderBottom: `1 solid ${BRAND_GRAY}`,
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  tableHeaderText: { fontSize: 8, textTransform: "uppercase", color: BRAND_GRAY, fontWeight: 700 },
-  tableRow: { flexDirection: "row", borderBottom: `1 solid ${BRAND_RED_BORDER}`, paddingVertical: 6, paddingHorizontal: 8 },
+  tableHeaderText: { fontSize: 8, textTransform: "uppercase", color: TEXT_ON_GRAY, fontWeight: 700 },
+  tableRow: { flexDirection: "row", borderBottom: `1 solid ${BORDER_LIGHT}`, paddingVertical: 6, paddingHorizontal: 8 },
   tableRowAlt: { backgroundColor: "#FFFFFF" },
-  tableCell: { fontSize: 8.8, color: BRAND_GRAY },
+  tableCell: { fontSize: 8.8, color: TEXT_BLACK },
   tableCellRight: { textAlign: "right" },
   tableFooterRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 4, marginBottom: 8, paddingRight: 8 },
   totalsCard: {
     width: 220,
-    border: `1 solid ${BRAND_RED}`,
+    border: `1 solid ${BRAND_GRAY}`,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: BRAND_RED_LIGHT,
+    backgroundColor: BRAND_GRAY,
   },
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  totalLabel: { fontSize: 8.8, color: BRAND_RED_MUTED },
-  totalValue: { fontSize: 8.8, color: BRAND_RED_MUTED, fontWeight: 600 },
-  grandTotalLabel: { fontSize: 10, fontWeight: 700, color: BRAND_RED },
-  grandTotalValue: { fontSize: 11, fontWeight: 800, color: BRAND_RED },
-  termsGrid: { flexDirection: "row", marginTop: 2 },
-  termsColLeft: {
-    width: "52%",
+  totalLabel: { fontSize: 8.8, color: TEXT_ON_GRAY },
+  totalValue: { fontSize: 8.8, color: TEXT_ON_GRAY, fontWeight: 600 },
+  grandTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 0,
+    borderTop: `1 solid ${TEXT_ON_GRAY}`,
+    paddingTop: 4,
+  },
+  grandTotalLabel: { fontSize: 10, fontWeight: 700, color: TEXT_ON_GRAY },
+  grandTotalValue: { fontSize: 11, fontWeight: 800, color: TEXT_ON_GRAY },
+  termsBox: {
     border: `1 solid ${BRAND_GRAY}`,
     borderRadius: 8,
     padding: 9,
     minHeight: 84,
-    marginRight: 8,
+    marginTop: 2,
   },
-  termsColRight: {
-    width: "48%",
-    border: `1 solid ${BRAND_GRAY}`,
-    borderRadius: 8,
-    padding: 9,
-    minHeight: 84,
-  },
-  termsTitle: { fontSize: 8.5, textTransform: "uppercase", color: BRAND_GRAY, fontWeight: 700, marginBottom: 6 },
-  termsText: { fontSize: 8.2, color: BRAND_GRAY, lineHeight: 1.35, marginBottom: 3 },
+  termsTitle: { fontSize: 8.5, textTransform: "uppercase", color: TEXT_BLACK, fontWeight: 700, marginBottom: 6 },
+  termsText: { fontSize: 8.2, color: TEXT_BLACK, lineHeight: 1.35, marginBottom: 3 },
   footerNote: {
     marginTop: 10,
     borderTop: `1 solid ${BRAND_GRAY}`,
     paddingTop: 6,
     fontSize: 7.8,
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     textAlign: "center",
   },
   cuentasPage: {
     fontSize: 9.5,
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,
@@ -166,7 +154,7 @@ const styles = StyleSheet.create({
   cuentasTitle: {
     fontSize: 11,
     fontWeight: 700,
-    color: BRAND_GRAY,
+    color: TEXT_BLACK,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -189,6 +177,7 @@ export function CotizacionPDFDocument({
       ?.split("\n")
       .map((l) => l.trim())
       .filter((l) => l.length > 0) ?? [];
+  const referenciaPago = quote.referencia_pago?.trim() ?? "";
 
   return (
     <Document>
@@ -196,23 +185,16 @@ export function CotizacionPDFDocument({
         <View style={styles.headerLogoWrap}>
           <Image src={logoSrc} style={styles.headerLogo} />
         </View>
-        <Text style={styles.companyTagline}>
-          PROVEEDORA MEXICANA DE MATERIALES, S.A. DE C.V. · Cotizador interno para uso comercial
-        </Text>
-
-        <View style={styles.topBar}>
-          <View style={styles.topBarRow}>
-            <View>
-              <Text style={styles.topBarTitle}>Cotizacion Comercial</Text>
-              <Text style={styles.topBarSubtitle}>Sistema Integral de Cotizaciones</Text>
-            </View>
-            <Text style={styles.folioBadge}>FOLIO {quote.folio}</Text>
-          </View>
-        </View>
+        <Text style={styles.companyTagline}>PROVEEDORA MEXICANA DE MATERIALES, S.A. DE C.V.</Text>
+        <View style={styles.headerDivider} />
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Datos Generales</Text>
           <View style={styles.infoGrid}>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>Folio</Text>
+              <Text style={styles.infoValue}>{quote.folio}</Text>
+            </View>
             <View style={styles.infoCol}>
               <Text style={styles.infoLabel}>Cliente</Text>
               <Text style={styles.infoValue}>{quote.ctz_clientes?.nombre_cliente ?? "-"}</Text>
@@ -272,7 +254,7 @@ export function CotizacionPDFDocument({
                 <Text style={styles.totalLabel}>IVA</Text>
                 <Text style={styles.totalValue}>{money(quote.iva_total)}</Text>
               </View>
-              <View style={[styles.totalRow, { marginBottom: 0, borderTop: `1 solid ${BRAND_RED}`, paddingTop: 4 }]}>
+              <View style={styles.grandTotalRow}>
                 <Text style={styles.grandTotalLabel}>Total</Text>
                 <Text style={styles.grandTotalValue}>{money(quote.total)}</Text>
               </View>
@@ -280,31 +262,19 @@ export function CotizacionPDFDocument({
           </View>
         </View>
 
-        <View style={styles.termsGrid}>
-          <View style={styles.termsColLeft}>
-            <Text style={styles.termsTitle}>Terminos y Condiciones</Text>
-            <Text style={styles.termsText}>- Sujeto a disponibilidad de inventario.</Text>
-            <Text style={styles.termsText}>- Precio sujeto a cambio sin previo aviso.</Text>
-            <Text style={styles.termsText}>- Precios expresados en moneda nacional.</Text>
-            <Text style={styles.termsText}>
-              - Pregunte su referencia de pago a su asesor comercial antes de hacer su depósito/transferencia.
+        <View style={styles.termsBox}>
+          <Text style={styles.termsTitle}>Terminos y Condiciones</Text>
+          <Text style={styles.termsText}>- Sujeto a disponibilidad de inventario.</Text>
+          <Text style={styles.termsText}>- Precio sujeto a cambio sin previo aviso.</Text>
+          <Text style={styles.termsText}>- Precios expresados en moneda nacional.</Text>
+          {terminosExtra.map((line, i) => (
+            <Text key={`term-ex-${i}`} style={styles.termsText}>
+              - {line}
             </Text>
-            {terminosExtra.map((line, i) => (
-              <Text key={`term-ex-${i}`} style={styles.termsText}>
-                - {line}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.termsColRight}>
-            <Text style={styles.termsTitle}>Observaciones</Text>
-            <Text style={styles.termsText}>
-              {quote.comentarios?.trim()
-                ? quote.comentarios
-                : "Este documento es informativo y no representa un comprobante de entrega o cobro."}
-            </Text>
-            <Text style={[styles.termsTitle, { marginTop: 6, marginBottom: 4 }]}>Referencia de Pago</Text>
-            <Text style={styles.termsText}>{quote.referencia_pago ?? "Sin referencia especificada."}</Text>
-          </View>
+          ))}
+          {referenciaPago ? (
+            <Text style={styles.termsText}>- Referencia de pago: {referenciaPago}</Text>
+          ) : null}
         </View>
 
         <Text style={styles.footerNote}>
@@ -325,18 +295,49 @@ export function CotizacionPDFDocument({
 const PDF_LOGO_PATH = "/construrama_promexma.png";
 const PDF_CUENTAS_PATH = "/Cuentas.png";
 
+function CotizacionPDFDownloadButton({
+  quote,
+  logoSrc,
+  cuentasSrc,
+}: {
+  quote: CotizacionWithRelations;
+  logoSrc: string;
+  cuentasSrc: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const fileName = pdfFileNameFromFolio(quote.folio);
+
+  const handleDownload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const blob = await pdf(
+        <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setLoading(false);
+    }
+  }, [quote, logoSrc, cuentasSrc, fileName]);
+
+  return (
+    <button type="button" className="btn-primary" disabled={loading} onClick={() => void handleDownload()}>
+      {loading ? "Preparando..." : "Descargar PDF"}
+    </button>
+  );
+}
+
 export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations }) {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const logoSrc = origin ? `${origin}${PDF_LOGO_PATH}` : "https://dummyimage.com/880x120/ffffff/0f1a2e&text=Construrama+Promexma";
   const cuentasSrc = origin ? `${origin}${PDF_CUENTAS_PATH}` : "https://dummyimage.com/880x400/e2e8f0/334155&text=Cuentas+bancarias";
   return (
     <div className="space-y-3">
-      <PDFDownloadLink
-        document={<CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />}
-        fileName={`${quote.folio}.pdf`}
-      >
-        {({ loading }) => <button className="btn-primary">{loading ? "Preparando..." : "Descargar PDF"}</button>}
-      </PDFDownloadLink>
+      <CotizacionPDFDownloadButton quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
       <div className="h-[75vh] overflow-hidden rounded-lg border border-slate-200 bg-white">
         <PDFViewer width="100%" height="100%">
           <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />

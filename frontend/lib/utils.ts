@@ -5,11 +5,15 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
+/** Moneda MXN con separador de miles (coma) y 2 decimales, p. ej. $1,234.56 */
 export function money(value: number): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "$0.00";
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
     minimumFractionDigits: 2,
-  }).format(value);
+    maximumFractionDigits: 2,
+  }).format(n);
 }
 

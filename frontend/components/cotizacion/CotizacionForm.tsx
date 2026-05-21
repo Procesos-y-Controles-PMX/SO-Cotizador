@@ -27,6 +27,7 @@ import {
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
+import { money } from "@/lib/utils";
 
 type Props = {
   mode: "create" | "edit";
@@ -96,6 +97,20 @@ function toNumber(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+const DECIMAL_DRAFT_RE = /^\d*\.?\d*$/;
+
+function formatPrecioDisplay(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return "";
+  return String(value);
+}
+
+function parsePrecioFromDraft(value: string): number {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === ".") return 0;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
 export default function CotizacionForm({ mode, initial, onSaved, canDelete = false, onDelete }: Props) {
   const [sucursales, setSucursales] = useState<CtzSucursal[]>([]);
   const [productos, setProductos] = useState<CtzProducto[]>([]);
@@ -110,7 +125,6 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [nombreObra, setNombreObra] = useState(initial?.nombre_obra ?? "");
   const [tipoPago, setTipoPago] = useState<"Contado" | "Credito">(initial?.tipo_pago ?? "Contado");
   const [referenciaPago, setReferenciaPago] = useState(initial?.referencia_pago ?? "");
-  const [comentarios, setComentarios] = useState(initial?.comentarios ?? "");
   const [mostrarConIva, setMostrarConIva] = useState(initial?.mostrar_con_iva ?? true);
   const [ivaCotizacion, setIvaCotizacion] = useState<IvaCotizacionPct>(() => initialIvaFromProps(initial));
   const [modalType, setModalType] = useState<"cliente" | "producto" | null>(null);
@@ -132,6 +146,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [sucursalTerminosDraft, setSucursalTerminosDraft] = useState("");
   const [savingSucursalTerminos, setSavingSucursalTerminos] = useState(false);
+  const [precioUnitarioDraft, setPrecioUnitarioDraft] = useState<Record<string, string>>({});
   const [items, setItems] = useState<LocalItem[]>(() => {
     const iva0 = initialIvaFromProps(initial);
     if (initial?.items?.length) {
@@ -322,6 +337,31 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     );
   }
 
+  function clearPrecioDraft(tempId: string) {
+    setPrecioUnitarioDraft((prev) => {
+      if (!(tempId in prev)) return prev;
+      const { [tempId]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  function handlePrecioChange(tempId: string, raw: string) {
+    if (!DECIMAL_DRAFT_RE.test(raw)) return;
+    setPrecioUnitarioDraft((prev) => ({ ...prev, [tempId]: raw }));
+    if (raw !== "" && raw !== ".") {
+      updateItem(tempId, { precio_unitario: parsePrecioFromDraft(raw) });
+    } else {
+      updateItem(tempId, { precio_unitario: 0 });
+    }
+  }
+
+  function handlePrecioBlur(tempId: string) {
+    const raw = precioUnitarioDraft[tempId];
+    if (raw === undefined) return;
+    updateItem(tempId, { precio_unitario: parsePrecioFromDraft(raw) });
+    clearPrecioDraft(tempId);
+  }
+
   function applyProductToItem(tempId: string, product: CtzProducto) {
     setItems((prev) =>
       prev.map((item) => {
@@ -336,9 +376,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         });
       })
     );
+    clearPrecioDraft(tempId);
   }
 
   function clearProductFromItem(tempId: string) {
+    clearPrecioDraft(tempId);
     updateItem(tempId, {
       id_producto: null,
       descripcion_registro: "",
@@ -605,7 +647,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         nombre_obra: nombreObra || null,
         tipo_pago: tipoPago,
         referencia_pago: referenciaPago || null,
-        comentarios: comentarios || null,
+        comentarios: null,
         mostrar_con_iva: mostrarConIva,
         iva_porcentaje: ivaPorCotizacion,
         subtotal: totals.subtotal,
@@ -654,7 +696,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         nombre_obra: nombreObra || null,
         tipo_pago: tipoPago,
         referencia_pago: referenciaPago || null,
-        comentarios: comentarios || null,
+        comentarios: null,
         mostrar_con_iva: mostrarConIva,
         iva_porcentaje: ivaPorCotizacion,
         subtotal: totals.subtotal,
@@ -730,20 +772,13 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             <option value="Credito">Credito</option>
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-slate-700 md:col-span-2">
           Referencia de pago
           <input
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            placeholder="Ej. REF-12345 o instrucciones para depósito/transferencia"
             value={referenciaPago}
             onChange={(event) => setReferenciaPago(event.target.value)}
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-700">
-          Comentarios
-          <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            value={comentarios}
-            onChange={(event) => setComentarios(event.target.value)}
           />
         </label>
       </div>
@@ -873,10 +908,13 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               <label className="block md:col-span-2">
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Precio unitario (neto)</span>
                 <input
+                  type="text"
+                  inputMode="decimal"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
                   placeholder="Precio unitario (neto)"
-                  value={item.precio_unitario}
-                  onChange={(event) => updateItem(item.tempId, { precio_unitario: toNumber(event.target.value) })}
+                  value={precioUnitarioDraft[item.tempId] ?? formatPrecioDisplay(item.precio_unitario)}
+                  onChange={(event) => handlePrecioChange(item.tempId, event.target.value)}
+                  onBlur={() => handlePrecioBlur(item.tempId)}
                 />
               </label>
               <div className="md:col-span-1">
@@ -884,7 +922,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 <button
                   type="button"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-red-600 md:py-1"
-                  onClick={() => setItems((prev) => prev.filter((row) => row.tempId !== item.tempId))}
+                  onClick={() => {
+                    clearPrecioDraft(item.tempId);
+                    setItems((prev) => prev.filter((row) => row.tempId !== item.tempId));
+                  }}
                 >
                   Eliminar
                 </button>
@@ -895,9 +936,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-700">
-          <p>Subtotal: ${totals.subtotal.toFixed(2)}</p>
-          <p>IVA: ${totals.ivaTotal.toFixed(2)}</p>
-          <p className="font-semibold">Total: ${totals.total.toFixed(2)}</p>
+          <p>Subtotal: {money(totals.subtotal)}</p>
+          <p>IVA: {money(totals.ivaTotal)}</p>
+          <p className="font-semibold">Total: {money(totals.total)}</p>
         </div>
       </div>
 
