@@ -11,6 +11,7 @@ import {
   View,
   pdf,
 } from "@react-pdf/renderer";
+import { normalizeIvaPct, type IvaPct } from "@/lib/cotizacion/calcImportes";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 import { money } from "@/lib/utils";
 
@@ -32,14 +33,13 @@ const TEXT_BLACK = "#000000";
 const TEXT_ON_GRAY = "#FFFFFF";
 const BORDER_LIGHT = "#D1D3D4";
 
-function pdfIvaCotizacionPct(quote: CotizacionWithRelations): number {
-  const h = quote.iva_porcentaje;
-  const hn = Math.round(Number(h));
-  if (hn === 0 || hn === 8 || hn === 16) return hn;
-  const fromItem = quote.ctz_cotizacion_items[0]?.iva_porcentaje;
-  const n = Math.round(Number(fromItem));
-  if (n === 0 || n === 8 || n === 16) return n;
-  return 16;
+function pdfIvaCotizacionPct(quote: CotizacionWithRelations): IvaPct {
+  return normalizeIvaPct(quote.iva_porcentaje ?? quote.ctz_cotizacion_items[0]?.iva_porcentaje);
+}
+
+function puConIvaIncluido(item: { precio_unitario: number; total_item: number; cantidad: number }): number {
+  if (item.cantidad > 0) return Number((item.total_item / item.cantidad).toFixed(2));
+  return item.precio_unitario;
 }
 
 const styles = StyleSheet.create({
@@ -99,7 +99,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  tableHeaderText: { fontSize: 8, textTransform: "uppercase", color: TEXT_ON_GRAY, fontWeight: 700 },
+  tableHeaderText: { fontSize: 7, textTransform: "uppercase", color: TEXT_ON_GRAY, fontWeight: 700 },
+  ivaNote: { fontSize: 8, color: TEXT_BLACK, marginBottom: 6 },
   tableRow: { flexDirection: "row", borderBottom: `1 solid ${BORDER_LIGHT}`, paddingVertical: 6, paddingHorizontal: 8 },
   tableRowAlt: { backgroundColor: "#FFFFFF" },
   tableCell: { fontSize: 8.8, color: TEXT_BLACK },
@@ -178,6 +179,9 @@ export function CotizacionPDFDocument({
       .map((l) => l.trim())
       .filter((l) => l.length > 0) ?? [];
   const referenciaPago = quote.referencia_pago?.trim() ?? "";
+  const ivaNote = quote.mostrar_con_iva
+    ? `IVA aplicable a esta cotizacion: ${ivaPct}% (precios capturados con IVA incluido).`
+    : `IVA aplicable a esta cotizacion: ${ivaPct}%.`;
 
   return (
     <Document>
@@ -222,25 +226,27 @@ export function CotizacionPDFDocument({
           </View>
         </View>
 
+        <Text style={styles.ivaNote}>{ivaNote}</Text>
+
         <View style={styles.tableBox}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, { width: "34%" }]}>Producto</Text>
-            <Text style={[styles.tableHeaderText, { width: "8%" }]}>U.M.</Text>
-            <Text style={[styles.tableHeaderText, { width: "8%" }]}>Cant.</Text>
-            <Text style={[styles.tableHeaderText, { width: "13%" }]}>P.U. (neto)</Text>
-            <Text style={[styles.tableHeaderText, { width: "7%" }]}>IVA</Text>
-            <Text style={[styles.tableHeaderText, { width: "11%" }]}>Subtotal</Text>
-            <Text style={[styles.tableHeaderText, { width: "19%", textAlign: "right" }]}>Importe</Text>
+            <Text style={[styles.tableHeaderText, { width: "26%" }]}>Producto</Text>
+            <Text style={[styles.tableHeaderText, { width: "7%" }]}>UM</Text>
+            <Text style={[styles.tableHeaderText, { width: "7%" }]}>CANT</Text>
+            <Text style={[styles.tableHeaderText, { width: "14%" }]}>PU</Text>
+            <Text style={[styles.tableHeaderText, { width: "16%" }]}>PU Neto</Text>
+            <Text style={[styles.tableHeaderText, { width: "12%" }]}>SUBTOTAL</Text>
+            <Text style={[styles.tableHeaderText, { width: "18%", textAlign: "right" }]}>IMPORTE</Text>
           </View>
           {quote.ctz_cotizacion_items.map((item, index) => (
             <View key={item.id} style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
-              <Text style={[styles.tableCell, { width: "34%" }]}>{item.descripcion_registro}</Text>
-              <Text style={[styles.tableCell, { width: "8%" }]}>{item.unidad_medida ?? "-"}</Text>
-              <Text style={[styles.tableCell, { width: "8%" }]}>{item.cantidad}</Text>
-              <Text style={[styles.tableCell, { width: "13%" }]}>{money(item.precio_unitario)}</Text>
-              <Text style={[styles.tableCell, { width: "7%" }]}>{ivaPct}%</Text>
-              <Text style={[styles.tableCell, { width: "11%" }]}>{money(item.subtotal_item)}</Text>
-              <Text style={[styles.tableCell, styles.tableCellRight, { width: "19%" }]}>{money(item.total_item)}</Text>
+              <Text style={[styles.tableCell, { width: "26%" }]}>{item.descripcion_registro}</Text>
+              <Text style={[styles.tableCell, { width: "7%" }]}>{item.unidad_medida ?? "-"}</Text>
+              <Text style={[styles.tableCell, { width: "7%" }]}>{item.cantidad}</Text>
+              <Text style={[styles.tableCell, { width: "14%" }]}>{money(item.precio_unitario)}</Text>
+              <Text style={[styles.tableCell, { width: "16%" }]}>{money(puConIvaIncluido(item))}</Text>
+              <Text style={[styles.tableCell, { width: "12%" }]}>{money(item.subtotal_item)}</Text>
+              <Text style={[styles.tableCell, styles.tableCellRight, { width: "18%" }]}>{money(item.total_item)}</Text>
             </View>
           ))}
 

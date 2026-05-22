@@ -1,5 +1,6 @@
-import type { CtzProducto } from "@/lib/types/db";
+import { calcLineAmounts, normalizeIvaPct } from "@/lib/cotizacion/calcImportes";
 import type { ItemInput } from "@/lib/queries/cotizaciones";
+import type { CtzProducto } from "@/lib/types/db";
 
 export const EXCEL_IMPORT_MAX_ROWS = 500;
 
@@ -207,20 +208,21 @@ export async function parseExcelFile(file: File): Promise<unknown[][]> {
   return first as unknown[][];
 }
 
-export function previewOkToItemInputs(rows: ExcelImportOkRow[], ivaPorcentaje: number): ItemInput[] {
-  const iva = ivaPorcentaje === 0 || ivaPorcentaje === 8 || ivaPorcentaje === 16 ? ivaPorcentaje : 16;
+export function previewOkToItemInputs(
+  rows: ExcelImportOkRow[],
+  ivaPorcentaje: number,
+  preciosIncluyenIva: boolean
+): ItemInput[] {
+  const iva = normalizeIvaPct(ivaPorcentaje);
   return rows.map((r) => {
-    const subtotal_item = Number((r.cantidad * r.precio_unitario).toFixed(2));
-    const total_item = Number((subtotal_item * (1 + iva / 100)).toFixed(2));
+    const amounts = calcLineAmounts(r.cantidad, r.precio_unitario, iva, preciosIncluyenIva);
     return {
       id_producto: r.product.id,
       descripcion_registro: r.product.descripcion,
       cantidad: r.cantidad,
       unidad_medida: r.product.unidad_medida,
-      precio_unitario: r.precio_unitario,
       iva_porcentaje: iva,
-      subtotal_item,
-      total_item,
+      ...amounts,
     };
   });
 }

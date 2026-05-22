@@ -26,6 +26,12 @@ import {
 } from "@/lib/queries/cotizaciones";
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
+import {
+  calcLineAmounts,
+  normalizeIvaPct,
+  precioCapturadoFromStored,
+  type IvaPct,
+} from "@/lib/cotizacion/calcImportes";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import { money } from "@/lib/utils";
 
@@ -53,43 +59,43 @@ type LocalItem = ItemInput & {
   tempId: string;
   productoSku: string;
   productoDescripcion: string;
+  /** Valor del input; no cambia al alternar «Precios con IVA incluido». */
+  precioCapturado: number;
 };
 
-function itemFromProduct(product: CtzProducto, base: Omit<LocalItem, keyof ItemInput | "productoSku" | "productoDescripcion"> & Partial<ItemInput>): LocalItem {
+function initialIvaFromProps(initial: Props["initial"]): IvaPct {
+  return normalizeIvaPct(initial?.iva_porcentaje ?? initial?.items?.[0]?.iva_porcentaje ?? 16);
+}
+
+function recalcItemFromCapturado(item: LocalItem, ivaPct: IvaPct, preciosIncluyenIva: boolean): LocalItem {
+  const amounts = calcLineAmounts(item.cantidad, item.precioCapturado, ivaPct, preciosIncluyenIva);
+  return { ...item, iva_porcentaje: ivaPct, ...amounts };
+}
+
+function itemFromProduct(
+  product: CtzProducto,
+  base: Omit<LocalItem, keyof ItemInput | "productoSku" | "productoDescripcion" | "precioCapturado"> &
+    Partial<LocalItem>,
+  ivaPct: IvaPct,
+  preciosIncluyenIva: boolean
+): LocalItem {
   const cantidad = base.cantidad ?? 1;
-  const precio = base.precio_unitario ?? 0;
-  const iva = base.iva_porcentaje ?? 16;
+  const precioCapturado = base.precioCapturado ?? base.precio_unitario ?? 0;
   const unidad_medida =
     base.unidad_medida !== undefined ? base.unidad_medida : product.unidad_medida ?? null;
-  const subtotal_item = Number((cantidad * precio).toFixed(2));
-  const total_item = Number((subtotal_item * (1 + iva / 100)).toFixed(2));
+  const amounts = calcLineAmounts(cantidad, precioCapturado, ivaPct, preciosIncluyenIva);
   return {
     tempId: base.tempId,
     id_producto: product.id,
     descripcion_registro: product.descripcion,
     cantidad,
     unidad_medida,
-    precio_unitario: precio,
-    iva_porcentaje: iva,
-    subtotal_item,
-    total_item,
+    iva_porcentaje: ivaPct,
+    precioCapturado,
+    ...amounts,
     productoSku: product.sku?.trim() ?? "",
     productoDescripcion: product.descripcion,
   };
-}
-
-type IvaCotizacionPct = 0 | 8 | 16;
-
-function normalizeIvaPct(value: number | undefined | null): IvaCotizacionPct {
-  const n = Math.round(Number(value));
-  if (n === 0 || n === 8 || n === 16) return n;
-  return 16;
-}
-
-function initialIvaFromProps(initial: Props["initial"]): IvaCotizacionPct {
-  const fromHeader = initial?.iva_porcentaje;
-  const fromItem = initial?.items?.[0]?.iva_porcentaje;
-  return normalizeIvaPct(fromHeader ?? fromItem ?? 16);
 }
 
 function toNumber(value: string): number {
@@ -125,8 +131,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [nombreObra, setNombreObra] = useState(initial?.nombre_obra ?? "");
   const [tipoPago, setTipoPago] = useState<"Contado" | "Credito">(initial?.tipo_pago ?? "Contado");
   const [referenciaPago, setReferenciaPago] = useState(initial?.referencia_pago ?? "");
-  const [mostrarConIva, setMostrarConIva] = useState(initial?.mostrar_con_iva ?? true);
-  const [ivaCotizacion, setIvaCotizacion] = useState<IvaCotizacionPct>(() => initialIvaFromProps(initial));
+  const [preciosIncluyenIva, setPreciosIncluyenIva] = useState(initial?.mostrar_con_iva ?? false);
+  const [ivaCotizacion, setIvaCotizacion] = useState<IvaPct>(() => initialIvaFromProps(initial));
   const [modalType, setModalType] = useState<"cliente" | "producto" | null>(null);
   const [clienteDraft, setClienteDraft] = useState({
     nombre_cliente: "",
@@ -149,16 +155,17 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [precioUnitarioDraft, setPrecioUnitarioDraft] = useState<Record<string, string>>({});
   const [items, setItems] = useState<LocalItem[]>(() => {
     const iva0 = initialIvaFromProps(initial);
+    const incluyenIva = initial?.mostrar_con_iva ?? false;
     if (initial?.items?.length) {
       return initial.items.map((item, index) => {
-        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
-        const total_item = Number((subtotal_item * (1 + iva0 / 100)).toFixed(2));
+        const precioCapturado = precioCapturadoFromStored(item, incluyenIva);
+        const amounts = calcLineAmounts(item.cantidad, precioCapturado, iva0, incluyenIva);
         return {
           ...item,
           tempId: `temp-${index}`,
           iva_porcentaje: iva0,
-          subtotal_item,
-          total_item,
+          precioCapturado,
+          ...amounts,
           productoSku: "",
           productoDescripcion: item.descripcion_registro,
         };
@@ -172,6 +179,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         cantidad: 1,
         unidad_medida: null,
         precio_unitario: 0,
+        precioCapturado: 0,
         iva_porcentaje: iva0,
         subtotal_item: 0,
         total_item: 0,
@@ -253,7 +261,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     if (mode !== "create" || !idSucursal || !sucursales.length) return;
     const s = sucursales.find((row) => row.id === idSucursal);
     if (!s) return;
-    setIvaCotizacion(normalizeIvaPct(s.iva_predeterminado));
+    const newIva = normalizeIvaPct(s.iva_predeterminado);
+    setIvaCotizacion(newIva);
+    setPrecioUnitarioDraft({});
+    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, newIva, preciosIncluyenIva)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al elegir sucursal en alta
   }, [mode, idSucursal, sucursales]);
 
   useEffect(() => {
@@ -275,16 +287,6 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   }, [idSucursal]);
 
   useEffect(() => {
-    setItems((prev) =>
-      prev.map((item) => {
-        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
-        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
-        return { ...item, iva_porcentaje: ivaCotizacion, subtotal_item, total_item };
-      })
-    );
-  }, [ivaCotizacion]);
-
-  useEffect(() => {
     if (!idSucursal) {
       setSucursalTerminosDraft("");
       return;
@@ -295,11 +297,14 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
   const totals = useMemo(() => {
     const subtotal = Number(items.reduce((acc, item) => acc + item.subtotal_item, 0).toFixed(2));
-    const totalConIva = Number(items.reduce((acc, item) => acc + item.total_item, 0).toFixed(2));
-    const total = mostrarConIva ? totalConIva : subtotal;
-    const ivaTotal = total - subtotal;
+    const total = Number(items.reduce((acc, item) => acc + item.total_item, 0).toFixed(2));
+    const ivaTotal = Number((total - subtotal).toFixed(2));
     return { subtotal, ivaTotal, total };
-  }, [items, mostrarConIva]);
+  }, [items]);
+
+  const precioUnitarioLabel = preciosIncluyenIva
+    ? "Precio unitario (IVA incluido)"
+    : "Precio unitario (antes de IVA)";
 
   const selectedSucursalNombre = useMemo(
     () => sucursales.find((row) => row.id === idSucursal)?.nombre ?? null,
@@ -325,16 +330,45 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     toast.success("Términos de sucursal guardados.");
   }
 
+  function setItemFromCapturedPrice(tempId: string, precioCapturado: number, cantidad?: number) {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.tempId !== tempId) return item;
+        const qty = cantidad ?? item.cantidad;
+        const amounts = calcLineAmounts(qty, precioCapturado, ivaCotizacion, preciosIncluyenIva);
+        return { ...item, cantidad: qty, precioCapturado, iva_porcentaje: ivaCotizacion, ...amounts };
+      })
+    );
+  }
+
   function updateItem(tempId: string, next: Partial<LocalItem>) {
     setItems((prev) =>
       prev.map((item) => {
         if (item.tempId !== tempId) return item;
         const merged = { ...item, ...next };
-        const subtotal_item = Number((merged.cantidad * merged.precio_unitario).toFixed(2));
-        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
-        return { ...merged, iva_porcentaje: ivaCotizacion, subtotal_item, total_item };
+        if (next.cantidad !== undefined) {
+          return recalcItemFromCapturado(
+            { ...merged, cantidad: merged.cantidad, precioCapturado: item.precioCapturado },
+            ivaCotizacion,
+            preciosIncluyenIva
+          );
+        }
+        return { ...merged, iva_porcentaje: ivaCotizacion };
       })
     );
+  }
+
+  function togglePreciosIncluyenIva() {
+    const next = !preciosIncluyenIva;
+    setPreciosIncluyenIva(next);
+    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, ivaCotizacion, next)));
+  }
+
+  function handleIvaCotizacionChange(nextIva: IvaPct) {
+    if (nextIva === ivaCotizacion) return;
+    setPrecioUnitarioDraft({});
+    setIvaCotizacion(nextIva);
+    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, nextIva, preciosIncluyenIva)));
   }
 
   function clearPrecioDraft(tempId: string) {
@@ -348,17 +382,14 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   function handlePrecioChange(tempId: string, raw: string) {
     if (!DECIMAL_DRAFT_RE.test(raw)) return;
     setPrecioUnitarioDraft((prev) => ({ ...prev, [tempId]: raw }));
-    if (raw !== "" && raw !== ".") {
-      updateItem(tempId, { precio_unitario: parsePrecioFromDraft(raw) });
-    } else {
-      updateItem(tempId, { precio_unitario: 0 });
-    }
+    const precioCapturado = raw !== "" && raw !== "." ? parsePrecioFromDraft(raw) : 0;
+    setItemFromCapturedPrice(tempId, precioCapturado);
   }
 
   function handlePrecioBlur(tempId: string) {
     const raw = precioUnitarioDraft[tempId];
     if (raw === undefined) return;
-    updateItem(tempId, { precio_unitario: parsePrecioFromDraft(raw) });
+    setItemFromCapturedPrice(tempId, parsePrecioFromDraft(raw));
     clearPrecioDraft(tempId);
   }
 
@@ -367,13 +398,17 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       prev.map((item) => {
         if (item.tempId !== tempId) return item;
         const sameProduct = item.id_producto === product.id;
-        return itemFromProduct(product, {
-          tempId: item.tempId,
-          cantidad: item.cantidad,
-          unidad_medida: sameProduct ? item.unidad_medida : product.unidad_medida ?? null,
-          precio_unitario: sameProduct ? item.precio_unitario : 0,
-          iva_porcentaje: ivaCotizacion,
-        });
+        return itemFromProduct(
+          product,
+          {
+            tempId: item.tempId,
+            cantidad: item.cantidad,
+            unidad_medida: sameProduct ? item.unidad_medida : product.unidad_medida ?? null,
+            precioCapturado: sameProduct ? item.precioCapturado : 0,
+          },
+          ivaCotizacion,
+          preciosIncluyenIva
+        );
       })
     );
     clearPrecioDraft(tempId);
@@ -381,11 +416,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
   function clearProductFromItem(tempId: string) {
     clearPrecioDraft(tempId);
+    setItemFromCapturedPrice(tempId, 0);
     updateItem(tempId, {
       id_producto: null,
       descripcion_registro: "",
       unidad_medida: null,
-      precio_unitario: 0,
       productoSku: "",
       productoDescripcion: "",
     });
@@ -472,10 +507,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       return;
     }
     const newRows: LocalItem[] = importPreview.ok.map((row) => {
-      const [item] = previewOkToItemInputs([row], ivaCotizacion);
+      const precioCapturado = row.precio_unitario;
+      const [item] = previewOkToItemInputs([row], ivaCotizacion, preciosIncluyenIva);
       return {
         ...item,
         tempId: crypto.randomUUID(),
+        precioCapturado,
         productoSku: row.product.sku?.trim() ?? "",
         productoDescripcion: row.product.descripcion,
       };
@@ -610,16 +647,12 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
     const readyItems = items
       .filter((item) => item.id_producto && item.cantidad > 0)
-      .map(({ tempId, productoSku, productoDescripcion, ...item }) => {
+      .map(({ tempId, productoSku, productoDescripcion, precioCapturado: _pc, ...item }) => {
         const selectedProduct = productos.find((product) => product.id === item.id_producto);
-        const subtotal_item = Number((item.cantidad * item.precio_unitario).toFixed(2));
-        const total_item = Number((subtotal_item * (1 + ivaCotizacion / 100)).toFixed(2));
         return toItemInput({
           ...item,
           descripcion_registro: selectedProduct?.descripcion ?? item.descripcion_registro,
           iva_porcentaje: ivaCotizacion,
-          subtotal_item,
-          total_item,
         });
       });
     if (!readyItems.length) {
@@ -648,7 +681,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         tipo_pago: tipoPago,
         referencia_pago: referenciaPago || null,
         comentarios: null,
-        mostrar_con_iva: mostrarConIva,
+        mostrar_con_iva: preciosIncluyenIva,
         iva_porcentaje: ivaPorCotizacion,
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
@@ -697,7 +730,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         tipo_pago: tipoPago,
         referencia_pago: referenciaPago || null,
         comentarios: null,
-        mostrar_con_iva: mostrarConIva,
+        mostrar_con_iva: preciosIncluyenIva,
         iva_porcentaje: ivaPorCotizacion,
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
@@ -787,26 +820,28 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
           <h3 className="font-semibold text-slate-900">Items</h3>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm text-slate-600">
-              Mostrar con IVA
-              <input
-                type="checkbox"
-                className="ml-2"
-                checked={mostrarConIva}
-                onChange={(event) => setMostrarConIva(event.target.checked)}
-              />
-            </label>
+            <button
+              type="button"
+              className={
+                preciosIncluyenIva
+                  ? "rounded-md bg-[#DA291C] px-3 py-1 text-sm font-medium text-white"
+                  : "rounded-md border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700"
+              }
+              onClick={togglePreciosIncluyenIva}
+            >
+              Precios con IVA incluido
+            </button>
             <label className="text-sm text-slate-600">
               IVA (toda la cotizacion)
               <select
                 className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 value={ivaCotizacion}
-                onChange={(event) => setIvaCotizacion(normalizeIvaPct(Number(event.target.value)))}
+                onChange={(event) => handleIvaCotizacionChange(normalizeIvaPct(Number(event.target.value)))}
               >
                 <option value={16}>16%</option>
                 <option value={8}>8%</option>
-                <option value={0}>0%</option>
               </select>
+              <span className="ml-2 text-xs text-slate-500">IVA aplicable: {ivaCotizacion}%</span>
             </label>
             <input
               ref={excelInputRef}
@@ -844,6 +879,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                     cantidad: 1,
                     unidad_medida: null,
                     precio_unitario: 0,
+                    precioCapturado: 0,
                     iva_porcentaje: ivaCotizacion,
                     subtotal_item: 0,
                     total_item: 0,
@@ -864,7 +900,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             <p className="md:col-span-2">Descripcion</p>
             <p className="md:col-span-1">U.M.</p>
             <p className="md:col-span-2">Cantidad</p>
-            <p className="md:col-span-2">Precio unitario (neto)</p>
+            <p className="md:col-span-2">{precioUnitarioLabel}</p>
             <p className="md:col-span-1">Accion</p>
           </div>
           {items.map((item, index) => {
@@ -906,13 +942,13 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Precio unitario (neto)</span>
+                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">{precioUnitarioLabel}</span>
                 <input
                   type="text"
                   inputMode="decimal"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
-                  placeholder="Precio unitario (neto)"
-                  value={precioUnitarioDraft[item.tempId] ?? formatPrecioDisplay(item.precio_unitario)}
+                  placeholder={precioUnitarioLabel}
+                  value={precioUnitarioDraft[item.tempId] ?? formatPrecioDisplay(item.precioCapturado)}
                   onChange={(event) => handlePrecioChange(item.tempId, event.target.value)}
                   onBlur={() => handlePrecioBlur(item.tempId)}
                 />
