@@ -28,7 +28,7 @@ export function toItemInput(item: ItemInput): ItemInput {
 
 export type CotizacionWithRelations = CtzCotizacion & {
   ctz_clientes: { nombre_cliente: string } | null;
-  ctz_sucursales: { nombre: string; prefijo_folio: string; terminos_adicionales: string | null } | null;
+  ctz_sucursales: { nombre: string; prefijo_folio: string; terminos_adicionales: string | null; direccion: string | null } | null;
   ctz_usuarios: { email: string; nombre_completo: string | null; rol: string } | null;
   ctz_cotizacion_items: (CtzCotizacionItem & {
     ctz_productos: { sku: string | null; descripcion: string } | null;
@@ -43,7 +43,7 @@ export async function listCotizaciones(user: CtzUsuario, search = ""): Promise<C
       `
       *,
       ctz_clientes(nombre_cliente),
-      ctz_sucursales(nombre,prefijo_folio,terminos_adicionales),
+      ctz_sucursales(nombre,prefijo_folio,terminos_adicionales,direccion),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `
@@ -71,7 +71,7 @@ export async function getCotizacionById(id: string): Promise<CotizacionWithRelat
       `
       *,
       ctz_clientes(nombre_cliente),
-      ctz_sucursales(nombre,prefijo_folio,terminos_adicionales),
+      ctz_sucursales(nombre,prefijo_folio,terminos_adicionales,direccion),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `

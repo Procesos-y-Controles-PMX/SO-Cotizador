@@ -52,7 +52,8 @@ export type CtzCotizacion = {
   id_sucursal: string;
   id_cliente: string | null;
   nombre_obra: string | null;
-  tipo_pago: "Contado" | "Credito" | null;
+  /** "Credito" sin acento: registros antiguos en BD */
+  tipo_pago: "Contado" | "Crédito" | "Credito" | null;
   referencia_pago: string | null;
   comentarios: string | null;
   mostrar_con_iva: boolean;

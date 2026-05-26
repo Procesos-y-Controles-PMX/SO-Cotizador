@@ -32,6 +32,7 @@ import {
   precioCapturadoFromStored,
   type IvaPct,
 } from "@/lib/cotizacion/calcImportes";
+import { normalizeTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import { money } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ type Props = {
     id_sucursal: string;
     id_cliente: string | null;
     nombre_obra: string | null;
-    tipo_pago: "Contado" | "Credito" | null;
+    tipo_pago: "Contado" | "Crédito" | "Credito" | null;
     referencia_pago: string | null;
     comentarios: string | null;
     mostrar_con_iva: boolean;
@@ -129,7 +130,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [idSucursal, setIdSucursal] = useState(initial?.id_sucursal ?? "");
   const [idCliente, setIdCliente] = useState(initial?.id_cliente ?? "");
   const [nombreObra, setNombreObra] = useState(initial?.nombre_obra ?? "");
-  const [tipoPago, setTipoPago] = useState<"Contado" | "Credito">(initial?.tipo_pago ?? "Contado");
+  const [tipoPago, setTipoPago] = useState<"Contado" | "Crédito">(
+    () => normalizeTipoPago(initial?.tipo_pago) ?? "Contado"
+  );
   const [referenciaPago, setReferenciaPago] = useState(initial?.referencia_pago ?? "");
   const [preciosIncluyenIva, setPreciosIncluyenIva] = useState(initial?.mostrar_con_iva ?? false);
   const [ivaCotizacion, setIvaCotizacion] = useState<IvaPct>(() => initialIvaFromProps(initial));
@@ -799,10 +802,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           <select
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
             value={tipoPago}
-            onChange={(event) => setTipoPago(event.target.value as "Contado" | "Credito")}
+            onChange={(event) => setTipoPago(event.target.value as "Contado" | "Crédito")}
           >
             <option value="Contado">Contado</option>
-            <option value="Credito">Credito</option>
+            <option value="Crédito">Crédito</option>
           </select>
         </label>
         <label className="text-sm font-medium text-slate-700 md:col-span-2">

@@ -17,3 +17,13 @@ export function money(value: number): string {
   }).format(n);
 }
 
+/** Cantidad con separador de miles (coma), p. ej. 1,234.5 */
+export function formatQuantity(value: number): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  return new Intl.NumberFormat("es-MX", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
