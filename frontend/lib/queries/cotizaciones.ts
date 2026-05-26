@@ -1,3 +1,4 @@
+import { toDbTipoPago } from "../cotizacion/tipoPago";
 import { supabase } from "../supabase";
 import type { CtzCotizacion, CtzCotizacionItem, CtzUsuario } from "../types/db";
 
@@ -86,7 +87,13 @@ export type CreateCotizacionError =
   | "invalid_reference"
   | "cliente_sucursal"
   | "productos"
+  | "tipo_pago_invalido"
   | "unknown";
+
+function normalizeCotizacionTipoPago<T extends { tipo_pago?: string | null }>(cotizacion: T): T {
+  if (cotizacion.tipo_pago === undefined) return cotizacion;
+  return { ...cotizacion, tipo_pago: toDbTipoPago(cotizacion.tipo_pago) };
+}
 
 export type CreateCotizacionResult =
   | { ok: true; id: string }
@@ -94,10 +101,21 @@ export type CreateCotizacionResult =
 
 function mapCotizacionInsertError(error: { code?: string; message?: string }): CreateCotizacionResult {
   const message = error.message ?? "";
+  const lower = message.toLowerCase();
   if (error.code === "23505") return { ok: false, error: "duplicate_folio" };
   if (error.code === "23503") return { ok: false, error: "invalid_reference", message };
-  if (message.toLowerCase().includes("cliente no pertenece")) {
+  if (lower.includes("cliente no pertenece")) {
     return { ok: false, error: "cliente_sucursal", message };
+  }
+  if (
+    error.code === "23514" ||
+    lower.includes("tipo_pago") ||
+    lower.includes("check constraint")
+  ) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[createCotizacion] tipo_pago:", message);
+    }
+    return { ok: false, error: "tipo_pago_invalido", message };
   }
   return { ok: false, error: "unknown", message };
 }
@@ -108,9 +126,11 @@ export async function createCotizacion(payload: {
 }): Promise<CreateCotizacionResult> {
   if (!supabase) return { ok: false, error: "unknown" };
 
+  const cotizacionRow = normalizeCotizacionTipoPago(payload.cotizacion);
+
   const { data: inserted, error: insertHeaderError } = await supabase
     .from("ctz_cotizaciones")
-    .insert(payload.cotizacion)
+    .insert(cotizacionRow)
     .select("id")
     .single();
 
@@ -139,7 +159,8 @@ export async function updateCotizacion(
   productos: ProductoInput[]
 ): Promise<boolean> {
   if (!supabase) return false;
-  const { error: headerError } = await supabase.from("ctz_cotizaciones").update(payload).eq("id", id);
+  const headerPayload = normalizeCotizacionTipoPago(payload);
+  const { error: headerError } = await supabase.from("ctz_cotizaciones").update(headerPayload).eq("id", id);
   if (headerError) return false;
 
   const { error: deleteError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);

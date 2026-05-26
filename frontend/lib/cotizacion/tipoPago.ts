@@ -1,13 +1,28 @@
-/** Valor canónico guardado en cotizaciones nuevas/actualizadas */
+/** Valor mostrado en formulario, PDF, etc. */
 export type TipoPago = "Contado" | "Crédito";
 
-const LEGACY_CREDITO = "Credito";
+/** Valor persistido en Supabase (CHECK sin acento en Crédito) */
+export type TipoPagoDb = "Contado" | "Credito";
 
-/** Normaliza lecturas de BD (p. ej. "Credito" sin acento) al valor canónico */
+export const TIPO_PAGO_UI_CREDITO = "Crédito" as const;
+export const TIPO_PAGO_DB_CREDITO = "Credito" as const;
+
+/** Normaliza lecturas de BD al valor de UI */
 export function normalizeTipoPago(value: string | null | undefined): TipoPago | null {
   if (!value) return null;
-  if (value === LEGACY_CREDITO || value === "Crédito") return "Crédito";
+  if (value === TIPO_PAGO_DB_CREDITO || value === TIPO_PAGO_UI_CREDITO) return TIPO_PAGO_UI_CREDITO;
   if (value === "Contado") return "Contado";
+  return null;
+}
+
+/** Alias explícito para lecturas desde queries */
+export const fromDbTipoPago = normalizeTipoPago;
+
+/** Convierte valor de UI (o legado) al formato aceptado por la BD */
+export function toDbTipoPago(value: string | TipoPago | null | undefined): TipoPagoDb | null {
+  const normalized = normalizeTipoPago(value);
+  if (normalized === "Contado") return "Contado";
+  if (normalized === TIPO_PAGO_UI_CREDITO) return TIPO_PAGO_DB_CREDITO;
   return null;
 }
 

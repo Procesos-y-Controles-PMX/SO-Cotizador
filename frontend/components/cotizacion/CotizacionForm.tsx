@@ -33,7 +33,7 @@ import {
   precioCapturadoFromStored,
   type IvaPct,
 } from "@/lib/cotizacion/calcImportes";
-import { normalizeTipoPago } from "@/lib/cotizacion/tipoPago";
+import { normalizeTipoPago, toDbTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import { money } from "@/lib/utils";
 
@@ -634,6 +634,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       case "productos":
         toast.error("No se pudieron guardar los productos de la cotizacion.");
         break;
+      case "tipo_pago_invalido":
+        toast.error("Tipo de pago no valido. Contacta al administrador si el problema continua.");
+        break;
       default:
         toast.error("No fue posible registrar la cotizacion.");
     }
@@ -682,7 +685,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         id_sucursal: idSucursal,
         id_cliente: idCliente,
         nombre_obra: nombreObra || null,
-        tipo_pago: tipoPago,
+        tipo_pago: toDbTipoPago(tipoPago),
         referencia_pago: referenciaPago || null,
         comentarios: null,
         mostrar_con_iva: preciosIncluyenIva,
@@ -731,7 +734,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         id_sucursal: idSucursal,
         id_cliente: idCliente,
         nombre_obra: nombreObra || null,
-        tipo_pago: tipoPago,
+        tipo_pago: toDbTipoPago(tipoPago),
         referencia_pago: referenciaPago || null,
         comentarios: null,
         mostrar_con_iva: preciosIncluyenIva,
