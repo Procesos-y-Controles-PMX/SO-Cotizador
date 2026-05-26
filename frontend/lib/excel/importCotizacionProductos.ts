@@ -1,28 +1,28 @@
 import { calcLineAmounts, normalizeIvaPct } from "@/lib/cotizacion/calcImportes";
-import type { ItemInput } from "@/lib/queries/cotizaciones";
+import type { ProductoInput } from "@/lib/queries/cotizaciones";
 import type { CtzProducto } from "@/lib/types/db";
 
 export const EXCEL_IMPORT_MAX_ROWS = 500;
 
 /** Fila 1 de la plantilla .xlsx descargable; misma semántica que `resolveExcelRowsToImport`. */
-export const COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS = [
+export const COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_HEADERS = [
   "SKU (obligatorio)",
   "Cantidad (opcional)",
   "Precio (opcional)",
 ] as const;
 
-export const COTIZACION_ITEMS_EXCEL_TEMPLATE_FILENAME = "plantilla-items-cotizacion.xlsx";
+export const COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_FILENAME = "plantilla-productos-cotizacion.xlsx";
 
 /** Genera y descarga la plantilla vacía (encabezados + filas en blanco para captura). */
-export async function downloadCotizacionItemsExcelTemplate(): Promise<void> {
+export async function downloadCotizacionProductosExcelTemplate(): Promise<void> {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
-  const headers = [...COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS];
+  const headers = [...COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_HEADERS];
   const blank = (): null[] => headers.map(() => null);
   const sheetData: (string | null)[][] = [headers, blank(), blank(), blank()];
   await writeXlsxFile(sheetData, {
-    sheet: "Items",
+    sheet: "Productos",
     columns: headers.map(() => ({ width: 24 })),
-  }).toFile(COTIZACION_ITEMS_EXCEL_TEMPLATE_FILENAME);
+  }).toFile(COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_FILENAME);
 }
 
 function cellToString(value: unknown): string {
@@ -121,7 +121,7 @@ export function resolveExcelRowsToImport(
 
   const headerRow = rows[0];
   const skuCol = findColumnIndex(headerRow, [
-    COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS[0],
+    COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_HEADERS[0],
     "sku",
     "sku (obligatorio)",
     "clave",
@@ -132,7 +132,7 @@ export function resolveExcelRowsToImport(
   if (skuCol < 0) return { preview: { ok: [], failed: [] }, error: "No se encontro columna SKU (ej. SKU o SKU (obligatorio))." };
 
   const cantCol = findColumnIndex(headerRow, [
-    COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS[1],
+    COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_HEADERS[1],
     "cantidad",
     "cantidad (opcional)",
     "cant",
@@ -140,7 +140,7 @@ export function resolveExcelRowsToImport(
     "piezas",
   ]);
   const precioCol = findColumnIndex(headerRow, [
-    COTIZACION_ITEMS_EXCEL_TEMPLATE_HEADERS[2],
+    COTIZACION_PRODUCTOS_EXCEL_TEMPLATE_HEADERS[2],
     "precio",
     "precio (opcional)",
     "p.u.",
@@ -208,11 +208,11 @@ export async function parseExcelFile(file: File): Promise<unknown[][]> {
   return first as unknown[][];
 }
 
-export function previewOkToItemInputs(
+export function previewOkToProductoInputs(
   rows: ExcelImportOkRow[],
   ivaPorcentaje: number,
   preciosIncluyenIva: boolean
-): ItemInput[] {
+): ProductoInput[] {
   const iva = normalizeIvaPct(ivaPorcentaje);
   return rows.map((r) => {
     const amounts = calcLineAmounts(r.cantidad, r.precio_unitario, iva, preciosIncluyenIva);

@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Document,
   Image,
   Page,
-  PDFViewer,
   StyleSheet,
   Text,
   View,
@@ -23,8 +22,9 @@ function formatDate(value: string): string {
 }
 
 function pdfFileNameFromFolio(folio: string): string {
-  const safe = folio.replace(/[^\w.-]+/g, "_");
-  return `${safe}.pdf`;
+  const trimmed = folio.trim();
+  const safe = (trimmed || "cotizacion").replace(/[^\w.-]+/g, "_");
+  return safe.toLowerCase().endsWith(".pdf") ? safe : `${safe}.pdf`;
 }
 
 /** Marca Promexma / Cemex (PDF) */
@@ -199,7 +199,7 @@ export function CotizacionPDFDocument({
   const sucursalDireccion = quote.ctz_sucursales?.direccion?.trim() ?? "";
 
   return (
-    <Document>
+    <Document title={quote.folio}>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerLogoWrap}>
           <Image src={logoSrc} style={styles.headerLogo} />
@@ -255,13 +255,13 @@ export function CotizacionPDFDocument({
             <Text style={[styles.tableHeaderText, { width: "18%" }]}>PU</Text>
             <Text style={[styles.tableHeaderText, { width: "18%", textAlign: "right" }]}>SUBTOTAL</Text>
           </View>
-          {quote.ctz_cotizacion_items.map((item, index) => (
-            <View key={item.id} style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
-              <Text style={[styles.tableCell, { width: "38%" }]}>{item.descripcion_registro}</Text>
-              <Text style={[styles.tableCell, { width: "12%", textAlign: "center" }]}>{item.unidad_medida ?? "-"}</Text>
-              <Text style={[styles.tableCell, { width: "14%", textAlign: "center" }]}>{formatQuantity(item.cantidad)}</Text>
-              <Text style={[styles.tableCell, { width: "18%", textAlign: "center" }]}>{money(item.precio_unitario)}</Text>
-              <Text style={[styles.tableCell, styles.tableCellRight, { width: "18%" }]}>{money(item.subtotal_item)}</Text>
+          {quote.ctz_cotizacion_items.map((producto, index) => (
+            <View key={producto.id} style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
+              <Text style={[styles.tableCell, { width: "38%" }]}>{producto.descripcion_registro}</Text>
+              <Text style={[styles.tableCell, { width: "12%", textAlign: "center" }]}>{producto.unidad_medida ?? "-"}</Text>
+              <Text style={[styles.tableCell, { width: "14%", textAlign: "center" }]}>{formatQuantity(producto.cantidad)}</Text>
+              <Text style={[styles.tableCell, { width: "18%", textAlign: "center" }]}>{money(producto.precio_unitario)}</Text>
+              <Text style={[styles.tableCell, styles.tableCellRight, { width: "18%" }]}>{money(producto.subtotal_item)}</Text>
             </View>
           ))}
 
@@ -316,37 +316,39 @@ const PDF_LOGO_PATH = "/construrama_promexma.png";
 const PDF_CUENTAS_PATH = "/Cuentas.png";
 
 function CotizacionPDFDownloadButton({
-  quote,
-  logoSrc,
-  cuentasSrc,
+  fileName,
+  previewUrl,
+  loading,
+  onGenerate,
 }: {
-  quote: CotizacionWithRelations;
-  logoSrc: string;
-  cuentasSrc: string;
+  fileName: string;
+  previewUrl: string | null;
+  loading: boolean;
+  onGenerate: () => Promise<string>;
 }) {
-  const [loading, setLoading] = useState(false);
-  const fileName = pdfFileNameFromFolio(quote.folio);
+  const [downloading, setDownloading] = useState(false);
 
   const handleDownload = useCallback(async () => {
-    setLoading(true);
+    setDownloading(true);
     try {
-      const blob = await pdf(
-        <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
+      const url = previewUrl ?? (await onGenerate());
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = fileName;
       anchor.click();
-      URL.revokeObjectURL(url);
     } finally {
-      setLoading(false);
+      setDownloading(false);
     }
-  }, [quote, logoSrc, cuentasSrc, fileName]);
+  }, [fileName, onGenerate, previewUrl]);
 
   return (
-    <button type="button" className="btn-primary" disabled={loading} onClick={() => void handleDownload()}>
-      {loading ? "Preparando..." : "Descargar PDF"}
+    <button
+      type="button"
+      className="btn-primary disabled:opacity-50"
+      disabled={loading || downloading}
+      onClick={() => void handleDownload()}
+    >
+      {loading || downloading ? "Preparando..." : "Descargar PDF"}
     </button>
   );
 }
@@ -355,13 +357,65 @@ export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const logoSrc = origin ? `${origin}${PDF_LOGO_PATH}` : "https://dummyimage.com/880x120/ffffff/0f1a2e&text=Construrama+Promexma";
   const cuentasSrc = origin ? `${origin}${PDF_CUENTAS_PATH}` : "https://dummyimage.com/880x400/e2e8f0/334155&text=Cuentas+bancarias";
+  const fileName = pdfFileNameFromFolio(quote.folio);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const generatePreviewUrl = useCallback(async () => {
+    const blob = await pdf(
+      <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
+    ).toBlob();
+    const file = new File([blob], fileName, { type: "application/pdf" });
+    return URL.createObjectURL(file);
+  }, [quote, logoSrc, cuentasSrc, fileName]);
+
+  useEffect(() => {
+    let url: string | null = null;
+    let cancelled = false;
+
+    void (async () => {
+      setLoading(true);
+      try {
+        url = await generatePreviewUrl();
+        if (!cancelled) setPreviewUrl(url);
+      } catch {
+        if (!cancelled) setPreviewUrl(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [generatePreviewUrl]);
+
+  const handleRegenerate = useCallback(async () => {
+    const url = await generatePreviewUrl();
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+    return url;
+  }, [generatePreviewUrl]);
+
   return (
     <div className="space-y-3">
-      <CotizacionPDFDownloadButton quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
+      <CotizacionPDFDownloadButton
+        fileName={fileName}
+        previewUrl={previewUrl}
+        loading={loading}
+        onGenerate={handleRegenerate}
+      />
       <div className="h-[75vh] overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <PDFViewer width="100%" height="100%">
-          <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
-        </PDFViewer>
+        {loading ? (
+          <p className="flex h-full items-center justify-center text-sm text-slate-500">Cargando vista previa...</p>
+        ) : previewUrl ? (
+          <iframe src={previewUrl} title={fileName} className="h-full w-full border-0" />
+        ) : (
+          <p className="flex h-full items-center justify-center text-sm text-slate-500">No se pudo cargar el PDF.</p>
+        )}
       </div>
     </div>
   );

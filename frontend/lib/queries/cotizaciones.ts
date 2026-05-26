@@ -1,7 +1,7 @@
 import { supabase } from "../supabase";
 import type { CtzCotizacion, CtzCotizacionItem, CtzUsuario } from "../types/db";
 
-export type ItemInput = {
+export type ProductoInput = {
   id_producto: string | null;
   descripcion_registro: string;
   cantidad: number;
@@ -13,16 +13,16 @@ export type ItemInput = {
 };
 
 /** Solo columnas de ctz_cotizacion_items (evita enviar campos UI a PostgREST). */
-export function toItemInput(item: ItemInput): ItemInput {
+export function toProductoInput(producto: ProductoInput): ProductoInput {
   return {
-    id_producto: item.id_producto,
-    descripcion_registro: item.descripcion_registro,
-    cantidad: item.cantidad,
-    unidad_medida: item.unidad_medida,
-    precio_unitario: item.precio_unitario,
-    iva_porcentaje: item.iva_porcentaje,
-    subtotal_item: item.subtotal_item,
-    total_item: item.total_item,
+    id_producto: producto.id_producto,
+    descripcion_registro: producto.descripcion_registro,
+    cantidad: producto.cantidad,
+    unidad_medida: producto.unidad_medida,
+    precio_unitario: producto.precio_unitario,
+    iva_porcentaje: producto.iva_porcentaje,
+    subtotal_item: producto.subtotal_item,
+    total_item: producto.total_item,
   };
 }
 
@@ -85,7 +85,7 @@ export type CreateCotizacionError =
   | "duplicate_folio"
   | "invalid_reference"
   | "cliente_sucursal"
-  | "items"
+  | "productos"
   | "unknown";
 
 export type CreateCotizacionResult =
@@ -104,7 +104,7 @@ function mapCotizacionInsertError(error: { code?: string; message?: string }): C
 
 export async function createCotizacion(payload: {
   cotizacion: Omit<CtzCotizacion, "id" | "created_at" | "updated_at">;
-  items: ItemInput[];
+  productos: ProductoInput[];
 }): Promise<CreateCotizacionResult> {
   if (!supabase) return { ok: false, error: "unknown" };
 
@@ -118,16 +118,16 @@ export async function createCotizacion(payload: {
     return mapCotizacionInsertError(insertHeaderError ?? { message: "Sin id" });
   }
 
-  const { error: insertItemsError } = await supabase.from("ctz_cotizacion_items").insert(
-    payload.items.map((item) => ({
+  const { error: insertProductosError } = await supabase.from("ctz_cotizacion_items").insert(
+    payload.productos.map((producto) => ({
       id_cotizacion: inserted.id,
-      ...toItemInput(item),
+      ...toProductoInput(producto),
     }))
   );
 
-  if (insertItemsError) {
+  if (insertProductosError) {
     await supabase.from("ctz_cotizaciones").delete().eq("id", inserted.id);
-    return { ok: false, error: "items", message: insertItemsError.message };
+    return { ok: false, error: "productos", message: insertProductosError.message };
   }
 
   return { ok: true, id: inserted.id };
@@ -136,7 +136,7 @@ export async function createCotizacion(payload: {
 export async function updateCotizacion(
   id: string,
   payload: Partial<CtzCotizacion>,
-  items: ItemInput[]
+  productos: ProductoInput[]
 ): Promise<boolean> {
   if (!supabase) return false;
   const { error: headerError } = await supabase.from("ctz_cotizaciones").update(payload).eq("id", id);
@@ -145,22 +145,21 @@ export async function updateCotizacion(
   const { error: deleteError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);
   if (deleteError) return false;
 
-  const { error: insertItemsError } = await supabase.from("ctz_cotizacion_items").insert(
-    items.map((item) => ({
+  const { error: insertProductosError } = await supabase.from("ctz_cotizacion_items").insert(
+    productos.map((producto) => ({
       id_cotizacion: id,
-      ...toItemInput(item),
+      ...toProductoInput(producto),
     }))
   );
-  return !insertItemsError;
+  return !insertProductosError;
 }
 
 export async function deleteCotizacion(id: string): Promise<boolean> {
   if (!supabase) return false;
 
-  const { error: itemsError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);
-  if (itemsError) return false;
+  const { error: productosError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);
+  if (productosError) return false;
 
   const { error: cotizacionError } = await supabase.from("ctz_cotizaciones").delete().eq("id", id);
   return !cotizacionError;
 }
-

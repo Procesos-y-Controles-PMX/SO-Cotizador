@@ -1,20 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import { getCurrentUser } from "@/lib/auth";
-import { listCotizaciones, type CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import { deleteCotizacion, listCotizaciones, type CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 import { money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<CotizacionWithRelations[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<CotizacionWithRelations | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const user = useMemo(() => getCurrentUser(), []);
+  const isAdmin = user?.rol === "admin";
+
+  const loadRows = useCallback(async () => {
+    if (!user) return;
+    const data = await listCotizaciones(user, search);
+    setRows(data);
+  }, [search, user]);
 
   useEffect(() => {
-    if (!user) return;
-    listCotizaciones(user, search).then(setRows);
-  }, [search, user]);
+    void loadRows();
+  }, [loadRows]);
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    const ok = await deleteCotizacion(deleteTarget.id);
+    setDeleteLoading(false);
+    if (!ok) {
+      toast.error("No se pudo borrar la cotizacion.");
+      return;
+    }
+    toast.success("Cotizacion borrada.");
+    setDeleteTarget(null);
+    setRows((prev) => prev.filter((row) => row.id !== deleteTarget.id));
+  }
+
+  const emptyColSpan = isAdmin ? 7 : 6;
 
   return (
     <section className="space-y-4">
@@ -41,7 +67,8 @@ export default function CotizacionesPage() {
               <th className="whitespace-nowrap px-4 py-3">Obra</th>
               <th className="whitespace-nowrap px-4 py-3">Sucursal</th>
               <th className="whitespace-nowrap px-4 py-3">Total</th>
-              <th className="whitespace-nowrap px-4 py-3"></th>
+              <th className="whitespace-nowrap px-4 py-3 text-right"></th>
+              {isAdmin ? <th className="whitespace-nowrap px-4 py-3 text-right">Borrar</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -57,11 +84,22 @@ export default function CotizacionesPage() {
                     Ver detalle
                   </Link>
                 </td>
+                {isAdmin ? (
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      className="text-red-700 hover:underline"
+                      onClick={() => setDeleteTarget(row)}
+                    >
+                      Borrar
+                    </button>
+                  </td>
+                ) : null}
               </tr>
             ))}
             {!rows.length ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={6}>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
                   No hay cotizaciones para mostrar.
                 </td>
               </tr>
@@ -69,7 +107,15 @@ export default function CotizacionesPage() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDeleteCotizacionModal
+        open={deleteTarget !== null}
+        loading={deleteLoading}
+        onClose={() => {
+          if (!deleteLoading) setDeleteTarget(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
     </section>
   );
 }
-

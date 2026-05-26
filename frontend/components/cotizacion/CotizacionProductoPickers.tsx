@@ -34,7 +34,7 @@ function productToDescripcionOption(p: CtzProducto): SearchComboboxOption {
   };
 }
 
-export default function CotizacionItemProductPickers({
+export default function CotizacionProductoPickers({
   productoId,
   skuLabel,
   descripcionLabel,

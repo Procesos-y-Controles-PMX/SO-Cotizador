@@ -49,11 +49,11 @@ export function calcLineAmounts(
 
 /** Reconstruye el precio del input al cargar desde BD (no convierte al alternar el botón). */
 export function precioCapturadoFromStored(
-  item: { precio_unitario: number; total_item: number; cantidad: number },
+  producto: { precio_unitario: number; total_item: number; cantidad: number },
   preciosIncluyenIva: boolean
 ): number {
-  if (preciosIncluyenIva && item.cantidad > 0) {
-    return round2(item.total_item / item.cantidad);
+  if (preciosIncluyenIva && producto.cantidad > 0) {
+    return round2(producto.total_item / producto.cantidad);
   }
-  return item.precio_unitario;
+  return producto.precio_unitario;
 }

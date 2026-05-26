@@ -5,24 +5,25 @@ import { toast } from "sonner";
 import { getCurrentUser, loginByEmail } from "@/lib/auth";
 import {
   buildSkuProductMap,
-  downloadCotizacionItemsExcelTemplate,
+  downloadCotizacionProductosExcelTemplate,
   parseExcelFile,
-  previewOkToItemInputs,
+  previewOkToProductoInputs,
   resolveExcelRowsToImport,
   type ExcelImportPreview,
-} from "@/lib/excel/importCotizacionItems";
+} from "@/lib/excel/importCotizacionProductos";
 import { generarFolio } from "@/lib/folio";
-import CotizacionItemProductPickers from "@/components/cotizacion/CotizacionItemProductPickers";
+import CotizacionProductoPickers from "@/components/cotizacion/CotizacionProductoPickers";
+import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
 import { matchesSearch } from "@/lib/search";
 import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
 import {
   createCotizacion,
-  toItemInput,
+  toProductoInput,
   updateCotizacion,
   type CreateCotizacionError,
-  type ItemInput,
+  type ProductoInput,
 } from "@/lib/queries/cotizaciones";
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
 import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
@@ -47,16 +48,16 @@ type Props = {
     referencia_pago: string | null;
     comentarios: string | null;
     mostrar_con_iva: boolean;
-    /** IVA global de la cotizacion (BD); si falta en datos viejos, se toma del primer item al guardar. */
+    /** IVA global de la cotizacion (BD); si falta en datos viejos, se toma del primer producto al guardar. */
     iva_porcentaje?: number;
-    items: ItemInput[];
+    productos: ProductoInput[];
   };
   onSaved: (id: string) => void;
   canDelete?: boolean;
   onDelete?: () => Promise<boolean>;
 };
 
-type LocalItem = ItemInput & {
+type ProductoLocal = ProductoInput & {
   tempId: string;
   productoSku: string;
   productoDescripcion: string;
@@ -65,21 +66,21 @@ type LocalItem = ItemInput & {
 };
 
 function initialIvaFromProps(initial: Props["initial"]): IvaPct {
-  return normalizeIvaPct(initial?.iva_porcentaje ?? initial?.items?.[0]?.iva_porcentaje ?? 16);
+  return normalizeIvaPct(initial?.iva_porcentaje ?? initial?.productos?.[0]?.iva_porcentaje ?? 16);
 }
 
-function recalcItemFromCapturado(item: LocalItem, ivaPct: IvaPct, preciosIncluyenIva: boolean): LocalItem {
-  const amounts = calcLineAmounts(item.cantidad, item.precioCapturado, ivaPct, preciosIncluyenIva);
-  return { ...item, iva_porcentaje: ivaPct, ...amounts };
+function recalcProductoFromCapturado(producto: ProductoLocal, ivaPct: IvaPct, preciosIncluyenIva: boolean): ProductoLocal {
+  const amounts = calcLineAmounts(producto.cantidad, producto.precioCapturado, ivaPct, preciosIncluyenIva);
+  return { ...producto, iva_porcentaje: ivaPct, ...amounts };
 }
 
-function itemFromProduct(
+function productoFromCatalogo(
   product: CtzProducto,
-  base: Omit<LocalItem, keyof ItemInput | "productoSku" | "productoDescripcion" | "precioCapturado"> &
-    Partial<LocalItem>,
+  base: Omit<ProductoLocal, keyof ProductoInput | "productoSku" | "productoDescripcion" | "precioCapturado"> &
+    Partial<ProductoLocal>,
   ivaPct: IvaPct,
   preciosIncluyenIva: boolean
-): LocalItem {
+): ProductoLocal {
   const cantidad = base.cantidad ?? 1;
   const precioCapturado = base.precioCapturado ?? base.precio_unitario ?? 0;
   const unidad_medida =
@@ -156,21 +157,21 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   const [sucursalTerminosDraft, setSucursalTerminosDraft] = useState("");
   const [savingSucursalTerminos, setSavingSucursalTerminos] = useState(false);
   const [precioUnitarioDraft, setPrecioUnitarioDraft] = useState<Record<string, string>>({});
-  const [items, setItems] = useState<LocalItem[]>(() => {
+  const [productosCotizacion, setProductosCotizacion] = useState<ProductoLocal[]>(() => {
     const iva0 = initialIvaFromProps(initial);
     const incluyenIva = initial?.mostrar_con_iva ?? false;
-    if (initial?.items?.length) {
-      return initial.items.map((item, index) => {
-        const precioCapturado = precioCapturadoFromStored(item, incluyenIva);
-        const amounts = calcLineAmounts(item.cantidad, precioCapturado, iva0, incluyenIva);
+    if (initial?.productos?.length) {
+      return initial.productos.map((producto, index) => {
+        const precioCapturado = precioCapturadoFromStored(producto, incluyenIva);
+        const amounts = calcLineAmounts(producto.cantidad, precioCapturado, iva0, incluyenIva);
         return {
-          ...item,
+          ...producto,
           tempId: `temp-${index}`,
           iva_porcentaje: iva0,
           precioCapturado,
           ...amounts,
           productoSku: "",
-          productoDescripcion: item.descripcion_registro,
+          productoDescripcion: producto.descripcion_registro,
         };
       });
     }
@@ -227,7 +228,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
       const productIds = [
         ...new Set(
-          (initial?.items ?? [])
+          (initial?.productos ?? [])
             .map((row) => row.id_producto)
             .filter((id): id is string => Boolean(id))
         ),
@@ -236,7 +237,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         const catalog = await getProductosByIds(productIds);
         const byId = new Map(catalog.map((row) => [row.id, row]));
         if (!cancelled) {
-          setItems((prev) =>
+          setProductosCotizacion((prev) =>
             prev.map((row) => {
               if (!row.id_producto) return row;
               const product = byId.get(row.id_producto);
@@ -267,7 +268,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     const newIva = normalizeIvaPct(s.iva_predeterminado);
     setIvaCotizacion(newIva);
     setPrecioUnitarioDraft({});
-    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, newIva, preciosIncluyenIva)));
+    setProductosCotizacion((prev) => prev.map((producto) => recalcProductoFromCapturado(producto, newIva, preciosIncluyenIva)));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al elegir sucursal en alta
   }, [mode, idSucursal, sucursales]);
 
@@ -299,11 +300,11 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
   }, [idSucursal, sucursales]);
 
   const totals = useMemo(() => {
-    const subtotal = Number(items.reduce((acc, item) => acc + item.subtotal_item, 0).toFixed(2));
-    const total = Number(items.reduce((acc, item) => acc + item.total_item, 0).toFixed(2));
+    const subtotal = Number(productosCotizacion.reduce((acc, producto) => acc + producto.subtotal_item, 0).toFixed(2));
+    const total = Number(productosCotizacion.reduce((acc, producto) => acc + producto.total_item, 0).toFixed(2));
     const ivaTotal = Number((total - subtotal).toFixed(2));
     return { subtotal, ivaTotal, total };
-  }, [items]);
+  }, [productosCotizacion]);
 
   const precioUnitarioLabel = preciosIncluyenIva
     ? "Precio unitario (IVA incluido)"
@@ -333,25 +334,25 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     toast.success("Términos de sucursal guardados.");
   }
 
-  function setItemFromCapturedPrice(tempId: string, precioCapturado: number, cantidad?: number) {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.tempId !== tempId) return item;
-        const qty = cantidad ?? item.cantidad;
+  function setProductoFromCapturedPrice(tempId: string, precioCapturado: number, cantidad?: number) {
+    setProductosCotizacion((prev) =>
+      prev.map((producto) => {
+        if (producto.tempId !== tempId) return producto;
+        const qty = cantidad ?? producto.cantidad;
         const amounts = calcLineAmounts(qty, precioCapturado, ivaCotizacion, preciosIncluyenIva);
-        return { ...item, cantidad: qty, precioCapturado, iva_porcentaje: ivaCotizacion, ...amounts };
+        return { ...producto, cantidad: qty, precioCapturado, iva_porcentaje: ivaCotizacion, ...amounts };
       })
     );
   }
 
-  function updateItem(tempId: string, next: Partial<LocalItem>) {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.tempId !== tempId) return item;
-        const merged = { ...item, ...next };
+  function updateProducto(tempId: string, next: Partial<ProductoLocal>) {
+    setProductosCotizacion((prev) =>
+      prev.map((producto) => {
+        if (producto.tempId !== tempId) return producto;
+        const merged = { ...producto, ...next };
         if (next.cantidad !== undefined) {
-          return recalcItemFromCapturado(
-            { ...merged, cantidad: merged.cantidad, precioCapturado: item.precioCapturado },
+          return recalcProductoFromCapturado(
+            { ...merged, cantidad: merged.cantidad, precioCapturado: producto.precioCapturado },
             ivaCotizacion,
             preciosIncluyenIva
           );
@@ -361,17 +362,17 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     );
   }
 
-  function togglePreciosIncluyenIva() {
-    const next = !preciosIncluyenIva;
-    setPreciosIncluyenIva(next);
-    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, ivaCotizacion, next)));
+  function handlePreciosIncluyenIvaChange(incluyenIva: boolean) {
+    if (incluyenIva === preciosIncluyenIva) return;
+    setPreciosIncluyenIva(incluyenIva);
+    setProductosCotizacion((prev) => prev.map((producto) => recalcProductoFromCapturado(producto, ivaCotizacion, incluyenIva)));
   }
 
   function handleIvaCotizacionChange(nextIva: IvaPct) {
     if (nextIva === ivaCotizacion) return;
     setPrecioUnitarioDraft({});
     setIvaCotizacion(nextIva);
-    setItems((prev) => prev.map((item) => recalcItemFromCapturado(item, nextIva, preciosIncluyenIva)));
+    setProductosCotizacion((prev) => prev.map((producto) => recalcProductoFromCapturado(producto, nextIva, preciosIncluyenIva)));
   }
 
   function clearPrecioDraft(tempId: string) {
@@ -386,28 +387,28 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     if (!DECIMAL_DRAFT_RE.test(raw)) return;
     setPrecioUnitarioDraft((prev) => ({ ...prev, [tempId]: raw }));
     const precioCapturado = raw !== "" && raw !== "." ? parsePrecioFromDraft(raw) : 0;
-    setItemFromCapturedPrice(tempId, precioCapturado);
+    setProductoFromCapturedPrice(tempId, precioCapturado);
   }
 
   function handlePrecioBlur(tempId: string) {
     const raw = precioUnitarioDraft[tempId];
     if (raw === undefined) return;
-    setItemFromCapturedPrice(tempId, parsePrecioFromDraft(raw));
+    setProductoFromCapturedPrice(tempId, parsePrecioFromDraft(raw));
     clearPrecioDraft(tempId);
   }
 
-  function applyProductToItem(tempId: string, product: CtzProducto) {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.tempId !== tempId) return item;
-        const sameProduct = item.id_producto === product.id;
-        return itemFromProduct(
+  function applyProductoCotizacion(tempId: string, product: CtzProducto) {
+    setProductosCotizacion((prev) =>
+      prev.map((producto) => {
+        if (producto.tempId !== tempId) return producto;
+        const sameProduct = producto.id_producto === product.id;
+        return productoFromCatalogo(
           product,
           {
-            tempId: item.tempId,
-            cantidad: item.cantidad,
-            unidad_medida: sameProduct ? item.unidad_medida : product.unidad_medida ?? null,
-            precioCapturado: sameProduct ? item.precioCapturado : 0,
+            tempId: producto.tempId,
+            cantidad: producto.cantidad,
+            unidad_medida: sameProduct ? producto.unidad_medida : product.unidad_medida ?? null,
+            precioCapturado: sameProduct ? producto.precioCapturado : 0,
           },
           ivaCotizacion,
           preciosIncluyenIva
@@ -417,10 +418,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     clearPrecioDraft(tempId);
   }
 
-  function clearProductFromItem(tempId: string) {
+  function clearProductoCotizacion(tempId: string) {
     clearPrecioDraft(tempId);
-    setItemFromCapturedPrice(tempId, 0);
-    updateItem(tempId, {
+    setProductoFromCapturedPrice(tempId, 0);
+    updateProducto(tempId, {
       id_producto: null,
       descripcion_registro: "",
       unidad_medida: null,
@@ -509,18 +510,18 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       toast.error("No hay filas validas para importar.");
       return;
     }
-    const newRows: LocalItem[] = importPreview.ok.map((row) => {
+    const newRows: ProductoLocal[] = importPreview.ok.map((row) => {
       const precioCapturado = row.precio_unitario;
-      const [item] = previewOkToItemInputs([row], ivaCotizacion, preciosIncluyenIva);
+      const [productoImportado] = previewOkToProductoInputs([row], ivaCotizacion, preciosIncluyenIva);
       return {
-        ...item,
+        ...productoImportado,
         tempId: crypto.randomUUID(),
         precioCapturado,
         productoSku: row.product.sku?.trim() ?? "",
         productoDescripcion: row.product.descripcion,
       };
     });
-    setItems((prev) => {
+    setProductosCotizacion((prev) => {
       const kept = prev.filter((i) => i.id_producto);
       return [...kept, ...newRows];
     });
@@ -528,7 +529,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     const nFail = importPreview.failed.length;
     setImportExcelOpen(false);
     setImportPreview(null);
-    toast.success(`Se agregaron ${nOk} renglon(es) a Items.`);
+    toast.success(`Se agregaron ${nOk} renglon(es) a Productos.`);
     if (nFail) toast.warning(`${nFail} fila(s) no se encontraron en el catalogo.`);
   }
 
@@ -537,10 +538,10 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     setImportPreview(null);
   }
 
-  async function handleDownloadItemsTemplate() {
+  async function handleDownloadProductosTemplate() {
     setTemplateDownloading(true);
     try {
-      await downloadCotizacionItemsExcelTemplate();
+      await downloadCotizacionProductosExcelTemplate();
     } catch {
       toast.error("No se pudo generar la plantilla.");
     } finally {
@@ -630,8 +631,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       case "cliente_sucursal":
         toast.error("El cliente no pertenece a la sucursal seleccionada.");
         break;
-      case "items":
-        toast.error("No se pudieron guardar los items de la cotizacion.");
+      case "productos":
+        toast.error("No se pudieron guardar los productos de la cotizacion.");
         break;
       default:
         toast.error("No fue posible registrar la cotizacion.");
@@ -643,29 +644,29 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     const sessionUser = getCurrentUser();
     if (!sessionUser) return;
     const user = (await loginByEmail(sessionUser.email)) ?? sessionUser;
-    if (!idSucursal || !idCliente || !items.length) {
-      toast.error("Selecciona sucursal, cliente y al menos un item.");
+    if (!idSucursal || !idCliente || !productosCotizacion.length) {
+      toast.error("Selecciona sucursal, cliente y al menos un producto.");
       return;
     }
 
-    const readyItems = items
-      .filter((item) => item.id_producto && item.cantidad > 0)
-      .map(({ tempId, productoSku, productoDescripcion, precioCapturado: _pc, ...item }) => {
-        const selectedProduct = productos.find((product) => product.id === item.id_producto);
-        return toItemInput({
-          ...item,
-          descripcion_registro: selectedProduct?.descripcion ?? item.descripcion_registro,
+    const productosListos = productosCotizacion
+      .filter((producto) => producto.id_producto && producto.cantidad > 0)
+      .map(({ tempId, productoSku, productoDescripcion, precioCapturado: _pc, ...producto }) => {
+        const selectedProduct = productos.find((product) => product.id === producto.id_producto);
+        return toProductoInput({
+          ...producto,
+          descripcion_registro: selectedProduct?.descripcion ?? producto.descripcion_registro,
           iva_porcentaje: ivaCotizacion,
         });
       });
-    if (!readyItems.length) {
-      toast.error("Agrega al menos un item valido.");
+    if (!productosListos.length) {
+      toast.error("Agrega al menos un producto valido.");
       return;
     }
 
     const ivaPorCotizacion = ivaCotizacion;
-    const itemsPayload = readyItems.map((row) =>
-      toItemInput({ ...row, iva_porcentaje: ivaPorCotizacion })
+    const productosPayload = productosListos.map((row) =>
+      toProductoInput({ ...row, iva_porcentaje: ivaPorCotizacion })
     );
 
     setLoading(true);
@@ -697,7 +698,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             folio: generarFolio(sucursal.prefijo_folio),
             ...cotizacionBase,
           },
-          items: itemsPayload,
+          productos: productosPayload,
         });
         if (result.ok) break;
         if (result.error !== "duplicate_folio") break;
@@ -739,7 +740,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         iva_total: totals.ivaTotal,
         total: totals.total,
       },
-      itemsPayload
+      productosPayload
     );
     setLoading(false);
     if (!ok) return toast.error("No fue posible actualizar.");
@@ -767,8 +768,19 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             }}
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
-          Cliente
+        <div className="text-sm font-medium text-slate-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>Cliente</span>
+            <button
+              type="button"
+              disabled={!idSucursal}
+              title={!idSucursal ? "Selecciona una sucursal primero" : "Registrar un cliente nuevo"}
+              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => openModal("cliente")}
+            >
+              + Nuevo cliente
+            </button>
+          </div>
           <SearchCombobox
             className="mt-1"
             inputClassName="px-3 py-2"
@@ -788,7 +800,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               setIdCliente(opt?.id ?? "");
             }}
           />
-        </label>
+        </div>
         <label className="text-sm font-medium text-slate-700">
           Nombre de la obra
           <input
@@ -821,21 +833,31 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
-          <h3 className="font-semibold text-slate-900">Items</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className={
-                preciosIncluyenIva
-                  ? "rounded-md bg-[#DA291C] px-3 py-1 text-sm font-medium text-white"
-                  : "rounded-md border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700"
-              }
-              onClick={togglePreciosIncluyenIva}
-            >
-              Precios con IVA incluido
-            </button>
+          <h3 className="font-semibold text-slate-900">Productos</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">
+                {preciosIncluyenIva ? "Precios con IVA incluido" : "Precios sin IVA incluido"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={preciosIncluyenIva}
+                aria-label={preciosIncluyenIva ? "Precios con IVA incluido" : "Precios sin IVA incluido"}
+                onClick={() => handlePreciosIncluyenIvaChange(!preciosIncluyenIva)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
+                  preciosIncluyenIva ? "bg-[#DA291C]" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
+                    preciosIncluyenIva ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
             <label className="text-sm text-slate-600">
-              IVA (toda la cotizacion)
+              IVA
               <select
                 className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 value={ivaCotizacion}
@@ -844,7 +866,6 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 <option value={16}>16%</option>
                 <option value={8}>8%</option>
               </select>
-              <span className="ml-2 text-xs text-slate-500">IVA aplicable: {ivaCotizacion}%</span>
             </label>
             <input
               ref={excelInputRef}
@@ -857,7 +878,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               type="button"
               className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
               disabled={templateDownloading}
-              onClick={() => void handleDownloadItemsTemplate()}
+              onClick={() => void handleDownloadProductosTemplate()}
             >
               {templateDownloading ? "Generando..." : "Descargar plantilla"}
             </button>
@@ -868,31 +889,6 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               onClick={() => excelInputRef.current?.click()}
             >
               {excelParsing ? "Leyendo..." : "Importar Excel"}
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm"
-              onClick={() =>
-                setItems((prev) => [
-                  ...prev,
-                  {
-                    tempId: crypto.randomUUID(),
-                    id_producto: null,
-                    descripcion_registro: "",
-                    cantidad: 1,
-                    unidad_medida: null,
-                    precio_unitario: 0,
-                    precioCapturado: 0,
-                    iva_porcentaje: ivaCotizacion,
-                    subtotal_item: 0,
-                    total_item: 0,
-                    productoSku: "",
-                    productoDescripcion: "",
-                  },
-                ])
-              }
-            >
-              + Item
             </button>
           </div>
         </div>
@@ -906,30 +902,30 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
             <p className="md:col-span-2">{precioUnitarioLabel}</p>
             <p className="md:col-span-1">Accion</p>
           </div>
-          {items.map((item, index) => {
-            const productoCatalogo = productos.find((p) => p.id === item.id_producto);
+          {productosCotizacion.map((producto, index) => {
+            const productoCatalogo = productos.find((p) => p.id === producto.id_producto);
             const umDefault = productoCatalogo?.unidad_medida?.trim() || "";
             return (
-            <div key={item.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
-              {items.length > 1 ? (
-                <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Item {index + 1}</p>
+            <div key={producto.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
+              {productosCotizacion.length > 1 ? (
+                <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Producto {index + 1}</p>
               ) : null}
-              <CotizacionItemProductPickers
-                productoId={item.id_producto}
-                skuLabel={item.productoSku}
-                descripcionLabel={item.productoDescripcion}
+              <CotizacionProductoPickers
+                productoId={producto.id_producto}
+                skuLabel={producto.productoSku}
+                descripcionLabel={producto.productoDescripcion}
                 disabled={catalogLoading}
-                onProductSelected={(product) => applyProductToItem(item.tempId, product)}
-                onProductCleared={() => clearProductFromItem(item.tempId)}
+                onProductSelected={(product) => applyProductoCotizacion(producto.tempId, product)}
+                onProductCleared={() => clearProductoCotizacion(producto.tempId)}
               />
               <label className="block md:col-span-1">
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">U.M.</span>
                 <input
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
                   placeholder={umDefault || "U.M."}
-                  value={item.unidad_medida ?? ""}
+                  value={producto.unidad_medida ?? ""}
                   onChange={(event) =>
-                    updateItem(item.tempId, {
+                    updateProducto(producto.tempId, {
                       unidad_medida: event.target.value.trim() ? event.target.value.trim() : null,
                     })
                   }
@@ -940,8 +936,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 <input
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
                   placeholder="Cantidad"
-                  value={item.cantidad}
-                  onChange={(event) => updateItem(item.tempId, { cantidad: toNumber(event.target.value) })}
+                  value={producto.cantidad}
+                  onChange={(event) => updateProducto(producto.tempId, { cantidad: toNumber(event.target.value) })}
                 />
               </label>
               <label className="block md:col-span-2">
@@ -951,9 +947,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                   inputMode="decimal"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
                   placeholder={precioUnitarioLabel}
-                  value={precioUnitarioDraft[item.tempId] ?? formatPrecioDisplay(item.precioCapturado)}
-                  onChange={(event) => handlePrecioChange(item.tempId, event.target.value)}
-                  onBlur={() => handlePrecioBlur(item.tempId)}
+                  value={precioUnitarioDraft[producto.tempId] ?? formatPrecioDisplay(producto.precioCapturado)}
+                  onChange={(event) => handlePrecioChange(producto.tempId, event.target.value)}
+                  onBlur={() => handlePrecioBlur(producto.tempId)}
                 />
               </label>
               <div className="md:col-span-1">
@@ -962,8 +958,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                   type="button"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-red-600 md:py-1"
                   onClick={() => {
-                    clearPrecioDraft(item.tempId);
-                    setItems((prev) => prev.filter((row) => row.tempId !== item.tempId));
+                    clearPrecioDraft(producto.tempId);
+                    setProductosCotizacion((prev) => prev.filter((row) => row.tempId !== producto.tempId));
                   }}
                 >
                   Eliminar
@@ -974,10 +970,37 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
           })}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-700">
-          <p>Subtotal: {money(totals.subtotal)}</p>
-          <p>IVA: {money(totals.ivaTotal)}</p>
-          <p className="font-semibold">Total: {money(totals.total)}</p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+            onClick={() =>
+              setProductosCotizacion((prev) => [
+                ...prev,
+                {
+                  tempId: crypto.randomUUID(),
+                  id_producto: null,
+                  descripcion_registro: "",
+                  cantidad: 1,
+                  unidad_medida: null,
+                  precio_unitario: 0,
+                  precioCapturado: 0,
+                  iva_porcentaje: ivaCotizacion,
+                  subtotal_item: 0,
+                  total_item: 0,
+                  productoSku: "",
+                  productoDescripcion: "",
+                },
+              ])
+            }
+          >
+            + Producto
+          </button>
+          <div className="flex flex-wrap items-center justify-end gap-4 text-sm text-slate-700">
+            <p>Subtotal: {money(totals.subtotal)}</p>
+            <p>IVA: {money(totals.ivaTotal)}</p>
+            <p className="font-semibold">Total: {money(totals.total)}</p>
+          </div>
         </div>
       </div>
 
@@ -1018,13 +1041,6 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       <div className="flex flex-wrap justify-center gap-2">
         <button type="button" disabled={loading} className="btn-primary disabled:opacity-50" onClick={save}>
           {mode === "create" ? "Registrar Cotizacion" : "Guardar Cambios"}
-        </button>
-        <button
-          type="button"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          onClick={() => openModal("cliente")}
-        >
-          + Nuevo cliente
         </button>
         <button
           type="button"
@@ -1151,8 +1167,8 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
               <p className="mt-1 text-sm text-slate-500">
                 Primera fila: encabezados. Obligatorio: <strong>SKU</strong> o <strong>SKU (obligatorio)</strong>.
                 Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional). El IVA de las filas importadas
-                usa el <strong>IVA (toda la cotizacion)</strong> del formulario. La unidad de medida siempre viene del
-                catalogo (no se lee del Excel). Puedes usar el botón <strong>Descargar plantilla</strong> en Items para
+                usa el <strong>IVA</strong> del formulario. La unidad de medida siempre viene del
+                catalogo (no se lee del Excel). Puedes usar el botón <strong>Descargar plantilla</strong> en Productos para
                 obtener un .xlsx con esos títulos.
               </p>
             </div>
@@ -1197,50 +1213,29 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
                 onClick={confirmExcelImport}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Agregar a Items
+                Agregar a Productos
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-            <h4 className="text-base font-semibold text-slate-900">Borrar Cotizacion</h4>
-            <p className="mt-1 text-sm text-slate-500">Estas seguro que quieres borrar esta Cotizacion?</p>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={deleteLoading}
-                onClick={() => setConfirmDeleteOpen(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={deleteLoading}
-                onClick={async () => {
-                  if (!onDelete) return;
-                  setDeleteLoading(true);
-                  const ok = await onDelete();
-                  setDeleteLoading(false);
-                  if (!ok) {
-                    toast.error("No se pudo borrar la cotizacion.");
-                    return;
-                  }
-                  toast.success("Cotizacion borrada.");
-                }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleteLoading ? "Borrando..." : "Aceptar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDeleteCotizacionModal
+        open={confirmDeleteOpen}
+        loading={deleteLoading}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={async () => {
+          if (!onDelete) return;
+          setDeleteLoading(true);
+          const ok = await onDelete();
+          setDeleteLoading(false);
+          if (!ok) {
+            toast.error("No se pudo borrar la cotizacion.");
+            return;
+          }
+          toast.success("Cotizacion borrada.");
+        }}
+      />
     </section>
   );
 }
