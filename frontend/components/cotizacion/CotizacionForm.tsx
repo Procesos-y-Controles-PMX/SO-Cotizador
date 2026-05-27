@@ -693,6 +693,7 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
         total: totals.total,
+        venta_cerrada: false,
       };
       let result: Awaited<ReturnType<typeof createCotizacion>> = { ok: false, error: "unknown" };
       for (let attempt = 0; attempt < 3; attempt++) {
