@@ -8,10 +8,10 @@ import {
   StyleSheet,
   Text,
   View,
-  pdf,
 } from "@react-pdf/renderer";
 import { normalizeIvaPct, type IvaPct } from "@/lib/cotizacion/calcImportes";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
+import { generateCotizacionPdfBlob, pdfFileNameFromFolio } from "@/lib/pdf/cotizacionPdf";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 import { formatQuantity, money } from "@/lib/utils";
 
@@ -19,12 +19,6 @@ function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("es-MX");
-}
-
-function pdfFileNameFromFolio(folio: string): string {
-  const trimmed = folio.trim();
-  const safe = (trimmed || "cotizacion").replace(/[^\w.-]+/g, "_");
-  return safe.toLowerCase().endsWith(".pdf") ? safe : `${safe}.pdf`;
 }
 
 /** Marca Promexma / Cemex (PDF) */
@@ -312,9 +306,6 @@ export function CotizacionPDFDocument({
   );
 }
 
-const PDF_LOGO_PATH = "/construrama_promexma.png";
-const PDF_CUENTAS_PATH = "/Cuentas.png";
-
 function CotizacionPDFDownloadButton({
   fileName,
   previewUrl,
@@ -354,20 +345,15 @@ function CotizacionPDFDownloadButton({
 }
 
 export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations }) {
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const logoSrc = origin ? `${origin}${PDF_LOGO_PATH}` : "https://dummyimage.com/880x120/ffffff/0f1a2e&text=Construrama+Promexma";
-  const cuentasSrc = origin ? `${origin}${PDF_CUENTAS_PATH}` : "https://dummyimage.com/880x400/e2e8f0/334155&text=Cuentas+bancarias";
   const fileName = pdfFileNameFromFolio(quote.folio);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const generatePreviewUrl = useCallback(async () => {
-    const blob = await pdf(
-      <CotizacionPDFDocument quote={quote} logoSrc={logoSrc} cuentasSrc={cuentasSrc} />
-    ).toBlob();
+    const blob = await generateCotizacionPdfBlob(quote);
     const file = new File([blob], fileName, { type: "application/pdf" });
     return URL.createObjectURL(file);
-  }, [quote, logoSrc, cuentasSrc, fileName]);
+  }, [quote, fileName]);
 
   useEffect(() => {
     let url: string | null = null;

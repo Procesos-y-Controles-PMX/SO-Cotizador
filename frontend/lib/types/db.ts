@@ -61,6 +61,7 @@ export type CtzCotizacion = {
   subtotal: number;
   iva_total: number;
   total: number;
+  venta_cerrada: boolean;
   created_at: string;
   updated_at: string;
 };
