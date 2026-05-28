@@ -1,6 +1,7 @@
 import { calcLineAmounts, normalizeIvaPct } from "@/lib/cotizacion/calcImportes";
 import type { ProductoInput } from "@/lib/queries/cotizaciones";
 import type { CtzProducto } from "@/lib/types/db";
+import { parseDecimalInput, roundQuantity } from "@/lib/utils";
 
 export const EXCEL_IMPORT_MAX_ROWS = 500;
 
@@ -33,13 +34,6 @@ function cellToString(value: unknown): string {
 
 function normalizeSkuKey(sku: string): string {
   return sku.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function parseDecimal(raw: string): number | null {
-  if (!raw) return null;
-  const normalized = raw.replace(",", ".").trim();
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : null;
 }
 
 /** Mapa SKU normalizado -> producto (primer match si hubiera duplicado en BD). */
@@ -174,13 +168,13 @@ export function resolveExcelRowsToImport(
 
     let cantidad = 1;
     if (cantCol >= 0) {
-      const c = parseDecimal(cellToString(row[cantCol]));
-      if (c !== null && c > 0) cantidad = c;
+      const c = parseDecimalInput(cellToString(row[cantCol]));
+      if (c !== null && c > 0) cantidad = roundQuantity(c);
     }
 
     let precio_unitario = product.precio_unitario_base;
     if (precioCol >= 0) {
-      const p = parseDecimal(cellToString(row[precioCol]));
+      const p = parseDecimalInput(cellToString(row[precioCol]));
       if (p !== null && p >= 0) precio_unitario = p;
     }
 

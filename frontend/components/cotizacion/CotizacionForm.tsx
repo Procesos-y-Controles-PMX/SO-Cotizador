@@ -36,7 +36,13 @@ import {
 import { normalizeTipoPago, toDbTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import type { CotizacionFormInitial } from "@/lib/cotizacion/cotizacionToFormInitial";
-import { money } from "@/lib/utils";
+import {
+  DECIMAL_INPUT_DRAFT_RE,
+  formatCantidadDisplay,
+  money,
+  parseDecimalInput,
+  roundQuantity,
+} from "@/lib/utils";
 
 type Props = {
   mode: "create" | "edit";
@@ -154,6 +160,7 @@ export default function CotizacionForm({
   const [sucursalTerminosDraft, setSucursalTerminosDraft] = useState("");
   const [savingSucursalTerminos, setSavingSucursalTerminos] = useState(false);
   const [precioUnitarioDraft, setPrecioUnitarioDraft] = useState<Record<string, string>>({});
+  const [cantidadDraft, setCantidadDraft] = useState<Record<string, string>>({});
   const [productosCotizacion, setProductosCotizacion] = useState<ProductoLocal[]>(() => {
     const iva0 = initialIvaFromProps(initial);
     const incluyenIva = initial?.mostrar_con_iva ?? false;
@@ -368,6 +375,7 @@ export default function CotizacionForm({
   function handleIvaCotizacionChange(nextIva: IvaPct) {
     if (nextIva === ivaCotizacion) return;
     setPrecioUnitarioDraft({});
+    setCantidadDraft({});
     setIvaCotizacion(nextIva);
     setProductosCotizacion((prev) => prev.map((producto) => recalcProductoFromCapturado(producto, nextIva, preciosIncluyenIva)));
   }
@@ -378,6 +386,43 @@ export default function CotizacionForm({
       const { [tempId]: _removed, ...rest } = prev;
       return rest;
     });
+  }
+
+  function clearCantidadDraft(tempId: string) {
+    setCantidadDraft((prev) => {
+      if (!(tempId in prev)) return prev;
+      const { [tempId]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  function clearProductoInputDrafts(tempId: string) {
+    clearPrecioDraft(tempId);
+    clearCantidadDraft(tempId);
+  }
+
+  function handleCantidadChange(tempId: string, raw: string) {
+    if (!DECIMAL_INPUT_DRAFT_RE.test(raw)) return;
+    setCantidadDraft((prev) => ({ ...prev, [tempId]: raw }));
+  }
+
+  function handleCantidadBlur(tempId: string) {
+    const raw = cantidadDraft[tempId];
+    if (raw === undefined) return;
+    const parsed = parseDecimalInput(raw);
+    if (parsed === null || parsed <= 0) {
+      toast.error("La cantidad debe ser mayor a 0.");
+      clearCantidadDraft(tempId);
+      return;
+    }
+    const qty = roundQuantity(parsed);
+    if (qty <= 0) {
+      toast.error("La cantidad debe ser mayor a 0.");
+      clearCantidadDraft(tempId);
+      return;
+    }
+    updateProducto(tempId, { cantidad: qty });
+    clearCantidadDraft(tempId);
   }
 
   function handlePrecioChange(tempId: string, raw: string) {
@@ -412,11 +457,11 @@ export default function CotizacionForm({
         );
       })
     );
-    clearPrecioDraft(tempId);
+    clearProductoInputDrafts(tempId);
   }
 
   function clearProductoCotizacion(tempId: string) {
-    clearPrecioDraft(tempId);
+    clearProductoInputDrafts(tempId);
     setProductoFromCapturedPrice(tempId, 0);
     updateProducto(tempId, {
       id_producto: null,
@@ -639,6 +684,21 @@ export default function CotizacionForm({
     }
   }
 
+  function resolveProductosWithPendingDrafts(rows: ProductoLocal[]): ProductoLocal[] {
+    return rows.map((producto) => {
+      const raw = cantidadDraft[producto.tempId];
+      if (raw === undefined) return producto;
+      const parsed = parseDecimalInput(raw);
+      if (parsed === null || parsed <= 0) return producto;
+      const qty = roundQuantity(parsed);
+      return recalcProductoFromCapturado(
+        { ...producto, cantidad: qty, precioCapturado: producto.precioCapturado },
+        ivaCotizacion,
+        preciosIncluyenIva
+      );
+    });
+  }
+
   async function save() {
     if (loading) return;
     const sessionUser = getCurrentUser();
@@ -649,7 +709,9 @@ export default function CotizacionForm({
       return;
     }
 
-    const productosListos = productosCotizacion
+    const productosParaGuardar = resolveProductosWithPendingDrafts(productosCotizacion);
+
+    const productosListos = productosParaGuardar
       .filter((producto) => producto.id_producto && producto.cantidad > 0)
       .map(({ tempId, productoSku, productoDescripcion, precioCapturado: _pc, ...producto }) => {
         const selectedProduct = productos.find((product) => product.id === producto.id_producto);
@@ -942,10 +1004,13 @@ export default function CotizacionForm({
               <label className="block md:col-span-2">
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Cantidad</span>
                 <input
+                  type="text"
+                  inputMode="decimal"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
                   placeholder="Cantidad"
-                  value={producto.cantidad}
-                  onChange={(event) => updateProducto(producto.tempId, { cantidad: toNumber(event.target.value) })}
+                  value={cantidadDraft[producto.tempId] ?? formatCantidadDisplay(producto.cantidad)}
+                  onChange={(event) => handleCantidadChange(producto.tempId, event.target.value)}
+                  onBlur={() => handleCantidadBlur(producto.tempId)}
                 />
               </label>
               <label className="block md:col-span-2">
@@ -966,7 +1031,7 @@ export default function CotizacionForm({
                   type="button"
                   className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-red-600 md:py-1"
                   onClick={() => {
-                    clearPrecioDraft(producto.tempId);
+                    clearProductoInputDrafts(producto.tempId);
                     setProductosCotizacion((prev) => prev.filter((row) => row.tempId !== producto.tempId));
                   }}
                 >
