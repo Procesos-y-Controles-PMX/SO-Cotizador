@@ -35,23 +35,13 @@ import {
 } from "@/lib/cotizacion/calcImportes";
 import { normalizeTipoPago, toDbTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
+import type { CotizacionFormInitial } from "@/lib/cotizacion/cotizacionToFormInitial";
 import { money } from "@/lib/utils";
 
 type Props = {
   mode: "create" | "edit";
-  initial?: {
-    id: string;
-    id_sucursal: string;
-    id_cliente: string | null;
-    nombre_obra: string | null;
-    tipo_pago: "Contado" | "Crédito" | "Credito" | null;
-    referencia_pago: string | null;
-    comentarios: string | null;
-    mostrar_con_iva: boolean;
-    /** IVA global de la cotizacion (BD); si falta en datos viejos, se toma del primer producto al guardar. */
-    iva_porcentaje?: number;
-    productos: ProductoInput[];
-  };
+  initial?: CotizacionFormInitial;
+  copySourceFolio?: string;
   onSaved: (id: string) => void;
   canDelete?: boolean;
   onDelete?: () => Promise<boolean>;
@@ -119,7 +109,14 @@ function parsePrecioFromDraft(value: string): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-export default function CotizacionForm({ mode, initial, onSaved, canDelete = false, onDelete }: Props) {
+export default function CotizacionForm({
+  mode,
+  initial,
+  copySourceFolio,
+  onSaved,
+  canDelete = false,
+  onDelete,
+}: Props) {
   const [sucursales, setSucursales] = useState<CtzSucursal[]>([]);
   const [productos, setProductos] = useState<CtzProducto[]>([]);
   const [sucursalSelected, setSucursalSelected] = useState<SearchComboboxOption | null>(null);
@@ -729,8 +726,9 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
       setLoading(false);
       return;
     }
+    const cotizacionId = initial.id;
     const ok = await updateCotizacion(
-      initial.id,
+      cotizacionId,
       {
         id_sucursal: idSucursal,
         id_cliente: idCliente,
@@ -749,11 +747,17 @@ export default function CotizacionForm({ mode, initial, onSaved, canDelete = fal
     setLoading(false);
     if (!ok) return toast.error("No fue posible actualizar.");
     toast.success("Cotizacion actualizada.");
-    onSaved(initial.id);
+    onSaved(cotizacionId);
   }
 
   return (
     <section className="space-y-4">
+      {copySourceFolio ? (
+        <p className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Copia basada en el folio <span className="font-semibold">{copySourceFolio}</span>. Al guardar se
+          generara un folio nuevo.
+        </p>
+      ) : null}
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
           Sucursal

@@ -70,11 +70,7 @@ export async function listCotizaciones(
     query = query.or(`folio.ilike.${term},nombre_obra.ilike.${term}`);
   }
 
-  if (options?.unlimited) {
-    if (user.rol !== "admin") {
-      return [];
-    }
-  } else {
+  if (!options?.unlimited) {
     query = query.limit(100);
   }
 

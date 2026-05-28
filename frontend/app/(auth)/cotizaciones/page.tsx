@@ -18,6 +18,7 @@ import {
   updateVentaCerradaCotizacion,
   type CotizacionWithRelations,
 } from "@/lib/queries/cotizaciones";
+import { canDuplicateCotizacion } from "@/lib/cotizacion/cotizacionToFormInitial";
 import { money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
@@ -127,9 +128,11 @@ export default function CotizacionesPage() {
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
             disabled={excelLoading}
             onClick={async () => {
+              if (!user) return;
               setExcelLoading(true);
               try {
-                await downloadHistorialCotizacionesExcel(rows);
+                const exportRows = await listCotizaciones(user, search, { unlimited: true });
+                await downloadHistorialCotizacionesExcel(exportRows);
               } catch {
                 toast.error("No se pudo generar el Excel del historial.");
               } finally {
@@ -183,9 +186,19 @@ export default function CotizacionesPage() {
                   />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <Link href={`/cotizaciones/${row.id}`} className="text-red-700 hover:underline">
-                    Ver detalle
-                  </Link>
+                  <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                    <Link href={`/cotizaciones/${row.id}`} className="text-red-700 hover:underline">
+                      Ver detalle
+                    </Link>
+                    {user && canDuplicateCotizacion(user, row) ? (
+                      <Link
+                        href={`/cotizaciones/nueva?copiar=${row.id}`}
+                        className="text-red-700 hover:underline"
+                      >
+                        Duplicar
+                      </Link>
+                    ) : null}
+                  </div>
                 </td>
                 {isAdmin ? (
                   <td className="whitespace-nowrap px-4 py-3 text-right">

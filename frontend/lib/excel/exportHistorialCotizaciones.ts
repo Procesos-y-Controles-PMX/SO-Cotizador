@@ -1,27 +1,38 @@
-import {
-  groupCotizacionesByRegionAndSucursal,
-  sortRegionKeys,
-} from "@/lib/cotizacion/groupByRegion";
+import { regionLabel, sortRegionKeys, sucursalLabel } from "@/lib/cotizacion/groupByRegion";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
-import { money } from "@/lib/utils";
 
 export const HISTORIAL_COTIZACIONES_XLSX_FILENAME = "historial-cotizaciones.xlsx";
 
-const COLUMN_COUNT = 8;
-
 const HEADERS = [
+  "Región",
+  "Sucursal",
   "Folio",
   "Fecha",
   "Cliente",
   "Obra",
-  "Total",
+  "Subtotal cotización",
+  "IVA cotización",
+  "Total cotización",
   "Tipo de pago",
   "Venta cerrada",
   "Cotizó",
+  "SKU",
+  "Producto",
+  "UM",
+  "Cantidad",
+  "Precio unitario",
+  "Subtotal línea",
+  "Total línea",
 ] as const;
 
-type SheetCell = string | null | { value: string; fontWeight?: "bold"; columnSpan?: number };
+type SheetCell = string | number | null;
+type SheetRow = SheetCell[];
+
+function toNum(value: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -29,68 +40,77 @@ function formatDate(value: string): string {
   return date.toLocaleDateString("es-MX");
 }
 
-function rowToCells(row: CotizacionWithRelations): SheetCell[] {
+function sortCotizaciones(rows: CotizacionWithRelations[]): CotizacionWithRelations[] {
+  const regionOrder = new Map(sortRegionKeys([...new Set(rows.map(regionLabel))]).map((r, i) => [r, i]));
+
+  return [...rows].sort((a, b) => {
+    const ra = regionOrder.get(regionLabel(a)) ?? 999;
+    const rb = regionOrder.get(regionLabel(b)) ?? 999;
+    if (ra !== rb) return ra - rb;
+
+    const sucCmp = sucursalLabel(a).localeCompare(sucursalLabel(b), "es");
+    if (sucCmp !== 0) return sucCmp;
+
+    const dateCmp = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (dateCmp !== 0) return dateCmp;
+
+    return a.folio.localeCompare(b.folio, "es");
+  });
+}
+
+function cotizacionBaseCells(row: CotizacionWithRelations): SheetRow {
   return [
+    regionLabel(row),
+    sucursalLabel(row),
     row.folio,
     formatDate(row.created_at),
     row.ctz_clientes?.nombre_cliente ?? "-",
     row.nombre_obra ?? "-",
-    money(row.total),
+    toNum(row.subtotal),
+    toNum(row.iva_total),
+    toNum(row.total),
     formatTipoPago(row.tipo_pago),
     row.venta_cerrada ? "SI" : "NO",
     row.ctz_usuarios?.nombre_completo ?? row.ctz_usuarios?.email ?? "-",
   ];
 }
 
-function sectionTitle(text: string): SheetCell[] {
-  const row: SheetCell[] = [{ value: text, fontWeight: "bold", columnSpan: COLUMN_COUNT }];
-  while (row.length < COLUMN_COUNT) row.push(null);
-  return row;
+function productoCells(
+  item: CotizacionWithRelations["ctz_cotizacion_items"][number]
+): SheetRow {
+  const productoNombre =
+    item.descripcion_registro?.trim() ||
+    item.ctz_productos?.descripcion?.trim() ||
+    "-";
+
+  return [
+    item.ctz_productos?.sku?.trim() || "-",
+    productoNombre,
+    item.unidad_medida?.trim() || "-",
+    toNum(item.cantidad),
+    toNum(item.precio_unitario),
+    toNum(item.subtotal_item),
+    toNum(item.total_item),
+  ];
 }
 
-function buildGroupedSheet(rows: CotizacionWithRelations[]): SheetCell[][] {
-  const byRegion = groupCotizacionesByRegionAndSucursal(rows);
-  const sheet: SheetCell[][] = [];
-  let firstRegion = true;
+const EMPTY_PRODUCTO_CELLS: SheetRow = ["-", "-", "-", null, null, null, null];
 
-  for (const region of sortRegionKeys([...byRegion.keys()])) {
-    if (!firstRegion) sheet.push(Array(COLUMN_COUNT).fill(null));
-    firstRegion = false;
-    sheet.push(sectionTitle(`REGIÓN: ${region}`));
+function buildFlatSheet(rows: CotizacionWithRelations[]): SheetRow[] {
+  const sheet: SheetRow[] = [[...HEADERS]];
+  const sorted = sortCotizaciones(rows);
 
-    const bySucursal = byRegion.get(region)!;
-    const sucursales = [...bySucursal.keys()].sort((a, b) => a.localeCompare(b, "es"));
+  for (const cot of sorted) {
+    const base = cotizacionBaseCells(cot);
+    const items = cot.ctz_cotizacion_items ?? [];
 
-    for (const sucursal of sucursales) {
-      const cotizaciones = bySucursal
-        .get(sucursal)!
-        .slice()
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (!items.length) {
+      sheet.push([...base, ...EMPTY_PRODUCTO_CELLS]);
+      continue;
+    }
 
-      sheet.push(sectionTitle(`  SUCURSAL: ${sucursal}`));
-      sheet.push([...HEADERS]);
-
-      let totalMonto = 0;
-      let cerradas = 0;
-      for (const cot of cotizaciones) {
-        sheet.push(rowToCells(cot));
-        totalMonto += cot.total;
-        if (cot.venta_cerrada) cerradas += 1;
-      }
-
-      sheet.push([
-        {
-          value: `Subtotal (${cotizaciones.length} cotizaciones, ${cerradas} cerradas)`,
-          fontWeight: "bold",
-        },
-        null,
-        null,
-        null,
-        { value: money(totalMonto), fontWeight: "bold" },
-        null,
-        null,
-        null,
-      ]);
+    for (const item of items) {
+      sheet.push([...base, ...productoCells(item)]);
     }
   }
 
@@ -99,10 +119,30 @@ function buildGroupedSheet(rows: CotizacionWithRelations[]): SheetCell[][] {
 
 export async function downloadHistorialCotizacionesExcel(rows: CotizacionWithRelations[]): Promise<void> {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
-  const sheetData = rows.length ? buildGroupedSheet(rows) : [[...HEADERS]];
+  const sheetData = buildFlatSheet(rows);
 
   await writeXlsxFile(sheetData, {
     sheet: "Historial",
-    columns: HEADERS.map(() => ({ width: 24 })),
+    columns: [
+      { width: 18 },
+      { width: 22 },
+      { width: 20 },
+      { width: 12 },
+      { width: 24 },
+      { width: 22 },
+      { width: 16 },
+      { width: 14 },
+      { width: 16 },
+      { width: 14 },
+      { width: 14 },
+      { width: 22 },
+      { width: 14 },
+      { width: 36 },
+      { width: 10 },
+      { width: 12 },
+      { width: 14 },
+      { width: 14 },
+      { width: 14 },
+    ],
   }).toFile(HISTORIAL_COTIZACIONES_XLSX_FILENAME);
 }

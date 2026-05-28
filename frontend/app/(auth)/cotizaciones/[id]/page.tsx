@@ -5,54 +5,56 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  canDuplicateCotizacion,
+  cotizacionToFormInitial,
+  type CotizacionFormInitial,
+} from "@/lib/cotizacion/cotizacionToFormInitial";
 import { deleteCotizacion, getCotizacionById } from "@/lib/queries/cotizaciones";
 
 export default function CotizacionDetallePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const user = useMemo(() => getCurrentUser(), []);
-  const [initial, setInitial] = useState<Parameters<typeof CotizacionForm>[0]["initial"]>();
+  const [initial, setInitial] = useState<CotizacionFormInitial>();
+  const [folio, setFolio] = useState<string>("");
   const [allowed, setAllowed] = useState(false);
+  const [canDuplicate, setCanDuplicate] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!params.id || !user) return;
     getCotizacionById(params.id).then((data) => {
+      setLoaded(true);
       if (!data) return;
+      setFolio(data.folio);
       const canEdit = user.rol === "admin" || data.id_usuario === user.id;
       setAllowed(canEdit);
-      setInitial({
-        id: data.id,
-        id_sucursal: data.id_sucursal,
-        id_cliente: data.id_cliente,
-        nombre_obra: data.nombre_obra,
-        tipo_pago: data.tipo_pago,
-        referencia_pago: data.referencia_pago,
-        comentarios: data.comentarios,
-        mostrar_con_iva: data.mostrar_con_iva,
-        iva_porcentaje: data.iva_porcentaje ?? data.ctz_cotizacion_items[0]?.iva_porcentaje ?? 16,
-        productos: data.ctz_cotizacion_items.map((row) => ({
-          id_producto: row.id_producto,
-          descripcion_registro: row.descripcion_registro,
-          cantidad: row.cantidad,
-          unidad_medida: row.unidad_medida,
-          precio_unitario: row.precio_unitario,
-          iva_porcentaje: row.iva_porcentaje,
-          subtotal_item: row.subtotal_item,
-          total_item: row.total_item,
-        })),
-      });
+      setCanDuplicate(canDuplicateCotizacion(user, data));
+      setInitial(cotizacionToFormInitial(data));
     });
   }, [params.id, user]);
 
-  if (!initial) return <p className="text-sm text-slate-500">Cargando detalle...</p>;
+  if (!loaded) return <p className="text-sm text-slate-500">Cargando detalle...</p>;
+  if (!initial) return <p className="text-sm text-slate-500">Cotizacion no encontrada.</p>;
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-semibold text-slate-900">Detalle de cotizacion</h2>
-        <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary">
-          Ver PDF
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {canDuplicate ? (
+            <Link
+              href={`/cotizaciones/nueva?copiar=${params.id}`}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+            >
+              Duplicar cotizacion
+            </Link>
+          ) : null}
+          <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary">
+            Ver PDF
+          </Link>
+        </div>
       </div>
 
       {allowed ? (
@@ -71,9 +73,14 @@ export default function CotizacionDetallePage() {
       ) : (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
           Solo puedes editar tus propias cotizaciones.
+          {canDuplicate ? (
+            <>
+              {" "}
+              Puedes crear una copia editable con el boton &quot;Duplicar cotizacion&quot; (folio {folio}).
+            </>
+          ) : null}
         </p>
       )}
     </section>
   );
 }
-
