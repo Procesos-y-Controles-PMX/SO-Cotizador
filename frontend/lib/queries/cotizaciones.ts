@@ -1,4 +1,5 @@
 import { toDbTipoPago } from "../cotizacion/tipoPago";
+import { PAGE_SIZE, pageRange, type PaginatedResult } from "../pagination";
 import { supabase } from "../supabase";
 import type { CtzCotizacion, CtzCotizacionItem, CtzUsuario } from "../types/db";
 
@@ -42,23 +43,37 @@ export type CotizacionWithRelations = CtzCotizacion & {
   })[];
 };
 
-export async function listCotizaciones(
-  user: CtzUsuario,
-  search = "",
-  options?: { unlimited?: boolean }
-): Promise<CotizacionWithRelations[]> {
-  if (!supabase) return [];
-  let query = supabase
-    .from("ctz_cotizaciones")
-    .select(
-      `
+const COTIZACIONES_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
       ctz_sucursales(nombre,region,prefijo_folio,terminos_adicionales,direccion),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
-    `
-    )
+    `;
+
+export async function listCotizaciones(
+  user: CtzUsuario,
+  search?: string,
+  options?: { unlimited: true }
+): Promise<CotizacionWithRelations[]>;
+export async function listCotizaciones(
+  user: CtzUsuario,
+  search?: string,
+  options?: { page?: number; pageSize?: number }
+): Promise<PaginatedResult<CotizacionWithRelations>>;
+export async function listCotizaciones(
+  user: CtzUsuario,
+  search = "",
+  options?: { unlimited?: boolean; page?: number; pageSize?: number }
+): Promise<CotizacionWithRelations[] | PaginatedResult<CotizacionWithRelations>> {
+  if (!supabase) {
+    if (options?.unlimited) return [];
+    return { rows: [], total: 0 };
+  }
+
+  let query = supabase
+    .from("ctz_cotizaciones")
+    .select(COTIZACIONES_SELECT, { count: options?.unlimited ? undefined : "exact" })
     .order("created_at", { ascending: false });
 
   if (user.rol === "tienda") {
@@ -70,12 +85,19 @@ export async function listCotizaciones(
     query = query.or(`folio.ilike.${term},nombre_obra.ilike.${term}`);
   }
 
-  if (!options?.unlimited) {
-    query = query.limit(100);
+  if (options?.unlimited) {
+    const { data } = await query;
+    return (data as CotizacionWithRelations[] | null) ?? [];
   }
 
-  const { data } = await query;
-  return (data as CotizacionWithRelations[] | null) ?? [];
+  const page = options?.page ?? 1;
+  const pageSize = options?.pageSize ?? PAGE_SIZE;
+  const { from, to } = pageRange(page, pageSize);
+  const { data, count } = await query.range(from, to);
+  return {
+    rows: (data as CotizacionWithRelations[] | null) ?? [],
+    total: count ?? 0,
+  };
 }
 
 export async function getCotizacionById(id: string): Promise<CotizacionWithRelations | null> {

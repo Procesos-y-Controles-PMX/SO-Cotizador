@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import DownloadCotizacionesZipModal from "@/components/cotizacion/DownloadCotizacionesZipModal";
+import TablePagination from "@/components/ui/TablePagination";
 import { getCurrentUser } from "@/lib/auth";
 import { downloadHistorialCotizacionesExcel } from "@/lib/excel/exportHistorialCotizaciones";
 import {
@@ -19,11 +20,15 @@ import {
   type CotizacionWithRelations,
 } from "@/lib/queries/cotizaciones";
 import { canDuplicateCotizacion } from "@/lib/cotizacion/cotizacionToFormInitial";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<CotizacionWithRelations[]>([]);
+  const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<CotizacionWithRelations | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [updatingVenta, setUpdatingVenta] = useState<Record<string, boolean>>({});
@@ -36,9 +41,16 @@ export default function CotizacionesPage() {
 
   const loadRows = useCallback(async () => {
     if (!user) return;
-    const data = await listCotizaciones(user, search);
-    setRows(data);
-  }, [search, user]);
+    setLoading(true);
+    const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
+    setRows(result.rows);
+    setTotal(result.total);
+    setLoading(false);
+  }, [search, user, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   useEffect(() => {
     void loadRows();
@@ -54,8 +66,13 @@ export default function CotizacionesPage() {
       return;
     }
     toast.success("Cotizacion borrada.");
+    const wasLastOnPage = rows.length === 1;
     setDeleteTarget(null);
-    setRows((prev) => prev.filter((row) => row.id !== deleteTarget.id));
+    if (wasLastOnPage && page > 1) {
+      setPage((prev) => prev - 1);
+    } else {
+      await loadRows();
+    }
   }
 
   async function handleVentaCerradaToggle(row: CotizacionWithRelations, nextValue: boolean) {
@@ -170,7 +187,20 @@ export default function CotizacionesPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {loading ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
+                  Cargando...
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
+                  No hay cotizaciones para mostrar.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
               <tr key={row.id} className="border-t border-slate-100">
                 <td className="whitespace-nowrap px-4 py-3 font-medium">{row.folio}</td>
                 <td className="px-4 py-3">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
@@ -212,17 +242,18 @@ export default function CotizacionesPage() {
                   </td>
                 ) : null}
               </tr>
-            ))}
-            {!rows.length ? (
-              <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
-                  No hay cotizaciones para mostrar.
-                </td>
-              </tr>
-            ) : null}
+              ))
+            )}
           </tbody>
         </table>
       </div>
+
+      <TablePagination
+        page={page}
+        total={total}
+        loading={loading}
+        onPageChange={setPage}
+      />
 
       <ConfirmDeleteCotizacionModal
         open={deleteTarget !== null}
