@@ -39,21 +39,22 @@ export default function CotizacionesPage() {
   const user = useMemo(() => getCurrentUser(), []);
   const isAdmin = user?.rol === "admin";
 
-  const loadRows = useCallback(async () => {
+  const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
     setLoading(true);
     const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
+    if (signal?.cancelled) return;
     setRows(result.rows);
     setTotal(result.total);
     setLoading(false);
   }, [search, user, page]);
 
   useEffect(() => {
-    setPage(1);
-  }, [search]);
-
-  useEffect(() => {
-    void loadRows();
+    const signal = { cancelled: false };
+    void loadRows(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadRows]);
 
   async function handleConfirmDelete() {
@@ -167,9 +168,12 @@ export default function CotizacionesPage() {
 
       <input
         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-red-100 focus:border-red-500 focus:ring-2"
-        placeholder="Buscar por folio o nombre de obra"
+        placeholder="Buscar por folio, obra, cliente o sucursal"
         value={search}
-        onChange={(event) => setSearch(event.target.value)}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
       />
 
       <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white [-webkit-overflow-scrolling:touch]">

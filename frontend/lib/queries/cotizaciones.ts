@@ -1,5 +1,6 @@
 import { toDbTipoPago } from "../cotizacion/tipoPago";
 import { PAGE_SIZE, pageRange, type PaginatedResult } from "../pagination";
+import { ilikePattern } from "../search";
 import { supabase } from "../supabase";
 import type { CtzCotizacion, CtzCotizacionItem, CtzUsuario } from "../types/db";
 
@@ -43,6 +44,25 @@ export type CotizacionWithRelations = CtzCotizacion & {
   })[];
 };
 
+const SEARCH_RELATED_ID_CAP = 200;
+
+async function buildCotizacionesSearchOr(search: string): Promise<string | null> {
+  const pattern = ilikePattern(search);
+  if (!pattern || !supabase) return null;
+
+  const [clientesRes, sucursalesRes] = await Promise.all([
+    supabase.from("ctz_clientes").select("id").ilike("nombre_cliente", pattern).limit(SEARCH_RELATED_ID_CAP),
+    supabase.from("ctz_sucursales").select("id").ilike("nombre", pattern).limit(SEARCH_RELATED_ID_CAP),
+  ]);
+
+  const parts = [`folio.ilike.${pattern}`, `nombre_obra.ilike.${pattern}`];
+  const clienteIds = (clientesRes.data ?? []).map((row) => row.id as string);
+  const sucursalIds = (sucursalesRes.data ?? []).map((row) => row.id as string);
+  if (clienteIds.length) parts.push(`id_cliente.in.(${clienteIds.join(",")})`);
+  if (sucursalIds.length) parts.push(`id_sucursal.in.(${sucursalIds.join(",")})`);
+  return parts.join(",");
+}
+
 const COTIZACIONES_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
@@ -81,8 +101,8 @@ export async function listCotizaciones(
   }
 
   if (search.trim()) {
-    const term = `%${search.trim()}%`;
-    query = query.or(`folio.ilike.${term},nombre_obra.ilike.${term}`);
+    const orFilter = await buildCotizacionesSearchOr(search);
+    if (orFilter) query = query.or(orFilter);
   }
 
   if (options?.unlimited) {
