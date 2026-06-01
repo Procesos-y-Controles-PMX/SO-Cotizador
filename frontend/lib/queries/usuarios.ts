@@ -8,7 +8,7 @@ export type CreateUsuarioResult =
 
 export type UpdateUsuarioResult =
   | { ok: true; usuario: CtzUsuario }
-  | { ok: false; error: "duplicate" | "unknown" };
+  | { ok: false; error: "duplicate" | "self_modify" | "last_admin" | "unknown" };
 
 export type DeleteUsuarioResult =
   | { ok: true }
@@ -59,6 +59,61 @@ export async function listUsuarios(search = ""): Promise<CtzUsuario[]> {
   );
 }
 
+export type UsuarioBulkInsertRow = {
+  email: string;
+  nombre_completo: string | null;
+};
+
+export type CreateUsuariosBulkResult = {
+  inserted: number;
+  failed: number;
+};
+
+const BULK_CHUNK_SIZE = 50;
+
+export async function getExistingUsuarioEmails(): Promise<Set<string>> {
+  if (!supabase) return new Set();
+  const { data, error } = await supabase.from("ctz_usuarios").select("email");
+  if (error) return new Set();
+  const emails = (data ?? []).map((row) => normalizeEmail(String(row.email ?? "")));
+  return new Set(emails);
+}
+
+export async function createUsuariosBulk(rows: UsuarioBulkInsertRow[]): Promise<CreateUsuariosBulkResult> {
+  if (!supabase || !rows.length) return { inserted: 0, failed: 0 };
+
+  let inserted = 0;
+  let failed = 0;
+
+  for (let i = 0; i < rows.length; i += BULK_CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + BULK_CHUNK_SIZE);
+    const payload = chunk.map((r) => ({
+      email: normalizeEmail(r.email),
+      nombre_completo: r.nombre_completo?.trim() || null,
+      rol: "tienda" as const,
+      activo: true,
+    }));
+
+    const { data, error } = await supabase.from("ctz_usuarios").insert(payload).select("id");
+    if (!error && data) {
+      inserted += data.length;
+      continue;
+    }
+
+    for (const row of payload) {
+      const { data: one, error: oneError } = await supabase
+        .from("ctz_usuarios")
+        .insert(row)
+        .select("id")
+        .maybeSingle();
+      if (!oneError && one) inserted += 1;
+      else failed += 1;
+    }
+  }
+
+  return { inserted, failed };
+}
+
 export async function createUsuario(payload: {
   email: string;
   nombre_completo?: string;
@@ -86,9 +141,23 @@ export async function createUsuario(payload: {
 
 export async function updateUsuario(
   id: string,
-  payload: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">>
+  payload: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">>,
+  options?: { currentUserId: string; target: CtzUsuario }
 ): Promise<UpdateUsuarioResult> {
   if (!supabase) return { ok: false, error: "unknown" };
+
+  if (options) {
+    const guardError = await validateUsuarioMutation(options.target, options.currentUserId, {
+      rol: payload.rol,
+      activo: payload.activo,
+      email: payload.email,
+      nombre_completo: payload.nombre_completo,
+    });
+    if (guardError === "self_modify" || guardError === "last_admin") {
+      return { ok: false, error: guardError };
+    }
+  }
+
   const patch: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">> = {};
   if (payload.email !== undefined) patch.email = normalizeEmail(payload.email);
   if (payload.nombre_completo !== undefined) {
@@ -169,8 +238,17 @@ export function wouldRemoveLastAdmin(
 export async function validateUsuarioMutation(
   target: CtzUsuario,
   currentUserId: string,
-  changes: { rol?: UserRole; activo?: boolean }
+  changes: {
+    rol?: UserRole;
+    activo?: boolean;
+    email?: string;
+    nombre_completo?: string | null;
+  }
 ): Promise<UsuarioMutationError | null> {
+  if (target.id === currentUserId) {
+    if (changes.email !== undefined) return "self_modify";
+    if (changes.nombre_completo !== undefined) return "self_modify";
+  }
   if (!canDeactivateOrDemoteAdmin(target.id, currentUserId, changes.rol, changes.activo)) {
     return "self_modify";
   }
@@ -188,7 +266,7 @@ export function usuarioMutationErrorMessage(error: UsuarioMutationError): string
     case "has_cotizaciones":
       return "No se puede borrar: el usuario tiene cotizaciones. Desactivalo en su lugar.";
     case "self_modify":
-      return "No puedes modificar tu propio acceso de administrador.";
+      return "No puedes modificar tu propio correo, nombre ni acceso de administrador.";
     case "last_admin":
       return "Debe quedar al menos un administrador activo.";
     default:

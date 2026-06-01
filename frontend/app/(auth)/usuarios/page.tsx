@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import ConfirmDeleteUsuarioModal from "@/components/usuarios/ConfirmDeleteUsuarioModal";
+import ImportUsuariosModal from "@/components/usuarios/ImportUsuariosModal";
 import UsuarioFormModal from "@/components/usuarios/UsuarioFormModal";
 import TablePagination from "@/components/ui/TablePagination";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  downloadUsuariosExcelTemplate,
+  parseUsuariosExcelFile,
+  resolveUsuariosExcelRows,
+  type UsuariosExcelImportPreview,
+} from "@/lib/excel/importUsuarios";
+import { downloadUsuariosExcel } from "@/lib/excel/exportUsuarios";
 import { clampPage, PAGE_SIZE } from "@/lib/pagination";
 import {
+  createUsuariosBulk,
   deleteUsuario,
+  getExistingUsuarioEmails,
   listUsuarios,
   updateUsuario,
   usuarioMutationErrorMessage,
@@ -34,6 +44,12 @@ export default function UsuariosPage() {
   const [editingUsuario, setEditingUsuario] = useState<CtzUsuario | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CtzUsuario | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<UsuariosExcelImportPreview | null>(null);
+  const [excelParsing, setExcelParsing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setQDebounced(qInput.trim()), SEARCH_DEBOUNCE_MS);
@@ -76,6 +92,51 @@ export default function UsuariosPage() {
     setFormOpen(true);
   }
 
+  async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setExcelParsing(true);
+    try {
+      const [rows, existingEmails] = await Promise.all([
+        parseUsuariosExcelFile(file),
+        getExistingUsuarioEmails(),
+      ]);
+      const { preview, error } = resolveUsuariosExcelRows(rows, existingEmails);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      setImportPreview(preview);
+      setImportModalOpen(true);
+    } catch {
+      toast.error("No se pudo leer el Excel. Usa .xlsx con fila de encabezados Correo y Nombre.");
+    } finally {
+      setExcelParsing(false);
+    }
+  }
+
+  async function handleConfirmImport() {
+    if (!importPreview?.ok.length) return;
+    setImporting(true);
+    const result = await createUsuariosBulk(
+      importPreview.ok.map((r) => ({ email: r.email, nombre_completo: r.nombre_completo }))
+    );
+    setImporting(false);
+    if (result.inserted === 0 && result.failed > 0) {
+      toast.error("No se pudo importar ningun usuario.");
+      return;
+    }
+    const parts: string[] = [];
+    if (result.inserted) parts.push(`${result.inserted} creado(s)`);
+    if (result.failed) parts.push(`${result.failed} fallido(s)`);
+    toast.success(`Importacion completada: ${parts.join(", ")}.`);
+    setImportModalOpen(false);
+    setImportPreview(null);
+    await refreshRows();
+  }
+
   function openEdit(usuario: CtzUsuario) {
     setFormMode("edit");
     setEditingUsuario(usuario);
@@ -89,7 +150,7 @@ export default function UsuariosPage() {
       toast.error(usuarioMutationErrorMessage(guardError));
       return;
     }
-    const result = await updateUsuario(row.id, { rol: nextRol });
+    const result = await updateUsuario(row.id, { rol: nextRol }, { currentUserId: user.id, target: row });
     if (!result.ok) {
       toast.error(usuarioMutationErrorMessage(result.error));
       return;
@@ -105,7 +166,7 @@ export default function UsuariosPage() {
       toast.error(usuarioMutationErrorMessage(guardError));
       return;
     }
-    const result = await updateUsuario(row.id, { activo: nextActivo });
+    const result = await updateUsuario(row.id, { activo: nextActivo }, { currentUserId: user.id, target: row });
     if (!result.ok) {
       toast.error(usuarioMutationErrorMessage(result.error));
       return;
@@ -160,13 +221,56 @@ export default function UsuariosPage() {
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-semibold text-slate-900">Usuarios</h2>
-        <button
-          type="button"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
-          onClick={openCreate}
-        >
-          + Nuevo usuario
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={excelInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={(e) => void handleExcelFileChange(e)}
+          />
+          <button
+            type="button"
+            disabled={exportLoading}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+            onClick={async () => {
+              setExportLoading(true);
+              try {
+                const rows = await listUsuarios("");
+                await downloadUsuariosExcel(rows);
+                toast.success("Excel descargado.");
+              } catch {
+                toast.error("No se pudo generar el Excel de usuarios.");
+              } finally {
+                setExportLoading(false);
+              }
+            }}
+          >
+            {exportLoading ? "Generando..." : "Descargar Usuarios"}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
+            onClick={() => void downloadUsuariosExcelTemplate().catch(() => toast.error("No se pudo descargar la plantilla."))}
+          >
+            Descargar Plantilla
+          </button>
+          <button
+            type="button"
+            disabled={excelParsing || importing}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+            onClick={() => excelInputRef.current?.click()}
+          >
+            {excelParsing ? "Leyendo..." : "Importar Excel"}
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
+            onClick={openCreate}
+          >
+            + Nuevo usuario
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
@@ -222,7 +326,7 @@ export default function UsuariosPage() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900">{row.email}</div>
                       {isSelf ? (
-                        <span className="text-xs text-amber-700">Tu cuenta (acceso restringido)</span>
+                        <span className="text-xs text-amber-700">Tu cuenta (no editable)</span>
                       ) : null}
                     </td>
                     <td className="px-4 py-3">{row.nombre_completo?.trim() || "—"}</td>
@@ -251,8 +355,10 @@ export default function UsuariosPage() {
                       <div className="flex gap-2">
                         <button
                           type="button"
+                          disabled={isSelf}
+                          title={isSelf ? "No puedes editar tu propia cuenta" : undefined}
                           onClick={() => openEdit(row)}
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                          className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                         >
                           Editar
                         </button>
@@ -302,6 +408,19 @@ export default function UsuariosPage() {
         isSelf={deleteTarget?.id === user.id}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <ImportUsuariosModal
+        open={importModalOpen}
+        preview={importPreview}
+        importing={importing}
+        onClose={() => {
+          if (!importing) {
+            setImportModalOpen(false);
+            setImportPreview(null);
+          }
+        }}
+        onConfirm={handleConfirmImport}
       />
     </section>
   );
