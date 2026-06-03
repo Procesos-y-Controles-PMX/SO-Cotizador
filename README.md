@@ -31,11 +31,12 @@ En `frontend/.env`:
 ## Flujo principal
 
 - `GET /` redirige a `/login`
-- Login por correo contra `ctz_usuarios` (sin password, segun RF)
+- Login por correo y contraseña
 - Modulo de cotizaciones:
   - `/cotizaciones`
   - `/cotizaciones/nueva`
   - `/cotizaciones/[id]`
   - `/cotizaciones/[id]/pdf`
+
 - Inventario (solo admin):
   - `/inventario`

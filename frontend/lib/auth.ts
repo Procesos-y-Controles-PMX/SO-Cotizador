@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getUsuarioByEmail } from "./queries/usuarios";
+import { verifyUsuarioLogin } from "./queries/usuarios";
 import type { CtzUsuario } from "./types/db";
 
 const SESSION_KEY = "ctz_session";
@@ -17,8 +17,11 @@ function clearLegacySession(): void {
   window.localStorage.removeItem(SESSION_KEY);
 }
 
-export async function loginByEmail(email: string): Promise<CtzUsuario | null> {
-  const user = await getUsuarioByEmail(email);
+export async function loginByEmailPassword(
+  email: string,
+  password: string
+): Promise<CtzUsuario | null> {
+  const user = await verifyUsuarioLogin(email, password);
   if (!user) return null;
   const store = getSessionStore();
   if (!store) return null;
@@ -38,7 +41,12 @@ export function getCurrentUser(): CtzUsuario | null {
   const raw = store.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as CtzUsuario;
+    const parsed = JSON.parse(raw) as CtzUsuario & { password?: string };
+    if (parsed.password !== undefined) {
+      const { password: _p, ...user } = parsed;
+      return user;
+    }
+    return parsed;
   } catch {
     return null;
   }

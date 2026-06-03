@@ -1,14 +1,25 @@
+import { generateSimplePassword, isValidUsuarioPassword } from "../usuarioPassword";
 import { matchesSearch } from "../search";
 import { supabase } from "../supabase";
 import type { CtzUsuario, UserRole } from "../types/db";
 
+export const USUARIO_SESSION_SELECT =
+  "id, email, nombre_completo, rol, activo, created_at";
+
+type UsuarioRow = CtzUsuario & { password?: string | null };
+
+function stripPassword(row: UsuarioRow): CtzUsuario {
+  const { password: _p, ...rest } = row;
+  return rest;
+}
+
 export type CreateUsuarioResult =
   | { ok: true; usuario: CtzUsuario }
-  | { ok: false; error: "duplicate" | "unknown" };
+  | { ok: false; error: "duplicate" | "invalid_password" | "unknown" };
 
 export type UpdateUsuarioResult =
   | { ok: true; usuario: CtzUsuario }
-  | { ok: false; error: "duplicate" | "self_modify" | "last_admin" | "unknown" };
+  | { ok: false; error: "duplicate" | "self_modify" | "last_admin" | "invalid_password" | "unknown" };
 
 export type DeleteUsuarioResult =
   | { ok: true }
@@ -19,18 +30,40 @@ export type UsuarioMutationError =
   | "has_cotizaciones"
   | "self_modify"
   | "last_admin"
+  | "invalid_password"
   | "unknown";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+export async function verifyUsuarioLogin(email: string, password: string): Promise<CtzUsuario | null> {
+  if (!supabase) return null;
+  const normalized = normalizeEmail(email);
+  const pwd = password.trim();
+  if (!pwd) return null;
+
+  const { data, error } = await supabase
+    .from("ctz_usuarios")
+    .select(`${USUARIO_SESSION_SELECT}, password`)
+    .ilike("email", normalized)
+    .eq("activo", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const row = data as UsuarioRow;
+  const stored = row.password ? String(row.password).trim() : "";
+  if (!stored || stored !== pwd) return null;
+  return stripPassword(row);
+}
+
+/** @deprecated Usar verifyUsuarioLogin. Mantener solo si hace falta en otro flujo. */
 export async function getUsuarioByEmail(email: string): Promise<CtzUsuario | null> {
   if (!supabase) return null;
   const normalized = normalizeEmail(email);
   const { data, error } = await supabase
     .from("ctz_usuarios")
-    .select("*")
+    .select(USUARIO_SESSION_SELECT)
     .ilike("email", normalized)
     .eq("activo", true)
     .maybeSingle();
@@ -43,7 +76,7 @@ export async function listUsuarios(search = ""): Promise<CtzUsuario[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("ctz_usuarios")
-    .select("*")
+    .select(USUARIO_SESSION_SELECT)
     .order("activo", { ascending: false })
     .order("email");
 
@@ -92,6 +125,7 @@ export async function createUsuariosBulk(rows: UsuarioBulkInsertRow[]): Promise<
       nombre_completo: r.nombre_completo?.trim() || null,
       rol: "tienda" as const,
       activo: true,
+      password: generateSimplePassword(),
     }));
 
     const { data, error } = await supabase.from("ctz_usuarios").insert(payload).select("id");
@@ -118,8 +152,12 @@ export async function createUsuario(payload: {
   email: string;
   nombre_completo?: string;
   rol: UserRole;
+  password: string;
 }): Promise<CreateUsuarioResult> {
   if (!supabase) return { ok: false, error: "unknown" };
+  const pwd = payload.password.trim();
+  if (!isValidUsuarioPassword(pwd)) return { ok: false, error: "invalid_password" };
+
   const email = normalizeEmail(payload.email);
   const { data, error } = await supabase
     .from("ctz_usuarios")
@@ -128,8 +166,9 @@ export async function createUsuario(payload: {
       nombre_completo: payload.nombre_completo?.trim() || null,
       rol: payload.rol,
       activo: true,
+      password: pwd,
     })
-    .select("*")
+    .select(USUARIO_SESSION_SELECT)
     .single();
 
   if (error) {
@@ -141,10 +180,16 @@ export async function createUsuario(payload: {
 
 export async function updateUsuario(
   id: string,
-  payload: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">>,
+  payload: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">> & {
+    password?: string;
+  },
   options?: { currentUserId: string; target: CtzUsuario }
 ): Promise<UpdateUsuarioResult> {
   if (!supabase) return { ok: false, error: "unknown" };
+
+  if (payload.password !== undefined && !isValidUsuarioPassword(payload.password)) {
+    return { ok: false, error: "invalid_password" };
+  }
 
   if (options) {
     const guardError = await validateUsuarioMutation(options.target, options.currentUserId, {
@@ -152,21 +197,30 @@ export async function updateUsuario(
       activo: payload.activo,
       email: payload.email,
       nombre_completo: payload.nombre_completo,
+      password: payload.password,
     });
     if (guardError === "self_modify" || guardError === "last_admin") {
       return { ok: false, error: guardError };
     }
   }
 
-  const patch: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">> = {};
+  const patch: Partial<Pick<CtzUsuario, "email" | "nombre_completo" | "rol" | "activo">> & {
+    password?: string;
+  } = {};
   if (payload.email !== undefined) patch.email = normalizeEmail(payload.email);
   if (payload.nombre_completo !== undefined) {
     patch.nombre_completo = payload.nombre_completo?.trim() || null;
   }
   if (payload.rol !== undefined) patch.rol = payload.rol;
   if (payload.activo !== undefined) patch.activo = payload.activo;
+  if (payload.password !== undefined) patch.password = payload.password.trim();
 
-  const { data, error } = await supabase.from("ctz_usuarios").update(patch).eq("id", id).select("*").single();
+  const { data, error } = await supabase
+    .from("ctz_usuarios")
+    .update(patch)
+    .eq("id", id)
+    .select(USUARIO_SESSION_SELECT)
+    .single();
   if (error) {
     if (error.code === "23505") return { ok: false, error: "duplicate" };
     return { ok: false, error: "unknown" };
@@ -243,11 +297,13 @@ export async function validateUsuarioMutation(
     activo?: boolean;
     email?: string;
     nombre_completo?: string | null;
+    password?: string;
   }
 ): Promise<UsuarioMutationError | null> {
   if (target.id === currentUserId) {
     if (changes.email !== undefined) return "self_modify";
     if (changes.nombre_completo !== undefined) return "self_modify";
+    if (changes.password !== undefined) return "self_modify";
   }
   if (!canDeactivateOrDemoteAdmin(target.id, currentUserId, changes.rol, changes.activo)) {
     return "self_modify";
@@ -263,10 +319,12 @@ export function usuarioMutationErrorMessage(error: UsuarioMutationError): string
   switch (error) {
     case "duplicate":
       return "Ese correo ya esta registrado.";
+    case "invalid_password":
+      return "La contraseña debe tener al menos 4 caracteres.";
     case "has_cotizaciones":
       return "No se puede borrar: el usuario tiene cotizaciones. Desactivalo en su lugar.";
     case "self_modify":
-      return "No puedes modificar tu propio correo, nombre ni acceso de administrador.";
+      return "No puedes modificar tu propio correo, nombre, contraseña ni acceso de administrador.";
     case "last_admin":
       return "Debe quedar al menos un administrador activo.";
     default:

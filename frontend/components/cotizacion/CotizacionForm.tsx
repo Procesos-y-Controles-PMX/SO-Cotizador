@@ -2,7 +2,8 @@
 
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { getCurrentUser, loginByEmail } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { getUsuarioByEmail } from "@/lib/queries/usuarios";
 import {
   buildSkuProductMap,
   downloadCotizacionProductosExcelTemplate,
@@ -703,7 +704,7 @@ export default function CotizacionForm({
     if (loading) return;
     const sessionUser = getCurrentUser();
     if (!sessionUser) return;
-    const user = (await loginByEmail(sessionUser.email)) ?? sessionUser;
+    const user = (await getUsuarioByEmail(sessionUser.email)) ?? sessionUser;
     if (!idSucursal || !idCliente || !productosCotizacion.length) {
       toast.error("Selecciona sucursal, cliente y al menos un producto.");
       return;
@@ -770,7 +771,7 @@ export default function CotizacionForm({
       setLoading(false);
       if (!result.ok) {
         if (result.error === "invalid_reference") {
-          const fresh = await loginByEmail(sessionUser.email);
+          const fresh = await getUsuarioByEmail(sessionUser.email);
           if (!fresh) {
             toast.error("Tu sesion ya no es valida (base de datos reiniciada). Vuelve a iniciar sesion.");
             return;

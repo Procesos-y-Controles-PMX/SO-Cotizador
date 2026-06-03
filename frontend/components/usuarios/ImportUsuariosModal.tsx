@@ -35,10 +35,11 @@ export default function ImportUsuariosModal({
       <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
         <div className="border-b border-slate-100 px-5 py-4">
           <h4 className="text-base font-semibold text-slate-900">Importar usuarios desde Excel</h4>
-          <p className="mt-1 text-sm text-slate-500">
-            Primera fila: <strong>Correo</strong> y <strong>Nombre</strong>. Se crearan con rol{" "}
-            <strong>Tienda</strong> y estado activo. Los correos ya registrados se omiten.
-          </p>
+        <p className="mt-1 text-sm text-slate-500">
+          Primera fila: <strong>Correo</strong> y <strong>Nombre</strong>. Se crearan con rol{" "}
+          <strong>Tienda</strong> y una <strong>contraseña generada</strong> (cambiala despues en Editar).
+          Los correos ya registrados se omiten.
+        </p>
         </div>
 
         <div className="max-h-[50vh] space-y-4 overflow-y-auto px-5 py-4 text-sm">

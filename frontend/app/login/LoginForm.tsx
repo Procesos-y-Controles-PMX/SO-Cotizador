@@ -4,18 +4,28 @@ import { FormEvent } from "react";
 
 interface LoginFormProps {
   email: string;
+  password: string;
   loading: boolean;
   error: string | null;
   onEmailChange: (email: string) => void;
+  onPasswordChange: (password: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
-export default function LoginForm({ email, loading, error, onEmailChange, onSubmit }: LoginFormProps) {
+export default function LoginForm({
+  email,
+  password,
+  loading,
+  error,
+  onEmailChange,
+  onPasswordChange,
+  onSubmit,
+}: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="w-full max-w-md space-y-6">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Iniciar sesion</h2>
-        <p className="text-sm text-gray-500">Ingresa tu correo asignado para acceder al sistema.</p>
+        <p className="text-sm text-gray-500">Ingresa tu correo y contraseña para acceder al sistema.</p>
       </div>
 
       {error && (
@@ -42,6 +52,23 @@ export default function LoginForm({ email, loading, error, onEmailChange, onSubm
           value={email}
           onChange={(event) => onEmailChange(event.target.value)}
           required
+          autoComplete="username"
+          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+          Contraseña
+        </label>
+        <input
+          id="password"
+          type="password"
+          placeholder="Tu contraseña"
+          value={password}
+          onChange={(event) => onPasswordChange(event.target.value)}
+          required
+          autoComplete="current-password"
           className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all duration-200 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
       </div>

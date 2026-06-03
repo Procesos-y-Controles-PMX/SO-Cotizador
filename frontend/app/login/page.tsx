@@ -3,13 +3,14 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { loginByEmail } from "@/lib/auth";
+import { loginByEmailPassword } from "@/lib/auth";
 import LoginLayout from "./LoginLayout";
 import LoginForm from "./LoginForm";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,11 +18,11 @@ export default function LoginPage() {
     event.preventDefault();
     setError(null);
     setLoading(true);
-    const user = await loginByEmail(email);
+    const user = await loginByEmailPassword(email, password);
     setLoading(false);
 
     if (!user) {
-      const message = "No se encontro un usuario activo con ese correo.";
+      const message = "Correo o contraseña incorrectos.";
       setError(message);
       toast.error(message);
       return;
@@ -35,12 +36,13 @@ export default function LoginPage() {
     <LoginLayout>
       <LoginForm
         email={email}
+        password={password}
         loading={loading}
         error={error}
         onEmailChange={setEmail}
+        onPasswordChange={setPassword}
         onSubmit={onSubmit}
       />
     </LoginLayout>
   );
 }
-

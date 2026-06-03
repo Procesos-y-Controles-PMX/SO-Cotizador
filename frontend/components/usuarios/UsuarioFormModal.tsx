@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { MIN_USUARIO_PASSWORD_LENGTH } from "@/lib/usuarioPassword";
 import { createUsuario, updateUsuario, usuarioMutationErrorMessage } from "@/lib/queries/usuarios";
 import type { CtzUsuario, UserRole } from "@/lib/types/db";
 
@@ -17,7 +18,13 @@ type Props = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function UsuarioFormModal({ open, mode, initial, currentUserId, onClose, onSaved }: Props) {
-  const [draft, setDraft] = useState({ email: "", nombre_completo: "", rol: "tienda" as UserRole });
+  const [draft, setDraft] = useState({
+    email: "",
+    nombre_completo: "",
+    rol: "tienda" as UserRole,
+    password: "",
+    passwordConfirm: "",
+  });
   const [saving, setSaving] = useState(false);
 
   const isSelf = mode === "edit" && initial?.id === currentUserId;
@@ -28,6 +35,8 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
         email: initial?.email ?? "",
         nombre_completo: initial?.nombre_completo ?? "",
         rol: initial?.rol ?? "tienda",
+        password: "",
+        passwordConfirm: "",
       });
       setSaving(false);
     }
@@ -49,10 +58,22 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
 
     setSaving(true);
     if (mode === "create") {
+      const pwd = draft.password.trim();
+      if (pwd.length < MIN_USUARIO_PASSWORD_LENGTH) {
+        setSaving(false);
+        toast.error(`La contraseña debe tener al menos ${MIN_USUARIO_PASSWORD_LENGTH} caracteres.`);
+        return;
+      }
+      if (pwd !== draft.passwordConfirm.trim()) {
+        setSaving(false);
+        toast.error("Las contraseñas no coinciden.");
+        return;
+      }
       const result = await createUsuario({
         email,
         nombre_completo: draft.nombre_completo.trim(),
         rol: draft.rol,
+        password: pwd,
       });
       setSaving(false);
       if (!result.ok) {
@@ -68,15 +89,28 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
       return;
     }
 
-    const result = await updateUsuario(
-      initial.id,
-      {
-        email,
-        nombre_completo: draft.nombre_completo.trim(),
-        rol: draft.rol,
-      },
-      { currentUserId, target: initial }
-    );
+    const pwd = draft.password.trim();
+    if (pwd) {
+      if (pwd.length < MIN_USUARIO_PASSWORD_LENGTH) {
+        setSaving(false);
+        toast.error(`La contraseña debe tener al menos ${MIN_USUARIO_PASSWORD_LENGTH} caracteres.`);
+        return;
+      }
+      if (pwd !== draft.passwordConfirm.trim()) {
+        setSaving(false);
+        toast.error("Las contraseñas no coinciden.");
+        return;
+      }
+    }
+
+    const patch: Parameters<typeof updateUsuario>[1] = {
+      email,
+      nombre_completo: draft.nombre_completo.trim(),
+      rol: draft.rol,
+    };
+    if (pwd) patch.password = pwd;
+
+    const result = await updateUsuario(initial.id, patch, { currentUserId, target: initial });
     setSaving(false);
     if (!result.ok) {
       toast.error(usuarioMutationErrorMessage(result.error));
@@ -93,10 +127,10 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
         </h4>
         <p className="mt-1 text-sm text-slate-500">
           {mode === "create"
-            ? "El usuario podra iniciar sesion con su correo."
+            ? "El usuario iniciara sesion con este correo y contraseña."
             : isSelf
               ? "Estos datos no se pueden cambiar desde esta pantalla."
-              : "Actualiza los datos del usuario."}
+              : "Deja la contraseña vacia si no quieres cambiarla."}
         </p>
 
         <div className="mt-4 grid gap-3">
@@ -122,6 +156,34 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500"
             />
           </label>
+          {!isSelf ? (
+            <>
+              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                {mode === "create" ? "Contraseña *" : "Nueva contraseña"}
+                <input
+                  type="password"
+                  value={draft.password}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, password: event.target.value }))}
+                  placeholder={mode === "create" ? "Min. 4 caracteres" : "Dejar vacio = sin cambio"}
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                />
+              </label>
+              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                {mode === "create" ? "Confirmar contraseña *" : "Confirmar nueva contraseña"}
+                <input
+                  type="password"
+                  value={draft.passwordConfirm}
+                  onChange={(event) =>
+                    setDraft((prev) => ({ ...prev, passwordConfirm: event.target.value }))
+                  }
+                  placeholder="Repetir contraseña"
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                />
+              </label>
+            </>
+          ) : null}
           <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
             Rol
             <select
@@ -138,7 +200,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
           </label>
           {isSelf ? (
             <p className="text-xs text-amber-700">
-              No puedes modificar tu propio correo, nombre ni rol desde aqui.
+              No puedes modificar tu propio correo, nombre, contraseña ni rol desde aqui.
             </p>
           ) : null}
         </div>
