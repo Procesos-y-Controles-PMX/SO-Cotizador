@@ -32,7 +32,7 @@ export default function ConfirmDeleteUsuarioModal({
           {usuario.email}). Esta accion <span className="font-semibold text-red-700">no se puede deshacer</span>.
         </p>
         <p className="mt-2 text-sm text-slate-500">
-          Si el usuario tiene cotizaciones en el historial, el borrado fallara. En ese caso puedes desactivarlo
+          Si el usuario tiene cotizaciones en el historial, el borrado fallará. En ese caso puedes desactivarlo
           desde la tabla.
         </p>
         {isSelf ? (

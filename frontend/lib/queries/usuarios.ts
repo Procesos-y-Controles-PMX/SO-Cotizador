@@ -318,16 +318,16 @@ export async function validateUsuarioMutation(
 export function usuarioMutationErrorMessage(error: UsuarioMutationError): string {
   switch (error) {
     case "duplicate":
-      return "Ese correo ya esta registrado.";
+      return "Ese correo ya está registrado.";
     case "invalid_password":
       return "La contraseña debe tener al menos 4 caracteres.";
     case "has_cotizaciones":
-      return "No se puede borrar: el usuario tiene cotizaciones. Desactivalo en su lugar.";
+      return "No se puede borrar: el usuario tiene cotizaciones. Desactívalo en su lugar.";
     case "self_modify":
       return "No puedes modificar tu propio correo, nombre, contraseña ni acceso de administrador.";
     case "last_admin":
       return "Debe quedar al menos un administrador activo.";
     default:
-      return "No se pudo completar la operacion.";
+      return "No se pudo completar la operación.";
   }
 }

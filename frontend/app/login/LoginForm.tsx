@@ -24,7 +24,7 @@ export default function LoginForm({
   return (
     <form onSubmit={onSubmit} className="w-full max-w-md space-y-6">
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Iniciar sesion</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Iniciar sesión</h2>
         <p className="text-sm text-gray-500">Ingresa tu correo y contraseña para acceder al sistema.</p>
       </div>
 
@@ -43,7 +43,7 @@ export default function LoginForm({
 
       <div className="space-y-2">
         <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
-          Correo electronico
+          Correo electrónico
         </label>
         <input
           id="email"

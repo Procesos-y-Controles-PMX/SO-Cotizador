@@ -37,7 +37,7 @@ export default function TablePagination({
           Anterior
         </button>
         <span className="text-sm text-slate-600">
-          Pagina {page} de {pages}
+          Página {page} de {pages}
         </span>
         <button
           type="button"

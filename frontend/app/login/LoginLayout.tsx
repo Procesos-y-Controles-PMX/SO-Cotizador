@@ -46,7 +46,7 @@ export default function LoginLayout({ children }: LoginLayoutProps) {
           <div className="mb-6 mt-5 h-1 w-12 rounded-full bg-red-600" />
 
           <p className="max-w-md text-sm leading-relaxed text-slate-400 md:text-base">
-            Plataforma para la administracion, seguimiento y gestion de cotizaciones de sucursales CEMEX.
+            Plataforma para la administración, seguimiento y gestión de cotizaciones de sucursales CEMEX.
           </p>
         </div>
 

@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             ),
           },
           {
-            label: "Nueva cotizacion",
+            label: "Nueva cotización",
             href: "/cotizaciones/nueva",
             icon: (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -185,8 +185,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 type="button"
                 onClick={handleLogout}
                 className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                title="Cerrar sesion"
-                aria-label="Cerrar sesion"
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -205,7 +205,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <button
           type="button"
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          aria-label="Cerrar menu"
+          aria-label="Cerrar menú"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
@@ -235,7 +235,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-            aria-label="Cerrar menu"
+            aria-label="Cerrar menú"
             onClick={() => setMobileNavOpen(false)}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -297,7 +297,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 md:hidden"
-            aria-label="Abrir menu de navegacion"
+            aria-label="Abrir menú de navegación"
             aria-expanded={mobileNavOpen}
             onClick={() => setMobileNavOpen(true)}
           >

@@ -32,7 +32,7 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
   async function handleSave() {
     if (saving) return;
     if (!draft.descripcion.trim()) {
-      toast.error("La descripcion del producto es obligatoria.");
+      toast.error("La descripción del producto es obligatoria.");
       return;
     }
     setSaving(true);
@@ -59,7 +59,7 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
 
         <div className="mt-4 grid gap-3">
           <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-            Descripcion del Producto *
+            Descripción del producto *
             <input
               autoFocus
               value={draft.descripcion}

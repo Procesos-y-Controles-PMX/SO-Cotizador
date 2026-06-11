@@ -62,14 +62,14 @@ function NuevaCotizacionContent() {
   }, [copiarId, user]);
 
   if (copiarId && copyState.status === "loading") {
-    return <p className="text-sm text-slate-500">Cargando cotizacion a copiar...</p>;
+    return <p className="text-sm text-slate-500">Cargando cotización a copiar...</p>;
   }
 
   if (copiarId && copyState.status === "denied") {
     return (
       <div className="space-y-3">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          No tienes permiso para duplicar esta cotizacion.
+          No tienes permiso para duplicar esta cotización.
         </p>
         <Link href="/cotizaciones" className="text-sm text-red-700 hover:underline">
           Volver al historial
@@ -82,7 +82,7 @@ function NuevaCotizacionContent() {
     return (
       <div className="space-y-3">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          No se encontro la cotizacion a copiar.
+          No se encontró la cotización a copiar.
         </p>
         <Link href="/cotizaciones" className="text-sm text-red-700 hover:underline">
           Volver al historial
@@ -96,7 +96,7 @@ function NuevaCotizacionContent() {
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-semibold text-slate-900">
-        {isCopy ? "Duplicar cotizacion" : "Nueva cotizacion"}
+        {isCopy ? "Duplicar cotización" : "Nueva cotización"}
       </h2>
       <CotizacionForm
         mode="create"

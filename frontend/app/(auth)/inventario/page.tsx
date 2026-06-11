@@ -47,7 +47,7 @@ export default function InventarioPage() {
   if (user?.rol !== "admin") {
     return (
       <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-        Esta seccion es solo para administradores.
+        Esta sección es solo para administradores.
       </p>
     );
   }
@@ -70,12 +70,12 @@ export default function InventarioPage() {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
         <label className="block flex-1 text-sm font-medium text-slate-700">
-          Buscar (SKU, descripcion, U.M. o precio base exacto)
+          Buscar (SKU, descripción, U.M. o precio base exacto)
           <input
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
-            placeholder={`Minimo ${INVENTARIO_SEARCH_MIN_CHARS} caracteres para buscar`}
+            placeholder={`Mínimo ${INVENTARIO_SEARCH_MIN_CHARS} caracteres para buscar`}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
           />
         </label>
@@ -89,7 +89,7 @@ export default function InventarioPage() {
       </div>
       {showMinCharsHint ? (
         <p className="text-sm text-amber-800">
-          Escribe al menos {INVENTARIO_SEARCH_MIN_CHARS} caracteres para buscar en el catalogo.
+          Escribe al menos {INVENTARIO_SEARCH_MIN_CHARS} caracteres para buscar en el catálogo.
         </p>
       ) : null}
 
@@ -98,7 +98,7 @@ export default function InventarioPage() {
           <thead className="bg-slate-50">
             <tr>
               <th className="whitespace-nowrap px-4 py-3">SKU</th>
-              <th className="min-w-[200px] px-4 py-3">Descripcion</th>
+              <th className="min-w-[200px] px-4 py-3">Descripción</th>
               <th className="whitespace-nowrap px-4 py-3">U.M.</th>
               <th className="whitespace-nowrap px-4 py-3">Precio base</th>
               <th className="whitespace-nowrap px-4 py-3">Activo</th>

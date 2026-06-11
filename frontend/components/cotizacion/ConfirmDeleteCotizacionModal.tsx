@@ -13,8 +13,8 @@ export default function ConfirmDeleteCotizacionModal({ open, loading = false, on
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h4 className="text-base font-semibold text-slate-900">Borrar Cotizacion</h4>
-        <p className="mt-1 text-sm text-slate-500">Estas seguro que quieres borrar esta Cotizacion?</p>
+        <h4 className="text-base font-semibold text-slate-900">Borrar cotización</h4>
+        <p className="mt-1 text-sm text-slate-500">¿Estás seguro de que quieres borrar esta cotización?</p>
 
         <div className="mt-5 flex justify-end gap-2">
           <button

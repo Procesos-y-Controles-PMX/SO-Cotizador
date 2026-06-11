@@ -63,10 +63,10 @@ export default function CotizacionesPage() {
     const ok = await deleteCotizacion(deleteTarget.id);
     setDeleteLoading(false);
     if (!ok) {
-      toast.error("No se pudo borrar la cotizacion.");
+      toast.error("No se pudo borrar la cotización.");
       return;
     }
-    toast.success("Cotizacion borrada.");
+    toast.success("Cotización borrada.");
     const wasLastOnPage = rows.length === 1;
     setDeleteTarget(null);
     if (wasLastOnPage && page > 1) {
@@ -80,7 +80,7 @@ export default function CotizacionesPage() {
     if (!user) return;
     const canEdit = user.rol === "admin" || row.id_usuario === user.id;
     if (!canEdit) {
-      toast.error("No tienes permiso para cambiar esta cotizacion.");
+      toast.error("No tienes permiso para cambiar esta cotización.");
       return;
     }
 
@@ -92,7 +92,7 @@ export default function CotizacionesPage() {
     if (!result.ok) {
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, venta_cerrada: !nextValue } : r)));
       if (result.error === "forbidden") {
-        toast.error("No tienes permiso para cambiar esta cotizacion.");
+        toast.error("No tienes permiso para cambiar esta cotización.");
       } else {
         toast.error("No se pudo actualizar el estado de cierre.");
       }
@@ -161,7 +161,7 @@ export default function CotizacionesPage() {
             {excelLoading ? "Generando Excel..." : "Descargar Excel"}
           </button>
           <Link href="/cotizaciones/nueva" className="btn-primary">
-            Nueva cotizacion
+            Nueva cotización
           </Link>
         </div>
       </div>

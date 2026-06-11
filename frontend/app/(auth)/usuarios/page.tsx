@@ -125,7 +125,7 @@ export default function UsuariosPage() {
     );
     setImporting(false);
     if (result.inserted === 0 && result.failed > 0) {
-      toast.error("No se pudo importar ningun usuario.");
+      toast.error("No se pudo importar ningún usuario.");
       return;
     }
     const parts: string[] = [];
@@ -212,7 +212,7 @@ export default function UsuariosPage() {
   if (user?.rol !== "admin") {
     return (
       <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-        Esta seccion es solo para administradores.
+        Esta sección es solo para administradores.
       </p>
     );
   }

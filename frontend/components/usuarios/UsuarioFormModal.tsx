@@ -52,7 +52,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
       return;
     }
     if (!EMAIL_RE.test(email)) {
-      toast.error("Ingresa un correo valido.");
+      toast.error("Ingresa un correo válido.");
       return;
     }
 
@@ -127,10 +127,10 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
         </h4>
         <p className="mt-1 text-sm text-slate-500">
           {mode === "create"
-            ? "El usuario iniciara sesion con este correo y contraseña."
+            ? "El usuario iniciará sesión con este correo y contraseña."
             : isSelf
               ? "Estos datos no se pueden cambiar desde esta pantalla."
-              : "Deja la contraseña vacia si no quieres cambiarla."}
+              : "Deja la contraseña vacía si no quieres cambiarla."}
         </p>
 
         <div className="mt-4 grid gap-3">
@@ -164,7 +164,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
                   type="password"
                   value={draft.password}
                   onChange={(event) => setDraft((prev) => ({ ...prev, password: event.target.value }))}
-                  placeholder={mode === "create" ? "Min. 4 caracteres" : "Dejar vacio = sin cambio"}
+                  placeholder={mode === "create" ? "Mín. 4 caracteres" : "Dejar vacío = sin cambio"}
                   autoComplete="new-password"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
                 />
@@ -200,7 +200,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
           </label>
           {isSelf ? (
             <p className="text-xs text-amber-700">
-              No puedes modificar tu propio correo, nombre, contraseña ni rol desde aqui.
+              No puedes modificar tu propio correo, nombre, contraseña ni rol desde aquí.
             </p>
           ) : null}
         </div>

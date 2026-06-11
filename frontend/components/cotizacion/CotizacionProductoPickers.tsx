@@ -82,11 +82,11 @@ export default function CotizacionProductoPickers({
         />
       </div>
       <div className="md:col-span-2">
-        <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Descripcion</span>
+        <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Descripción</span>
         <SearchCombobox
           className="w-full"
           disabled={disabled}
-          placeholder="Buscar descripcion..."
+          placeholder="Buscar descripción..."
           value={descripcionValue}
           onChange={handleSelect}
           onSearch={searchDescripcion}

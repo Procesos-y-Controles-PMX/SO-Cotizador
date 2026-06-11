@@ -41,14 +41,14 @@ export default function CotizacionDetallePage() {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-semibold text-slate-900">Detalle de cotizacion</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">Detalle de cotización</h2>
         <div className="flex flex-wrap items-center gap-2">
           {canDuplicate ? (
             <Link
               href={`/cotizaciones/nueva?copiar=${params.id}`}
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
             >
-              Duplicar cotizacion
+              Duplicar cotización
             </Link>
           ) : null}
           <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary">
@@ -76,7 +76,7 @@ export default function CotizacionDetallePage() {
           {canDuplicate ? (
             <>
               {" "}
-              Puedes crear una copia editable con el boton &quot;Duplicar cotizacion&quot; (folio {folio}).
+              Puedes crear una copia editable con el botón &quot;Duplicar cotización&quot; (folio {folio}).
             </>
           ) : null}
         </p>

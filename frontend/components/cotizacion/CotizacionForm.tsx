@@ -219,7 +219,7 @@ export default function CotizacionForm({
         const cliente = await getClienteById(initial.id_cliente);
         if (cliente && !cancelled) {
           if (cliente.id_sucursal !== cotSucursalId) {
-            toast.warning("El cliente de esta cotizacion no coincide con la sucursal seleccionada.");
+            toast.warning("El cliente de esta cotización no coincide con la sucursal seleccionada.");
           } else {
             setIdCliente(cliente.id);
             setClienteSelected({
@@ -523,11 +523,11 @@ export default function CotizacionForm({
     event.target.value = "";
     if (!file) return;
     if (catalogLoading) {
-      toast.error("Espera a que termine de cargar el catalogo.");
+      toast.error("Espera a que termine de cargar el catálogo.");
       return;
     }
     if (!productos.length) {
-      toast.error("No hay productos en el catalogo.");
+      toast.error("No hay productos en el catálogo.");
       return;
     }
     setExcelParsing(true);
@@ -550,7 +550,7 @@ export default function CotizacionForm({
 
   function confirmExcelImport() {
     if (!importPreview?.ok.length) {
-      toast.error("No hay filas validas para importar.");
+      toast.error("No hay filas válidas para importar.");
       return;
     }
     const newRows: ProductoLocal[] = importPreview.ok.map((row) => {
@@ -572,8 +572,8 @@ export default function CotizacionForm({
     const nFail = importPreview.failed.length;
     setImportExcelOpen(false);
     setImportPreview(null);
-    toast.success(`Se agregaron ${nOk} renglon(es) a Productos.`);
-    if (nFail) toast.warning(`${nFail} fila(s) no se encontraron en el catalogo.`);
+    toast.success(`Se agregaron ${nOk} renglón(es) a Productos.`);
+    if (nFail) toast.warning(`${nFail} fila(s) no se encontraron en el catálogo.`);
   }
 
   function cancelExcelImport() {
@@ -669,19 +669,19 @@ export default function CotizacionForm({
         toast.error("El folio ya existe. Intenta de nuevo.");
         break;
       case "invalid_reference":
-        toast.error("Datos invalidos. Cierra sesion y vuelve a entrar, o revisa sucursal y cliente.");
+        toast.error("Datos inválidos. Cierra sesión y vuelve a entrar, o revisa sucursal y cliente.");
         break;
       case "cliente_sucursal":
         toast.error("El cliente no pertenece a la sucursal seleccionada.");
         break;
       case "productos":
-        toast.error("No se pudieron guardar los productos de la cotizacion.");
+        toast.error("No se pudieron guardar los productos de la cotización.");
         break;
       case "tipo_pago_invalido":
-        toast.error("Tipo de pago no valido. Contacta al administrador si el problema continua.");
+        toast.error("Tipo de pago no válido. Contacta al administrador si el problema continúa.");
         break;
       default:
-        toast.error("No fue posible registrar la cotizacion.");
+        toast.error("No fue posible registrar la cotización.");
     }
   }
 
@@ -723,7 +723,7 @@ export default function CotizacionForm({
         });
       });
     if (!productosListos.length) {
-      toast.error("Agrega al menos un producto valido.");
+      toast.error("Agrega al menos un producto válido.");
       return;
     }
 
@@ -736,7 +736,7 @@ export default function CotizacionForm({
     if (mode === "create") {
       const sucursal = sucursales.find((row) => row.id === idSucursal);
       if (!sucursal) {
-        toast.error("Sucursal invalida.");
+        toast.error("Sucursal inválida.");
         setLoading(false);
         return;
       }
@@ -773,14 +773,14 @@ export default function CotizacionForm({
         if (result.error === "invalid_reference") {
           const fresh = await getUsuarioByEmail(sessionUser.email);
           if (!fresh) {
-            toast.error("Tu sesion ya no es valida (base de datos reiniciada). Vuelve a iniciar sesion.");
+            toast.error("Tu sesión ya no es válida (base de datos reiniciada). Vuelve a iniciar sesión.");
             return;
           }
         }
         toastCreateCotizacionError(result.error);
         return;
       }
-      toast.success("Cotizacion registrada.");
+      toast.success("Cotización registrada.");
       onSaved(result.id);
       return;
     }
@@ -809,7 +809,7 @@ export default function CotizacionForm({
     );
     setLoading(false);
     if (!ok) return toast.error("No fue posible actualizar.");
-    toast.success("Cotizacion actualizada.");
+    toast.success("Cotización actualizada.");
     onSaved(cotizacionId);
   }
 
@@ -818,7 +818,7 @@ export default function CotizacionForm({
       {copySourceFolio ? (
         <p className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           Copia basada en el folio <span className="font-semibold">{copySourceFolio}</span>. Al guardar se
-          generara un folio nuevo.
+          generará un folio nuevo.
         </p>
       ) : null}
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
@@ -967,7 +967,7 @@ export default function CotizacionForm({
         <div className="space-y-3">
           <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-10">
             <p className="md:col-span-2">SKU</p>
-            <p className="md:col-span-2">Descripcion</p>
+            <p className="md:col-span-2">Descripción</p>
             <p className="md:col-span-1">U.M.</p>
             <p className="md:col-span-2">Cantidad</p>
             <p className="md:col-span-2">{precioUnitarioLabel}</p>
@@ -1114,7 +1114,7 @@ export default function CotizacionForm({
 
       <div className="flex flex-wrap justify-center gap-2">
         <button type="button" disabled={loading} className="btn-primary disabled:opacity-50" onClick={save}>
-          {mode === "create" ? "Registrar Cotizacion" : "Guardar Cambios"}
+          {mode === "create" ? "Registrar cotización" : "Guardar cambios"}
         </button>
         <button
           type="button"
@@ -1129,7 +1129,7 @@ export default function CotizacionForm({
             className="btn-primary bg-red-600 px-3 py-2 text-sm hover:bg-red-700"
             onClick={() => setConfirmDeleteOpen(true)}
           >
-            Borrar Cotizacion
+            Borrar cotización
           </button>
         )}
       </div>
@@ -1140,7 +1140,7 @@ export default function CotizacionForm({
             <h4 className="text-base font-semibold text-slate-900">Nuevo cliente</h4>
             <p className="mt-1 text-sm text-slate-500">
               {sucursalNombre
-                ? `Se registrara en la sucursal: ${sucursalNombre}.`
+                ? `Se registrará en la sucursal: ${sucursalNombre}.`
                 : "Completa los campos del cliente."}
             </p>
 
@@ -1156,7 +1156,7 @@ export default function CotizacionForm({
                 />
               </label>
               <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Numero de Cliente
+                Número de Cliente
                 <input
                   value={clienteDraft.num_cliente}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, num_cliente: event.target.value }))}
@@ -1174,7 +1174,7 @@ export default function CotizacionForm({
                 />
               </label>
               <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Telefono
+                Teléfono
                 <input
                   value={clienteDraft.telefono}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, telefono: event.target.value }))}
@@ -1242,7 +1242,7 @@ export default function CotizacionForm({
                 Primera fila: encabezados. Obligatorio: <strong>SKU</strong> o <strong>SKU (obligatorio)</strong>.
                 Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional). El IVA de las filas importadas
                 usa el <strong>IVA</strong> del formulario. La unidad de medida siempre viene del
-                catalogo (no se lee del Excel). Puedes usar el botón <strong>Descargar plantilla</strong> en Productos para
+                catálogo (no se lee del Excel). Puedes usar el botón <strong>Descargar plantilla</strong> en Productos para
                 obtener un .xlsx con esos títulos.
               </p>
             </div>
@@ -1304,10 +1304,10 @@ export default function CotizacionForm({
           const ok = await onDelete();
           setDeleteLoading(false);
           if (!ok) {
-            toast.error("No se pudo borrar la cotizacion.");
+            toast.error("No se pudo borrar la cotización.");
             return;
           }
-          toast.success("Cotizacion borrada.");
+          toast.success("Cotización borrada.");
         }}
       />
     </section>

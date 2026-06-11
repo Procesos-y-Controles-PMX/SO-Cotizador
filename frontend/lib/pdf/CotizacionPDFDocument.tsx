@@ -81,8 +81,9 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     letterSpacing: 0.8,
   },
-  infoGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 },
-  infoCol: { width: "33.33%", paddingHorizontal: 4, marginBottom: 6 },
+  infoGrid: { flexDirection: "row", width: "100%" },
+  infoCol: { width: "33.33%", paddingHorizontal: 6 },
+  infoField: { marginBottom: 8 },
   infoLabel: { fontSize: 8, color: TEXT_BLACK, marginBottom: 1, fontWeight: 700 },
   infoValue: { fontSize: 9.3, color: TEXT_BLACK },
   tableBox: { border: `1 solid ${BRAND_GRAY}`, borderRadius: 8, overflow: "hidden", marginBottom: 12 },
@@ -202,35 +203,41 @@ export function CotizacionPDFDocument({
           <Text style={styles.cardTitle}>Datos Generales</Text>
           <View style={styles.infoGrid}>
             <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Folio</Text>
-              <Text style={styles.infoValue}>{quote.folio}</Text>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Folio</Text>
+                <Text style={styles.infoValue}>{quote.folio}</Text>
+              </View>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Cliente</Text>
+                <Text style={styles.infoValue}>{quote.ctz_clientes?.nombre_cliente ?? "-"}</Text>
+              </View>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Obra</Text>
+                <Text style={styles.infoValue}>{quote.nombre_obra ?? "-"}</Text>
+              </View>
             </View>
             <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Condición de pago</Text>
-              <Text style={styles.infoValue}>{formatTipoPago(quote.tipo_pago)}</Text>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Condición de pago</Text>
+                <Text style={styles.infoValue}>{formatTipoPago(quote.tipo_pago)}</Text>
+              </View>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Cotizó</Text>
+                <Text style={styles.infoValue}>
+                  {quote.ctz_usuarios?.nombre_completo ?? quote.ctz_usuarios?.email ?? "-"}
+                </Text>
+              </View>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Sucursal</Text>
+                <Text style={styles.infoValue}>{quote.ctz_sucursales?.nombre ?? "-"}</Text>
+              </View>
             </View>
             <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Fecha</Text>
-              <Text style={styles.infoValue}>{formatDate(quote.created_at)}</Text>
+              <View style={styles.infoField}>
+                <Text style={styles.infoLabel}>Fecha</Text>
+                <Text style={styles.infoValue}>{formatDate(quote.created_at)}</Text>
+              </View>
             </View>
-            <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Cliente</Text>
-              <Text style={styles.infoValue}>{quote.ctz_clientes?.nombre_cliente ?? "-"}</Text>
-            </View>
-            <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Cotizó</Text>
-              <Text style={styles.infoValue}>{quote.ctz_usuarios?.nombre_completo ?? quote.ctz_usuarios?.email ?? "-"}</Text>
-            </View>
-            <View style={styles.infoCol} />
-            <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Obra</Text>
-              <Text style={styles.infoValue}>{quote.nombre_obra ?? "-"}</Text>
-            </View>
-            <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>Sucursal</Text>
-              <Text style={styles.infoValue}>{quote.ctz_sucursales?.nombre ?? "-"}</Text>
-            </View>
-            <View style={styles.infoCol} />
           </View>
         </View>
 
@@ -274,7 +281,7 @@ export function CotizacionPDFDocument({
         </View>
 
         <View style={styles.termsBox}>
-          <Text style={styles.termsTitle}>Terminos y Condiciones</Text>
+          <Text style={styles.termsTitle}>Términos y Condiciones</Text>
           <Text style={styles.termsText}>- Sujeto a disponibilidad de inventario.</Text>
           <Text style={styles.termsText}>- Precio sujeto a cambio sin previo aviso.</Text>
           <Text style={styles.termsText}>- Precios indicados son antes de IVA.</Text>

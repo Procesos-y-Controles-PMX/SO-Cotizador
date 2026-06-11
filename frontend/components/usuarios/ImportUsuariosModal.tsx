@@ -14,7 +14,7 @@ type Props = {
 
 function listSuffix(total: number): string {
   if (total <= LIST_CAP) return "";
-  return ` (y ${total - LIST_CAP} mas…)`;
+  return ` (y ${total - LIST_CAP} más…)`;
 }
 
 export default function ImportUsuariosModal({
@@ -36,8 +36,8 @@ export default function ImportUsuariosModal({
         <div className="border-b border-slate-100 px-5 py-4">
           <h4 className="text-base font-semibold text-slate-900">Importar usuarios desde Excel</h4>
         <p className="mt-1 text-sm text-slate-500">
-          Primera fila: <strong>Correo</strong> y <strong>Nombre</strong>. Se crearan con rol{" "}
-          <strong>Tienda</strong> y una <strong>contraseña generada</strong> (cambiala despues en Editar).
+          Primera fila: <strong>Correo</strong> y <strong>Nombre</strong>. Se crearán con rol{" "}
+          <strong>Tienda</strong> y una <strong>contraseña generada</strong> (cámbiala después en Editar).
           Los correos ya registrados se omiten.
         </p>
         </div>
