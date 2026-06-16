@@ -20,6 +20,7 @@ import {
   type CotizacionWithRelations,
 } from "@/lib/queries/cotizaciones";
 import { canDuplicateCotizacion } from "@/lib/cotizacion/cotizacionToFormInitial";
+import { obraNombreCotizacion } from "@/lib/queries/obras";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { money } from "@/lib/utils";
 
@@ -208,7 +209,7 @@ export default function CotizacionesPage() {
               <tr key={row.id} className="border-t border-slate-100">
                 <td className="whitespace-nowrap px-4 py-3 font-medium">{row.folio}</td>
                 <td className="px-4 py-3">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
-                <td className="px-4 py-3">{row.nombre_obra ?? "-"}</td>
+                <td className="px-4 py-3">{obraNombreCotizacion(row)}</td>
                 <td className="whitespace-nowrap px-4 py-3">{row.ctz_sucursales?.nombre ?? "-"}</td>
                 <td className="whitespace-nowrap px-4 py-3">{money(row.total)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-center">

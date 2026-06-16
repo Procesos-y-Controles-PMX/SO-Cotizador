@@ -31,6 +31,7 @@ export function toProductoInput(producto: ProductoInput): ProductoInput {
 
 export type CotizacionWithRelations = CtzCotizacion & {
   ctz_clientes: { nombre_cliente: string } | null;
+  ctz_obras: { nombre_obra: string; num_obra: string | null; referencia_pago: string | null } | null;
   ctz_sucursales: {
     nombre: string;
     region: string | null;
@@ -50,22 +51,26 @@ async function buildCotizacionesSearchOr(search: string): Promise<string | null>
   const pattern = ilikePattern(search);
   if (!pattern || !supabase) return null;
 
-  const [clientesRes, sucursalesRes] = await Promise.all([
+  const [clientesRes, sucursalesRes, obrasRes] = await Promise.all([
     supabase.from("ctz_clientes").select("id").ilike("nombre_cliente", pattern).limit(SEARCH_RELATED_ID_CAP),
     supabase.from("ctz_sucursales").select("id").ilike("nombre", pattern).limit(SEARCH_RELATED_ID_CAP),
+    supabase.from("ctz_obras").select("id").ilike("nombre_obra", pattern).limit(SEARCH_RELATED_ID_CAP),
   ]);
 
   const parts = [`folio.ilike.${pattern}`, `nombre_obra.ilike.${pattern}`];
   const clienteIds = (clientesRes.data ?? []).map((row) => row.id as string);
   const sucursalIds = (sucursalesRes.data ?? []).map((row) => row.id as string);
+  const obraIds = (obrasRes.data ?? []).map((row) => row.id as string);
   if (clienteIds.length) parts.push(`id_cliente.in.(${clienteIds.join(",")})`);
   if (sucursalIds.length) parts.push(`id_sucursal.in.(${sucursalIds.join(",")})`);
+  if (obraIds.length) parts.push(`id_obra.in.(${obraIds.join(",")})`);
   return parts.join(",");
 }
 
 const COTIZACIONES_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
+      ctz_obras(nombre_obra,num_obra,referencia_pago),
       ctz_sucursales(nombre,region,prefijo_folio,terminos_adicionales,direccion),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
@@ -128,6 +133,7 @@ export async function getCotizacionById(id: string): Promise<CotizacionWithRelat
       `
       *,
       ctz_clientes(nombre_cliente),
+      ctz_obras(nombre_obra,num_obra,referencia_pago),
       ctz_sucursales(nombre,region,prefijo_folio,terminos_adicionales,direccion),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
@@ -161,6 +167,9 @@ function mapCotizacionInsertError(error: { code?: string; message?: string }): C
   if (error.code === "23505") return { ok: false, error: "duplicate_folio" };
   if (error.code === "23503") return { ok: false, error: "invalid_reference", message };
   if (lower.includes("cliente no pertenece")) {
+    return { ok: false, error: "cliente_sucursal", message };
+  }
+  if (lower.includes("obra no pertenece")) {
     return { ok: false, error: "cliente_sucursal", message };
   }
   if (

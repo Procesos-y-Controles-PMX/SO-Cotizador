@@ -35,6 +35,16 @@ export type CtzCliente = {
   created_at: string;
 };
 
+export type CtzObra = {
+  id: string;
+  id_cliente: string;
+  num_obra: string | null;
+  nombre_obra: string;
+  referencia_pago: string | null;
+  activo: boolean;
+  created_at: string;
+};
+
 export type CtzProducto = {
   id: string;
   sku: string | null;
@@ -51,6 +61,7 @@ export type CtzCotizacion = {
   id_usuario: string;
   id_sucursal: string;
   id_cliente: string | null;
+  id_obra: string | null;
   nombre_obra: string | null;
   /** "Credito" sin acento: registros antiguos en BD */
   tipo_pago: "Contado" | "Crédito" | "Credito" | null;

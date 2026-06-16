@@ -8,6 +8,7 @@ import {
 } from "@react-pdf/renderer";
 import { normalizeIvaPct, type IvaPct } from "@/lib/cotizacion/calcImportes";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
+import { obraLabelCotizacion } from "@/lib/queries/obras";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 import { formatQuantity, money } from "@/lib/utils";
 
@@ -115,8 +116,8 @@ const styles = StyleSheet.create({
   },
   tableRow: { flexDirection: "row", borderBottom: `1 solid ${BORDER_LIGHT}`, paddingVertical: 4, paddingHorizontal: 8 },
   tableRowAlt: { backgroundColor: "#FFFFFF" },
-  tableCell: { fontSize: 8.8, color: TEXT_BLACK },
-  tableCellRight: { textAlign: "right" },
+  tableCell: { fontSize: 7.8, color: TEXT_BLACK, textAlign: "center" },
+  tableCellProduct: { fontSize: 7.0, color: TEXT_BLACK, textAlign: "center" },
   tableFooterRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 4, marginBottom: 8, paddingRight: 8 },
   totalsCard: {
     width: 220,
@@ -138,12 +139,9 @@ const styles = StyleSheet.create({
   },
   grandTotalLabel: { fontSize: 8.8, fontWeight: 700, color: TEXT_ON_GRAY },
   grandTotalValue: { fontSize: 8.8, fontWeight: 700, color: TEXT_ON_GRAY },
-  termsBox: {
-    border: `1 solid ${BRAND_GRAY}`,
-    borderRadius: 8,
-    padding: 9,
-    minHeight: 84,
-    marginTop: 2,
+  termsSection: {
+    marginTop: 8,
+    paddingHorizontal: 2,
   },
   termsTitle: { fontSize: 8.5, textTransform: "uppercase", color: TEXT_BLACK, fontWeight: 700, marginBottom: 6 },
   termsText: { fontSize: 8.2, color: TEXT_BLACK, lineHeight: 1.35, marginBottom: 3 },
@@ -213,7 +211,7 @@ export function CotizacionPDFDocument({
               </View>
               <View style={styles.infoField}>
                 <Text style={styles.infoLabel}>Obra</Text>
-                <Text style={styles.infoValue}>{quote.nombre_obra ?? "-"}</Text>
+                <Text style={styles.infoValue}>{obraLabelCotizacion(quote)}</Text>
               </View>
             </View>
             <View style={styles.infoCol}>
@@ -246,19 +244,21 @@ export function CotizacionPDFDocument({
             <Text style={styles.tableTitleBarText}>Lista de precios</Text>
           </View>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, { width: "38%", textAlign: "left" }]}>PRODUCTO</Text>
-            <Text style={[styles.tableHeaderText, { width: "12%" }]}>UM</Text>
-            <Text style={[styles.tableHeaderText, { width: "14%" }]}>CANTIDAD</Text>
-            <Text style={[styles.tableHeaderText, { width: "18%" }]}>PU</Text>
-            <Text style={[styles.tableHeaderText, { width: "18%", textAlign: "right" }]}>SUBTOTAL</Text>
+            <Text style={[styles.tableHeaderText, { width: "26%" }]}>PRODUCTO</Text>
+            <Text style={[styles.tableHeaderText, { width: "14%" }]}>SKU</Text>
+            <Text style={[styles.tableHeaderText, { width: "15%" }]}>UM</Text>
+            <Text style={[styles.tableHeaderText, { width: "15%" }]}>CANTIDAD</Text>
+            <Text style={[styles.tableHeaderText, { width: "15%" }]}>PU</Text>
+            <Text style={[styles.tableHeaderText, { width: "15%" }]}>SUBTOTAL</Text>
           </View>
           {quote.ctz_cotizacion_items.map((producto, index) => (
             <View key={producto.id} style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
-              <Text style={[styles.tableCell, { width: "38%" }]}>{producto.descripcion_registro}</Text>
-              <Text style={[styles.tableCell, { width: "12%", textAlign: "center" }]}>{producto.unidad_medida ?? "-"}</Text>
-              <Text style={[styles.tableCell, { width: "14%", textAlign: "center" }]}>{formatQuantity(producto.cantidad)}</Text>
-              <Text style={[styles.tableCell, { width: "18%", textAlign: "center" }]}>{money(producto.precio_unitario)}</Text>
-              <Text style={[styles.tableCell, styles.tableCellRight, { width: "18%" }]}>{money(producto.subtotal_item)}</Text>
+              <Text style={[styles.tableCellProduct, { width: "26%" }]}>{producto.descripcion_registro}</Text>
+              <Text style={[styles.tableCell, { width: "14%" }]}>{producto.ctz_productos?.sku?.trim() || "-"}</Text>
+              <Text style={[styles.tableCell, { width: "15%" }]}>{producto.unidad_medida ?? "-"}</Text>
+              <Text style={[styles.tableCell, { width: "15%" }]}>{formatQuantity(producto.cantidad)}</Text>
+              <Text style={[styles.tableCell, { width: "15%" }]}>{money(producto.precio_unitario)}</Text>
+              <Text style={[styles.tableCell, { width: "15%" }]}>{money(producto.subtotal_item)}</Text>
             </View>
           ))}
 
@@ -280,7 +280,7 @@ export function CotizacionPDFDocument({
           </View>
         </View>
 
-        <View style={styles.termsBox}>
+        <View style={styles.termsSection}>
           <Text style={styles.termsTitle}>Términos y Condiciones</Text>
           <Text style={styles.termsText}>- Sujeto a disponibilidad de inventario.</Text>
           <Text style={styles.termsText}>- Precio sujeto a cambio sin previo aviso.</Text>

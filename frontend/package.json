@@ -6,7 +6,10 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "import-sucursales": "node ../other/import-sucursales.mjs",
+    "import-clientes": "node ../other/import-clientes.mjs",
+    "import-obras": "node ../other/import-obras.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

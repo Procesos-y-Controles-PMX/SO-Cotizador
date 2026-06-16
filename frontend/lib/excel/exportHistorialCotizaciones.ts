@@ -1,6 +1,7 @@
 import { regionLabel, sortRegionKeys, sucursalLabel } from "@/lib/cotizacion/groupByRegion";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import { obraNombreCotizacion } from "@/lib/queries/obras";
 
 export const HISTORIAL_COTIZACIONES_XLSX_FILENAME = "historial-cotizaciones.xlsx";
 
@@ -65,7 +66,7 @@ function cotizacionBaseCells(row: CotizacionWithRelations): SheetRow {
     row.folio,
     formatDate(row.created_at),
     row.ctz_clientes?.nombre_cliente ?? "-",
-    row.nombre_obra ?? "-",
+    obraNombreCotizacion(row),
     toNum(row.subtotal),
     toNum(row.iva_total),
     toNum(row.total),

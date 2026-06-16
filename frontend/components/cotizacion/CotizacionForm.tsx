@@ -19,6 +19,7 @@ import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
 import { matchesSearch } from "@/lib/search";
 import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
+import { createObra, getObraById, listObras, obraToOption } from "@/lib/queries/obras";
 import {
   createCotizacion,
   toProductoInput,
@@ -35,7 +36,7 @@ import {
   type IvaPct,
 } from "@/lib/cotizacion/calcImportes";
 import { normalizeTipoPago, toDbTipoPago } from "@/lib/cotizacion/tipoPago";
-import type { CtzCliente, CtzProducto, CtzSucursal } from "@/lib/types/db";
+import type { CtzCliente, CtzObra, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import type { CotizacionFormInitial } from "@/lib/cotizacion/cotizacionToFormInitial";
 import {
   DECIMAL_INPUT_DRAFT_RE,
@@ -130,24 +131,33 @@ export default function CotizacionForm({
   const [clienteSelected, setClienteSelected] = useState<SearchComboboxOption | null>(null);
   const [clientesSucursal, setClientesSucursal] = useState<CtzCliente[]>([]);
   const [loadingClientesSucursal, setLoadingClientesSucursal] = useState(false);
+  const [obraSelected, setObraSelected] = useState<SearchComboboxOption | null>(null);
+  const [obrasCliente, setObrasCliente] = useState<CtzObra[]>([]);
+  const [loadingObrasCliente, setLoadingObrasCliente] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [idSucursal, setIdSucursal] = useState(initial?.id_sucursal ?? "");
   const [idCliente, setIdCliente] = useState(initial?.id_cliente ?? "");
-  const [nombreObra, setNombreObra] = useState(initial?.nombre_obra ?? "");
+  const [idObra, setIdObra] = useState(initial?.id_obra ?? "");
+  const [obraTouched, setObraTouched] = useState(false);
   const [tipoPago, setTipoPago] = useState<"Contado" | "Crédito">(
     () => normalizeTipoPago(initial?.tipo_pago) ?? "Contado"
   );
   const [referenciaPago, setReferenciaPago] = useState(initial?.referencia_pago ?? "");
   const [preciosIncluyenIva, setPreciosIncluyenIva] = useState(initial?.mostrar_con_iva ?? false);
   const [ivaCotizacion, setIvaCotizacion] = useState<IvaPct>(() => initialIvaFromProps(initial));
-  const [modalType, setModalType] = useState<"cliente" | "producto" | null>(null);
+  const [modalType, setModalType] = useState<"cliente" | "producto" | "obra" | null>(null);
   const [clienteDraft, setClienteDraft] = useState({
     nombre_cliente: "",
     num_cliente: "",
     empresa: "",
     telefono: "",
     correo: "",
+  });
+  const [obraDraft, setObraDraft] = useState({
+    nombre_obra: "",
+    num_obra: "",
+    referencia_pago: "",
   });
   const [modalLoading, setModalLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -231,6 +241,18 @@ export default function CotizacionForm({
         }
       }
 
+      if (initial?.id_obra && !cancelled) {
+        const obra = await getObraById(initial.id_obra);
+        if (obra) {
+          if (initial.id_cliente && obra.id_cliente !== initial.id_cliente) {
+            toast.warning("La obra de esta cotización no coincide con el cliente seleccionado.");
+          } else {
+            setIdObra(obra.id);
+            setObraSelected(obraToOption(obra));
+          }
+        }
+      }
+
       const productIds = [
         ...new Set(
           (initial?.productos ?? [])
@@ -294,6 +316,24 @@ export default function CotizacionForm({
       cancelled = true;
     };
   }, [idSucursal]);
+
+  useEffect(() => {
+    if (!idCliente) {
+      setObrasCliente([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingObrasCliente(true);
+    void listObras("", idCliente).then((rows) => {
+      if (!cancelled) {
+        setObrasCliente(rows);
+        setLoadingObrasCliente(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [idCliente]);
 
   useEffect(() => {
     if (!idSucursal) {
@@ -513,6 +553,27 @@ export default function CotizacionForm({
     [idSucursal, clientesSucursal]
   );
 
+  const searchObrasCb = useMemo(
+    () => async (query: string) => {
+      if (!idCliente) return [];
+      const filtered = query.trim()
+        ? obrasCliente.filter(
+            (obra) =>
+              matchesSearch(obra.nombre_obra, query) ||
+              (obra.num_obra ? matchesSearch(obra.num_obra, query) : false) ||
+              (obra.referencia_pago ? matchesSearch(obra.referencia_pago, query) : false)
+          )
+        : obrasCliente;
+      return filtered.map(obraToOption);
+    },
+    [idCliente, obrasCliente]
+  );
+
+  const clienteNombre = useMemo(
+    () => clientesSucursal.find((row) => row.id === idCliente)?.nombre_cliente ?? clienteSelected?.label ?? "",
+    [clientesSucursal, idCliente, clienteSelected]
+  );
+
   const sucursalNombre = useMemo(
     () => sucursales.find((row) => row.id === idSucursal)?.nombre ?? "",
     [sucursales, idSucursal]
@@ -592,14 +653,42 @@ export default function CotizacionForm({
     }
   }
 
+  function clearObraSelection() {
+    setObraSelected(null);
+    setIdObra("");
+  }
+
   function clearClienteSelection() {
     setClienteSelected(null);
     setIdCliente("");
+    clearObraSelection();
+    setObraTouched(false);
   }
 
-  function openModal(type: "cliente" | "producto") {
+  function resolveObraPayload(): { id_obra: string | null; nombre_obra: string | null } {
+    if (idObra) {
+      const obra = obrasCliente.find((row) => row.id === idObra);
+      return {
+        id_obra: idObra,
+        nombre_obra: obra?.nombre_obra ?? null,
+      };
+    }
+    if (obraTouched) {
+      return { id_obra: null, nombre_obra: null };
+    }
+    return {
+      id_obra: null,
+      nombre_obra: initial?.nombre_obra ?? null,
+    };
+  }
+
+  function openModal(type: "cliente" | "producto" | "obra") {
     if (type === "cliente" && !idSucursal) {
       toast.error("Selecciona una sucursal antes de registrar un cliente.");
+      return;
+    }
+    if (type === "obra" && !idCliente) {
+      toast.error("Selecciona un cliente antes de registrar una obra.");
       return;
     }
     setModalType(type);
@@ -612,6 +701,13 @@ export default function CotizacionForm({
         correo: "",
       });
     }
+    if (type === "obra") {
+      setObraDraft({
+        nombre_obra: "",
+        num_obra: "",
+        referencia_pago: "",
+      });
+    }
   }
 
   function closeModal() {
@@ -620,46 +716,86 @@ export default function CotizacionForm({
   }
 
   async function handleModalSave() {
-    if (modalType !== "cliente") return;
-    if (!idSucursal) {
-      toast.error("Selecciona una sucursal antes de registrar un cliente.");
+    if (modalType === "cliente") {
+      if (!idSucursal) {
+        toast.error("Selecciona una sucursal antes de registrar un cliente.");
+        return;
+      }
+      setModalLoading(true);
+      if (!clienteDraft.nombre_cliente.trim()) {
+        setModalLoading(false);
+        toast.error("El nombre del cliente es obligatorio.");
+        return;
+      }
+      const result = await createCliente({
+        id_sucursal: idSucursal,
+        nombre_cliente: clienteDraft.nombre_cliente.trim(),
+        num_cliente: clienteDraft.num_cliente.trim(),
+        empresa: clienteDraft.empresa.trim(),
+        telefono: clienteDraft.telefono.trim(),
+        correo: clienteDraft.correo.trim(),
+      });
+      setModalLoading(false);
+      if (!result.ok) {
+        if (result.error === "duplicate") {
+          toast.error("Ya existe ese cliente en esta sucursal.");
+        } else {
+          toast.error("No se pudo crear cliente.");
+        }
+        return;
+      }
+      const created = result.cliente;
+      setIdCliente(created.id);
+      setClienteSelected({
+        id: created.id,
+        label: created.nombre_cliente,
+        sublabel: created.num_cliente ?? created.empresa ?? undefined,
+      });
+      setClientesSucursal((prev) => {
+        if (prev.some((c) => c.id === created.id)) return prev;
+        return [...prev, created].sort((a, b) => a.nombre_cliente.localeCompare(b.nombre_cliente));
+      });
+      toast.success("Cliente creado.");
+      setModalType(null);
+      return;
+    }
+
+    if (modalType !== "obra") return;
+    if (!idCliente) {
+      toast.error("Selecciona un cliente antes de registrar una obra.");
       return;
     }
     setModalLoading(true);
-    if (!clienteDraft.nombre_cliente.trim()) {
+    if (!obraDraft.nombre_obra.trim()) {
       setModalLoading(false);
-      toast.error("El nombre del cliente es obligatorio.");
+      toast.error("El nombre de la obra es obligatorio.");
       return;
     }
-    const result = await createCliente({
-      id_sucursal: idSucursal,
-      nombre_cliente: clienteDraft.nombre_cliente.trim(),
-      num_cliente: clienteDraft.num_cliente.trim(),
-      empresa: clienteDraft.empresa.trim(),
-      telefono: clienteDraft.telefono.trim(),
-      correo: clienteDraft.correo.trim(),
+    const result = await createObra({
+      id_cliente: idCliente,
+      nombre_obra: obraDraft.nombre_obra.trim(),
+      num_obra: obraDraft.num_obra.trim(),
+      referencia_pago: obraDraft.referencia_pago.trim(),
     });
     setModalLoading(false);
     if (!result.ok) {
       if (result.error === "duplicate") {
-        toast.error("Ya existe ese cliente en esta sucursal.");
+        toast.error("Ya existe esa obra para este cliente.");
       } else {
-        toast.error("No se pudo crear cliente.");
+        toast.error("No se pudo crear la obra.");
       }
       return;
     }
-    const created = result.cliente;
-    setIdCliente(created.id);
-    setClienteSelected({
-      id: created.id,
-      label: created.nombre_cliente,
-      sublabel: created.num_cliente ?? created.empresa ?? undefined,
+    const created = result.obra;
+    setIdObra(created.id);
+    setObraSelected(obraToOption(created));
+    setObraTouched(true);
+    setReferenciaPago(created.referencia_pago ?? "");
+    setObrasCliente((prev) => {
+      if (prev.some((obra) => obra.id === created.id)) return prev;
+      return [...prev, created].sort((a, b) => a.nombre_obra.localeCompare(b.nombre_obra));
     });
-    setClientesSucursal((prev) => {
-      if (prev.some((c) => c.id === created.id)) return prev;
-      return [...prev, created].sort((a, b) => a.nombre_cliente.localeCompare(b.nombre_cliente));
-    });
-    toast.success("Cliente creado.");
+    toast.success("Obra creada.");
     setModalType(null);
   }
 
@@ -740,11 +876,13 @@ export default function CotizacionForm({
         setLoading(false);
         return;
       }
+      const obraPayload = resolveObraPayload();
       const cotizacionBase = {
         id_usuario: user.id,
         id_sucursal: idSucursal,
         id_cliente: idCliente,
-        nombre_obra: nombreObra || null,
+        id_obra: obraPayload.id_obra,
+        nombre_obra: obraPayload.nombre_obra,
         tipo_pago: toDbTipoPago(tipoPago),
         referencia_pago: referenciaPago || null,
         comentarios: null,
@@ -790,12 +928,14 @@ export default function CotizacionForm({
       return;
     }
     const cotizacionId = initial.id;
+    const obraPayload = resolveObraPayload();
     const ok = await updateCotizacion(
       cotizacionId,
       {
         id_sucursal: idSucursal,
         id_cliente: idCliente,
-        nombre_obra: nombreObra || null,
+        id_obra: obraPayload.id_obra,
+        nombre_obra: obraPayload.nombre_obra,
         tipo_pago: toDbTipoPago(tipoPago),
         referencia_pago: referenciaPago || null,
         comentarios: null,
@@ -869,17 +1009,54 @@ export default function CotizacionForm({
             onChange={(opt) => {
               setClienteSelected(opt);
               setIdCliente(opt?.id ?? "");
+              clearObraSelection();
+              setObraTouched(false);
             }}
           />
         </div>
-        <label className="text-sm font-medium text-slate-700">
-          Nombre de la obra
-          <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            value={nombreObra}
-            onChange={(event) => setNombreObra(event.target.value)}
+        <div className="text-sm font-medium text-slate-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>Nombre de la obra</span>
+            <button
+              type="button"
+              disabled={!idCliente}
+              title={!idCliente ? "Selecciona un cliente primero" : "Registrar una obra nueva"}
+              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => openModal("obra")}
+            >
+              + Nueva obra
+            </button>
+          </div>
+          <SearchCombobox
+            className="mt-1"
+            inputClassName="px-3 py-2"
+            disabled={catalogLoading || !idCliente || loadingObrasCliente}
+            minChars={0}
+            placeholder={
+              !idCliente
+                ? "Selecciona cliente primero"
+                : loadingObrasCliente
+                  ? "Cargando obras..."
+                  : "Buscar o seleccionar obra..."
+            }
+            value={obraSelected}
+            onSearch={searchObrasCb}
+            onChange={(opt) => {
+              setObraTouched(true);
+              setObraSelected(opt);
+              setIdObra(opt?.id ?? "");
+              if (opt?.id) {
+                const obra = obrasCliente.find((row) => row.id === opt.id);
+                setReferenciaPago(obra?.referencia_pago ?? "");
+              }
+            }}
           />
-        </label>
+          {!idObra && initial?.nombre_obra ? (
+            <p className="mt-1 text-xs text-slate-500">
+              Obra registrada anteriormente: {initial.nombre_obra}
+            </p>
+          ) : null}
+        </div>
         <label className="text-sm font-medium text-slate-700">
           Tipo de pago
           <select
@@ -1189,6 +1366,75 @@ export default function CotizacionForm({
                   value={clienteDraft.correo}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, correo: event.target.value }))}
                   placeholder="Ej. cliente@empresa.com"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleModalSave();
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={modalLoading}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                Descartar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleModalSave()}
+                disabled={modalLoading}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {modalLoading ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalType === "obra" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <h4 className="text-base font-semibold text-slate-900">Nueva obra</h4>
+            <p className="mt-1 text-sm text-slate-500">
+              {clienteNombre
+                ? `Se registrará para el cliente: ${clienteNombre}.`
+                : "Completa los campos de la obra."}
+            </p>
+
+            <div className="mt-4 grid gap-3">
+              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Nombre de la obra *
+                <input
+                  autoFocus
+                  value={obraDraft.nombre_obra}
+                  onChange={(event) => setObraDraft((prev) => ({ ...prev, nombre_obra: event.target.value }))}
+                  placeholder="Ej. Fraccionamiento Los Bosques"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                />
+              </label>
+              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Número de obra
+                <input
+                  value={obraDraft.num_obra}
+                  onChange={(event) => setObraDraft((prev) => ({ ...prev, num_obra: event.target.value }))}
+                  placeholder="Ej. 67237602"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                />
+              </label>
+              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Referencia de pago
+                <input
+                  value={obraDraft.referencia_pago}
+                  onChange={(event) => setObraDraft((prev) => ({ ...prev, referencia_pago: event.target.value }))}
+                  placeholder="Ej. 6723760274"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {

@@ -5,6 +5,7 @@ export type CotizacionFormInitial = {
   id?: string;
   id_sucursal: string;
   id_cliente: string | null;
+  id_obra: string | null;
   nombre_obra: string | null;
   tipo_pago: "Contado" | "Crédito" | "Credito" | null;
   referencia_pago: string | null;
@@ -21,6 +22,7 @@ export function cotizacionToFormInitial(
   const initial: CotizacionFormInitial = {
     id_sucursal: data.id_sucursal,
     id_cliente: data.id_cliente,
+    id_obra: data.id_obra,
     nombre_obra: data.nombre_obra,
     tipo_pago: data.tipo_pago,
     referencia_pago: data.referencia_pago,
