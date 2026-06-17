@@ -17,8 +17,14 @@ export function money(value: number): string {
   }).format(n);
 }
 
+/** Decimales permitidos en cantidad de cotización. */
+export const QUANTITY_DECIMALS = 3;
+
 /** Permite dígitos y un separador decimal (`.` o `,`) mientras se escribe. */
 export const DECIMAL_INPUT_DRAFT_RE = /^\d*[.,]?\d*$/;
+
+/** Cantidad mientras se escribe: hasta 3 decimales. */
+export const QUANTITY_INPUT_DRAFT_RE = /^\d*[.,]?\d{0,3}$/;
 
 /** Parsea texto con punto o coma decimal; `null` si vacío o inválido. */
 export function parseDecimalInput(raw: string): number | null {
@@ -35,24 +41,24 @@ export function roundToDecimals(value: number, decimals = 2): number {
   return Math.round(n * factor) / factor;
 }
 
-/** Cantidad para BD (DECIMAL 12,2): redondeo a 2 decimales. */
+/** Cantidad para BD: redondeo a 3 decimales. */
 export function roundQuantity(value: number): number {
-  return roundToDecimals(value, 2);
+  return roundToDecimals(value, QUANTITY_DECIMALS);
 }
 
 /** Valor mostrado en input de cantidad (vacío si ≤ 0). */
 export function formatCantidadDisplay(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "";
-  return String(value);
+  return String(roundQuantity(value));
 }
 
-/** Cantidad con separador de miles (coma), p. ej. 1,234.5 */
+/** Cantidad con separador de miles (coma), siempre 3 decimales, p. ej. 1,234.567 */
 export function formatQuantity(value: number): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "0";
+  if (!Number.isFinite(n)) return "0.000";
   return new Intl.NumberFormat("es-MX", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: QUANTITY_DECIMALS,
+    maximumFractionDigits: QUANTITY_DECIMALS,
   }).format(n);
 }
 

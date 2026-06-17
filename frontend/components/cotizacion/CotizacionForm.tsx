@@ -39,10 +39,10 @@ import { normalizeTipoPago, toDbTipoPago } from "@/lib/cotizacion/tipoPago";
 import type { CtzCliente, CtzObra, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import type { CotizacionFormInitial } from "@/lib/cotizacion/cotizacionToFormInitial";
 import {
-  DECIMAL_INPUT_DRAFT_RE,
   formatCantidadDisplay,
   money,
   parseDecimalInput,
+  QUANTITY_INPUT_DRAFT_RE,
   roundQuantity,
 } from "@/lib/utils";
 
@@ -443,8 +443,21 @@ export default function CotizacionForm({
   }
 
   function handleCantidadChange(tempId: string, raw: string) {
-    if (!DECIMAL_INPUT_DRAFT_RE.test(raw)) return;
+    if (!QUANTITY_INPUT_DRAFT_RE.test(raw)) return;
     setCantidadDraft((prev) => ({ ...prev, [tempId]: raw }));
+    const parsed = raw !== "" && raw !== "." ? parseDecimalInput(raw) : null;
+    if (parsed === null || parsed <= 0) return;
+    const qty = roundQuantity(parsed);
+    setProductosCotizacion((prev) =>
+      prev.map((producto) => {
+        if (producto.tempId !== tempId) return producto;
+        return recalcProductoFromCapturado(
+          { ...producto, cantidad: qty, precioCapturado: producto.precioCapturado },
+          ivaCotizacion,
+          preciosIncluyenIva
+        );
+      })
+    );
   }
 
   function handleCantidadBlur(tempId: string) {
