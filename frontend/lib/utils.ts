@@ -52,12 +52,12 @@ export function formatCantidadDisplay(value: number): string {
   return String(roundQuantity(value));
 }
 
-/** Cantidad con separador de miles (coma), siempre 3 decimales, p. ej. 1,234.567 */
+/** Cantidad con separador de miles (coma), hasta 3 decimales solo si son necesarios, p. ej. 50 o 1,234.675 */
 export function formatQuantity(value: number): string {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "0.000";
+  const n = roundQuantity(value);
+  if (!Number.isFinite(n)) return "0";
   return new Intl.NumberFormat("es-MX", {
-    minimumFractionDigits: QUANTITY_DECIMALS,
+    minimumFractionDigits: 0,
     maximumFractionDigits: QUANTITY_DECIMALS,
   }).format(n);
 }

@@ -43,6 +43,12 @@ export default function CotizacionDetallePage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-semibold text-slate-900">Detalle de cotización</h2>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/cotizaciones"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            Volver al historial
+          </Link>
           {canDuplicate ? (
             <Link
               href={`/cotizaciones/nueva?copiar=${params.id}`}

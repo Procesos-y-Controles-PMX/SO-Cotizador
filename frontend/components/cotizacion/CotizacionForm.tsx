@@ -40,6 +40,7 @@ import type { CtzCliente, CtzObra, CtzProducto, CtzSucursal } from "@/lib/types/
 import type { CotizacionFormInitial } from "@/lib/cotizacion/cotizacionToFormInitial";
 import {
   formatCantidadDisplay,
+  formatQuantity,
   money,
   parseDecimalInput,
   QUANTITY_INPUT_DRAFT_RE,
@@ -1513,7 +1514,7 @@ export default function CotizacionForm({
                     {importPreview.ok.map((row, i) => (
                       <li key={`ok-${row.excelRowIndex}-${i}`}>
                         Fila {row.excelRowIndex}: {row.skuRaw} · {row.product.descripcion.slice(0, 40)}
-                        {row.product.descripcion.length > 40 ? "…" : ""} — Cant. {row.cantidad}
+                        {row.product.descripcion.length > 40 ? "…" : ""} — Cant. {formatQuantity(row.cantidad)}
                       </li>
                     ))}
                   </ul>
