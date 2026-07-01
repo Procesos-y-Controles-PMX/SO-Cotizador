@@ -27,12 +27,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data: candidates, error } = await supabase
       .from("ctz_usuarios")
       .select(`${USUARIO_SESSION_SELECT}, password`)
-      .ilike("email", email)
-      .eq("activo", true)
-      .maybeSingle();
+      .ilike("email", email);
 
     if (error) {
       console.error("Login query error:", error.message);
@@ -42,15 +40,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!data) {
-      return NextResponse.json(
-        { ok: false, message: "Credenciales inválidas o usuario inactivo." },
-        { status: 401 },
-      );
-    }
+    const data = (candidates ?? []).find(
+      (row) =>
+        row.activo === true &&
+        String(row.password ?? "").trim() === password,
+    );
 
-    const stored = data.password ? String(data.password).trim() : "";
-    if (!stored || stored !== password) {
+    if (!data) {
       return NextResponse.json(
         { ok: false, message: "Credenciales inválidas o usuario inactivo." },
         { status: 401 },

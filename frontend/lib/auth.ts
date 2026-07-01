@@ -16,26 +16,46 @@ function clearLegacySession(): void {
   window.localStorage.removeItem(SESSION_KEY);
 }
 
+export type LoginResult =
+  | { ok: true; user: CtzUsuario }
+  | { ok: false; message: string };
+
 export async function loginByEmailPassword(
   email: string,
   password: string
-): Promise<CtzUsuario | null> {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+): Promise<LoginResult> {
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      user?: CtzUsuario;
+      message?: string;
+    };
 
-  const payload = (await response.json()) as { ok?: boolean; user?: CtzUsuario };
-  if (!payload.ok || !payload.user) return null;
+    if (!response.ok || !payload.ok || !payload.user) {
+      return {
+        ok: false,
+        message:
+          payload.message ??
+          "Credenciales inválidas o usuario inactivo.",
+      };
+    }
 
-  const store = getSessionStore();
-  if (!store) return null;
-  clearLegacySession();
-  store.setItem(SESSION_KEY, JSON.stringify(payload.user));
-  return payload.user;
+    const store = getSessionStore();
+    if (!store) {
+      return { ok: false, message: "No se pudo guardar la sesión en el navegador." };
+    }
+    clearLegacySession();
+    store.setItem(SESSION_KEY, JSON.stringify(payload.user));
+    return { ok: true, user: payload.user };
+  } catch {
+    return { ok: false, message: "No se pudo contactar al servidor de autenticación." };
+  }
 }
 
 export function logout(): void {

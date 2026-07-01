@@ -19,17 +19,16 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const user = await loginByEmailPassword(email, password);
+    const result = await loginByEmailPassword(email, password);
     setLoading(false);
 
-    if (!user) {
-      const message = "Credenciales inválidas o usuario inactivo.";
-      setError(message);
-      toast.error(message);
+    if (!result.ok) {
+      setError(result.message);
+      toast.error(result.message);
       return;
     }
 
-    toast.success(`Bienvenido, ${user.nombre_completo ?? user.email}`);
+    toast.success(`Bienvenido, ${result.user.nombre_completo ?? result.user.email}`);
     router.replace("/cotizaciones");
   }
 

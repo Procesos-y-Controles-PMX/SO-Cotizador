@@ -23,10 +23,13 @@ npm run dev
 
 ## Variables de entorno
 
-En `frontend/.env`:
+En `frontend/.env` (local) o en Vercel → Project Settings → Environment Variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — **requerida** para `/api/auth/login` en deploy (no usar prefijo `NEXT_PUBLIC_`)
+
+Sin `SUPABASE_SERVICE_ROLE_KEY` en Vercel, el login en producción fallará aunque funcione en local.
 
 ## Flujo principal
 
