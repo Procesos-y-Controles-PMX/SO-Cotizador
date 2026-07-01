@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createSupabaseServerClient, missingSupabaseServerEnv } from "@/lib/supabase-server";
 import type { CtzUsuario } from "@/lib/types/db";
 
 const USUARIO_SESSION_SELECT =
@@ -21,8 +21,15 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseServerClient();
     if (!supabase) {
+      const missing = missingSupabaseServerEnv();
       return NextResponse.json(
-        { ok: false, message: "Servidor sin configuración de base de datos." },
+        {
+          ok: false,
+          message:
+            missing.length > 0
+              ? `Faltan variables en el servidor: ${missing.join(", ")}. Configúralas en Vercel y vuelve a desplegar.`
+              : "Servidor sin configuración de base de datos.",
+        },
         { status: 500 },
       );
     }
