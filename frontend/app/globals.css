@@ -4,6 +4,20 @@
   color-scheme: light;
   --color-primary: #e01f1f;
   --color-navy: #0f1a2e;
+
+  --brand: #ED1C24;
+  --brand-hover: #c9171e;
+  --brand-active: #a81419;
+  --console-bg: #0d1117;
+  --steel: #34507A;
+  --viz-seq-4: #5277a6;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --font-display: var(--font-saira);
 }
 
 body {

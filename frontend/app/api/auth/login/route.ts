@@ -1,0 +1,66 @@
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import type { CtzUsuario } from "@/lib/types/db";
+
+const USUARIO_SESSION_SELECT =
+  "id, email, nombre_completo, rol, activo, created_at";
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as { email?: string; password?: string };
+    const email = normalizeEmail(body.email ?? "");
+    const password = (body.password ?? "").trim();
+
+    if (!email || !password) {
+      return NextResponse.json({ ok: false, message: "Credenciales requeridas." }, { status: 400 });
+    }
+
+    const supabase = createSupabaseServerClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { ok: false, message: "Servidor sin configuración de base de datos." },
+        { status: 500 },
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("ctz_usuarios")
+      .select(`${USUARIO_SESSION_SELECT}, password`)
+      .ilike("email", email)
+      .eq("activo", true)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Login query error:", error.message);
+      return NextResponse.json(
+        { ok: false, message: "Credenciales inválidas o usuario inactivo." },
+        { status: 401 },
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, message: "Credenciales inválidas o usuario inactivo." },
+        { status: 401 },
+      );
+    }
+
+    const stored = data.password ? String(data.password).trim() : "";
+    if (!stored || stored !== password) {
+      return NextResponse.json(
+        { ok: false, message: "Credenciales inválidas o usuario inactivo." },
+        { status: 401 },
+      );
+    }
+
+    const { password: _password, ...user } = data;
+    return NextResponse.json({ ok: true, user: user as CtzUsuario });
+  } catch (err) {
+    console.error("Login route error:", err);
+    return NextResponse.json({ ok: false, message: "Error al iniciar sesión." }, { status: 500 });
+  }
+}
