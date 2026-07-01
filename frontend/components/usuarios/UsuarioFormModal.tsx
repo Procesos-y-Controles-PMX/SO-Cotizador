@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import Modal from "@/components/ui/Modal";
+import {
+  ALERT_WARNING,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  CHEVRON_SELECT,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_SELECT,
+} from "@/components/ui/contentStyles";
 import { MIN_USUARIO_PASSWORD_LENGTH } from "@/lib/usuarioPassword";
 import { createUsuario, updateUsuario, usuarioMutationErrorMessage } from "@/lib/queries/usuarios";
 import type { CtzUsuario, UserRole } from "@/lib/types/db";
@@ -41,8 +51,6 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
       setSaving(false);
     }
   }, [open, initial]);
-
-  if (!open) return null;
 
   async function handleSave() {
     if (saving || isSelf) return;
@@ -119,99 +127,17 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
     await onSaved(result.usuario);
   }
 
+  const title =
+    mode === "create" ? "Nuevo usuario" : isSelf ? "Tu cuenta" : "Editar usuario";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h4 className="text-base font-semibold text-slate-900">
-          {mode === "create" ? "Nuevo usuario" : isSelf ? "Tu cuenta" : "Editar usuario"}
-        </h4>
-        <p className="mt-1 text-sm text-slate-500">
-          {mode === "create"
-            ? "El usuario iniciará sesión con este correo y contraseña."
-            : isSelf
-              ? "Estos datos no se pueden cambiar desde esta pantalla."
-              : "Deja la contraseña vacía si no quieres cambiarla."}
-        </p>
-
-        <div className="mt-4 grid gap-3">
-          <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-            Correo *
-            <input
-              autoFocus={!isSelf}
-              type="email"
-              value={draft.email}
-              disabled={isSelf}
-              onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))}
-              placeholder="usuario@empresa.com"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500"
-            />
-          </label>
-          <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-            Nombre completo
-            <input
-              value={draft.nombre_completo}
-              disabled={isSelf}
-              onChange={(event) => setDraft((prev) => ({ ...prev, nombre_completo: event.target.value }))}
-              placeholder="Nombre Apellido"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500"
-            />
-          </label>
-          {!isSelf ? (
-            <>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                {mode === "create" ? "Contraseña *" : "Nueva contraseña"}
-                <input
-                  type="password"
-                  value={draft.password}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, password: event.target.value }))}
-                  placeholder={mode === "create" ? "Mín. 4 caracteres" : "Dejar vacío = sin cambio"}
-                  autoComplete="new-password"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
-                />
-              </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                {mode === "create" ? "Confirmar contraseña *" : "Confirmar nueva contraseña"}
-                <input
-                  type="password"
-                  value={draft.passwordConfirm}
-                  onChange={(event) =>
-                    setDraft((prev) => ({ ...prev, passwordConfirm: event.target.value }))
-                  }
-                  placeholder="Repetir contraseña"
-                  autoComplete="new-password"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
-                />
-              </label>
-            </>
-          ) : null}
-          <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-            Rol
-            <select
-              value={draft.rol}
-              disabled={isSelf}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, rol: event.target.value as UserRole }))
-              }
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500"
-            >
-              <option value="tienda">Tienda</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </label>
-          {isSelf ? (
-            <p className="text-xs text-amber-700">
-              No puedes modificar tu propio correo, nombre, contraseña ni rol desde aquí.
-            </p>
-          ) : null}
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-          >
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      actions={
+        <>
+          <button type="button" onClick={onClose} disabled={saving} className={BTN_SECONDARY}>
             {isSelf ? "Cerrar" : "Cancelar"}
           </button>
           {!isSelf ? (
@@ -219,13 +145,93 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
               type="button"
               onClick={() => void handleSave()}
               disabled={saving}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              className={BTN_PRIMARY}
             >
               {saving ? "Guardando..." : "Guardar"}
             </button>
           ) : null}
-        </div>
+        </>
+      }
+    >
+      <p className="text-sm text-slate-500">
+        {mode === "create"
+          ? "El usuario iniciará sesión con este correo y contraseña."
+          : isSelf
+            ? "Estos datos no se pueden cambiar desde esta pantalla."
+            : "Deja la contraseña vacía si no quieres cambiarla."}
+      </p>
+
+      <div className="mt-4 grid gap-3">
+        <label className={`space-y-1.5 ${FIELD_LABEL}`}>
+          Correo *
+          <input
+            autoFocus={!isSelf}
+            type="email"
+            value={draft.email}
+            disabled={isSelf}
+            onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))}
+            placeholder="usuario@empresa.com"
+            className={`${FIELD_INPUT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+          />
+        </label>
+        <label className={`space-y-1.5 ${FIELD_LABEL}`}>
+          Nombre completo
+          <input
+            value={draft.nombre_completo}
+            disabled={isSelf}
+            onChange={(event) => setDraft((prev) => ({ ...prev, nombre_completo: event.target.value }))}
+            placeholder="Nombre Apellido"
+            className={`${FIELD_INPUT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+          />
+        </label>
+        {!isSelf ? (
+          <>
+            <label className={`space-y-1.5 ${FIELD_LABEL}`}>
+              {mode === "create" ? "Contraseña *" : "Nueva contraseña"}
+              <input
+                type="password"
+                value={draft.password}
+                onChange={(event) => setDraft((prev) => ({ ...prev, password: event.target.value }))}
+                placeholder={mode === "create" ? "Mín. 4 caracteres" : "Dejar vacío = sin cambio"}
+                autoComplete="new-password"
+                className={`${FIELD_INPUT} normal-case`}
+              />
+            </label>
+            <label className={`space-y-1.5 ${FIELD_LABEL}`}>
+              {mode === "create" ? "Confirmar contraseña *" : "Confirmar nueva contraseña"}
+              <input
+                type="password"
+                value={draft.passwordConfirm}
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, passwordConfirm: event.target.value }))
+                }
+                placeholder="Repetir contraseña"
+                autoComplete="new-password"
+                className={`${FIELD_INPUT} normal-case`}
+              />
+            </label>
+          </>
+        ) : null}
+        <label className={`space-y-1.5 ${FIELD_LABEL}`}>
+          Rol
+          <select
+            value={draft.rol}
+            disabled={isSelf}
+            onChange={(event) =>
+              setDraft((prev) => ({ ...prev, rol: event.target.value as UserRole }))
+            }
+            className={`${FIELD_SELECT} ${CHEVRON_SELECT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+          >
+            <option value="tienda">Tienda</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
+        {isSelf ? (
+          <p className={ALERT_WARNING}>
+            No puedes modificar tu propio correo, nombre, contraseña ni rol desde aquí.
+          </p>
+        ) : null}
       </div>
-    </div>
+    </Modal>
   );
 }

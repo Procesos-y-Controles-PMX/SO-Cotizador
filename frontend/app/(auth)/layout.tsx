@@ -246,7 +246,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className={cn("min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-sm lg:px-6 lg:py-4">
+        <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200/80 bg-white/90 py-3 backdrop-blur-sm lg:py-4">
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-lg font-semibold tracking-tight text-slate-900 lg:text-xl">
               Cotizador Promexma
@@ -264,7 +264,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <LogoutIcon className="h-5 w-5" />
           </button>
         </header>
-        <main className="app-main-pad overflow-x-hidden p-3 lg:p-6">{children}</main>
+        <main className="app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">{children}</main>
       </div>
 
       <MobileBottomNav

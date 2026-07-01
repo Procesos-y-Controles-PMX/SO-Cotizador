@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Modal from "@/components/ui/Modal";
+import { BTN_PRIMARY, BTN_SECONDARY, CHEVRON_SELECT, FIELD_SELECT } from "@/components/ui/contentStyles";
 import { uniqueRegionsFromRows, uniqueSucursalesFromRows } from "@/lib/cotizacion/groupByRegion";
 import type { BulkPdfScope } from "@/lib/pdf/exportCotizacionesZip";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
@@ -55,8 +57,6 @@ export default function DownloadCotizacionesZipModal({
     }
   }, [mode, sucursalOptions, selectedSucursal]);
 
-  if (!open) return null;
-
   function buildScope(): BulkPdfScope {
     if (mode === "region") {
       return { mode: "region", region: selectedRegion };
@@ -71,96 +71,13 @@ export default function DownloadCotizacionesZipModal({
     progress && progress.total > 0 ? `Generando PDF ${progress.current}/${progress.total}...` : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h4 className="text-base font-semibold text-slate-900">Descargar PDFs (ZIP)</h4>
-        <p className="mt-1 text-sm text-slate-500">
-          Se incluyen las cotizaciones que coinciden con la búsqueda actual del historial.
-        </p>
-
-        <div className="mt-4 space-y-3">
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-700">Alcance</legend>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="radio"
-                name="zip-scope"
-                checked={mode === "all"}
-                disabled={loading}
-                onChange={() => setMode("all")}
-              />
-              Todas las regiones
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="radio"
-                name="zip-scope"
-                checked={mode === "region"}
-                disabled={loading}
-                onChange={() => setMode("region")}
-              />
-              Una región
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="radio"
-                name="zip-scope"
-                checked={mode === "sucursal"}
-                disabled={loading}
-                onChange={() => setMode("sucursal")}
-              />
-              Una tienda
-            </label>
-          </fieldset>
-
-          {mode === "region" ? (
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-slate-700">Región</span>
-              <select
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:opacity-50"
-                value={selectedRegion}
-                disabled={loading || !regionOptions.length}
-                onChange={(event) => setSelectedRegion(event.target.value)}
-              >
-                {regionOptions.map((region) => (
-                  <option key={region} value={region}>
-                    {region}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {mode === "sucursal" ? (
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-slate-700">Tienda</span>
-              <select
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-red-100 focus:border-red-500 focus:ring-2 disabled:opacity-50"
-                value={selectedSucursal}
-                disabled={loading || !sucursalOptions.length}
-                onChange={(event) => setSelectedSucursal(event.target.value)}
-              >
-                {sucursalOptions.map((sucursal) => (
-                  <option key={sucursal} value={sucursal}>
-                    {sucursal}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {progressLabel ? (
-            <p className="text-sm text-slate-600">{progressLabel}</p>
-          ) : null}
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-          >
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Descargar PDFs (ZIP)"
+      actions={
+        <>
+          <button type="button" disabled={loading} onClick={onClose} className={BTN_SECONDARY}>
             Cancelar
           </button>
           <button
@@ -172,12 +89,90 @@ export default function DownloadCotizacionesZipModal({
               (mode === "sucursal" && !selectedSucursal)
             }
             onClick={() => void onConfirm(buildScope())}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            className={BTN_PRIMARY}
           >
             {loading ? "Generando..." : "Descargar"}
           </button>
-        </div>
+        </>
+      }
+    >
+      <p className="text-sm text-slate-500">
+        Se incluyen las cotizaciones que coinciden con la búsqueda actual del historial.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-slate-700">Alcance</legend>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="zip-scope"
+              checked={mode === "all"}
+              disabled={loading}
+              onChange={() => setMode("all")}
+            />
+            Todas las regiones
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="zip-scope"
+              checked={mode === "region"}
+              disabled={loading}
+              onChange={() => setMode("region")}
+            />
+            Una región
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="zip-scope"
+              checked={mode === "sucursal"}
+              disabled={loading}
+              onChange={() => setMode("sucursal")}
+            />
+            Una tienda
+          </label>
+        </fieldset>
+
+        {mode === "region" ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-slate-700">Región</span>
+            <select
+              className={`${FIELD_SELECT} ${CHEVRON_SELECT} disabled:opacity-50`}
+              value={selectedRegion}
+              disabled={loading || !regionOptions.length}
+              onChange={(event) => setSelectedRegion(event.target.value)}
+            >
+              {regionOptions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {mode === "sucursal" ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-slate-700">Tienda</span>
+            <select
+              className={`${FIELD_SELECT} ${CHEVRON_SELECT} disabled:opacity-50`}
+              value={selectedSucursal}
+              disabled={loading || !sucursalOptions.length}
+              onChange={(event) => setSelectedSucursal(event.target.value)}
+            >
+              {sucursalOptions.map((sucursal) => (
+                <option key={sucursal} value={sucursal}>
+                  {sucursal}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {progressLabel ? <p className="text-sm text-slate-600">{progressLabel}</p> : null}
       </div>
-    </div>
+    </Modal>
   );
 }

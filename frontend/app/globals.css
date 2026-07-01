@@ -53,6 +53,22 @@ body {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
+.app-safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 768px) {
+  .app-safe-x {
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
+}
+
+.app-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
 .sidebar-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;

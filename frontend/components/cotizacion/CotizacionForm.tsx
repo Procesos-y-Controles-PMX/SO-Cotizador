@@ -17,6 +17,18 @@ import CotizacionProductoPickers from "@/components/cotizacion/CotizacionProduct
 import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import {
+  ALERT_INFO,
+  BTN_GHOST,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  CHEVRON_SELECT,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_SELECT,
+  PANEL_CARD,
+  PANEL_INSET,
+} from "@/components/ui/contentStyles";
 import { matchesSearch } from "@/lib/search";
 import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
 import { createObra, getObraById, listObras, obraToOption } from "@/lib/queries/obras";
@@ -970,13 +982,13 @@ export default function CotizacionForm({
   return (
     <section className="space-y-4">
       {copySourceFolio ? (
-        <p className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        <p className={ALERT_INFO}>
           Copia basada en el folio <span className="font-semibold">{copySourceFolio}</span>. Al guardar se
           generará un folio nuevo.
         </p>
       ) : null}
-      <div className="grid gap-4 rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-700">
+      <div className={`grid gap-4 p-4 md:grid-cols-2 ${PANEL_CARD}`}>
+        <label className={FIELD_LABEL}>
           Sucursal
           <SearchCombobox
             className="mt-1"
@@ -993,14 +1005,14 @@ export default function CotizacionForm({
             }}
           />
         </label>
-        <div className="text-sm font-medium text-slate-700">
+        <div>
           <div className="flex items-center justify-between gap-3">
-            <span>Cliente</span>
+            <span className={FIELD_LABEL}>Cliente</span>
             <button
               type="button"
               disabled={!idSucursal}
               title={!idSucursal ? "Selecciona una sucursal primero" : "Registrar un cliente nuevo"}
-              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${BTN_GHOST} shrink-0 whitespace-nowrap px-2.5 py-1 text-xs`}
               onClick={() => openModal("cliente")}
             >
               + Nuevo cliente
@@ -1028,14 +1040,14 @@ export default function CotizacionForm({
             }}
           />
         </div>
-        <div className="text-sm font-medium text-slate-700">
+        <div>
           <div className="flex items-center justify-between gap-3">
-            <span>Nombre de la obra</span>
+            <span className={FIELD_LABEL}>Nombre de la obra</span>
             <button
               type="button"
               disabled={!idCliente}
               title={!idCliente ? "Selecciona un cliente primero" : "Registrar una obra nueva"}
-              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${BTN_GHOST} shrink-0 whitespace-nowrap px-2.5 py-1 text-xs`}
               onClick={() => openModal("obra")}
             >
               + Nueva obra
@@ -1071,10 +1083,10 @@ export default function CotizacionForm({
             </p>
           ) : null}
         </div>
-        <label className="text-sm font-medium text-slate-700">
+        <label className={FIELD_LABEL}>
           Tipo de pago
           <select
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
             value={tipoPago}
             onChange={(event) => setTipoPago(event.target.value as "Contado" | "Crédito")}
           >
@@ -1082,10 +1094,10 @@ export default function CotizacionForm({
             <option value="Crédito">Crédito</option>
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700 md:col-span-2">
+        <label className={`md:col-span-2 ${FIELD_LABEL}`}>
           Referencia de pago
           <input
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={`mt-1.5 ${FIELD_INPUT}`}
             placeholder="Ej. REF-12345 o instrucciones para depósito/transferencia"
             value={referenciaPago}
             onChange={(event) => setReferenciaPago(event.target.value)}
@@ -1093,7 +1105,7 @@ export default function CotizacionForm({
         </label>
       </div>
 
-      <div className="rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4">
+      <div className={`p-4 ${PANEL_CARD}`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
           <h3 className="font-semibold text-slate-900">Productos</h3>
           <div className="flex flex-wrap items-center gap-3">
@@ -1121,7 +1133,7 @@ export default function CotizacionForm({
             <label className="text-sm text-slate-600">
               IVA
               <select
-                className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                className={`ml-2 ${FIELD_SELECT} ${CHEVRON_SELECT} !min-h-0 w-auto py-1 pl-2 pr-8 text-sm`}
                 value={ivaCotizacion}
                 onChange={(event) => handleIvaCotizacionChange(normalizeIvaPct(Number(event.target.value)))}
               >
@@ -1138,7 +1150,7 @@ export default function CotizacionForm({
             />
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
+              className={`${BTN_SECONDARY} !min-h-0 px-3 py-1 text-sm`}
               disabled={templateDownloading}
               onClick={() => void handleDownloadProductosTemplate()}
             >
@@ -1146,7 +1158,7 @@ export default function CotizacionForm({
             </button>
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
+              className={`${BTN_SECONDARY} !min-h-0 px-3 py-1 text-sm`}
               disabled={catalogLoading || excelParsing || !productos.length}
               onClick={() => excelInputRef.current?.click()}
             >
@@ -1168,7 +1180,7 @@ export default function CotizacionForm({
             const productoCatalogo = productos.find((p) => p.id === producto.id_producto);
             const umDefault = productoCatalogo?.unidad_medida?.trim() || "";
             return (
-            <div key={producto.tempId} className="grid gap-3 rounded-sm border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
+            <div key={producto.tempId} className={`grid gap-3 p-3 md:grid-cols-10 md:gap-2 ${PANEL_INSET}`}>
               {productosCotizacion.length > 1 ? (
                 <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Producto {index + 1}</p>
               ) : null}
@@ -1183,7 +1195,7 @@ export default function CotizacionForm({
               <label className="block md:col-span-1">
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">U.M.</span>
                 <input
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className={FIELD_INPUT}
                   placeholder={umDefault || "U.M."}
                   value={producto.unidad_medida ?? ""}
                   onChange={(event) =>
@@ -1198,7 +1210,7 @@ export default function CotizacionForm({
                 <input
                   type="text"
                   inputMode="decimal"
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className={FIELD_INPUT}
                   placeholder="Cantidad"
                   value={cantidadDraft[producto.tempId] ?? formatCantidadDisplay(producto.cantidad)}
                   onChange={(event) => handleCantidadChange(producto.tempId, event.target.value)}
@@ -1210,7 +1222,7 @@ export default function CotizacionForm({
                 <input
                   type="text"
                   inputMode="decimal"
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className={FIELD_INPUT}
                   placeholder={precioUnitarioLabel}
                   value={precioUnitarioDraft[producto.tempId] ?? formatPrecioDisplay(producto.precioCapturado)}
                   onChange={(event) => handlePrecioChange(producto.tempId, event.target.value)}
@@ -1221,7 +1233,7 @@ export default function CotizacionForm({
                 <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Accion</span>
                 <button
                   type="button"
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-red-600 md:py-1"
+                  className={`${BTN_SECONDARY} !min-h-0 w-full text-red-600 md:py-1`}
                   onClick={() => {
                     clearProductoInputDrafts(producto.tempId);
                     setProductosCotizacion((prev) => prev.filter((row) => row.tempId !== producto.tempId));
@@ -1238,7 +1250,7 @@ export default function CotizacionForm({
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+            className={`${BTN_SECONDARY} !min-h-0 px-3 py-1 text-sm`}
             onClick={() =>
               setProductosCotizacion((prev) => [
                 ...prev,
@@ -1270,7 +1282,7 @@ export default function CotizacionForm({
       </div>
 
       {idSucursal && selectedSucursalNombre && !catalogLoading && (
-        <div className="rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4">
+        <div className={`p-4 ${PANEL_CARD}`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-slate-900">Términos adicionales de la sucursal (PDF)</h3>
@@ -1280,11 +1292,11 @@ export default function CotizacionForm({
               </p>
             </div>
           </div>
-          <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className={`mb-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${PANEL_INSET}`}>
             Texto para el PDF
           </div>
           <textarea
-            className="min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+            className={`min-h-[120px] ${FIELD_INPUT}`}
             value={sucursalTerminosDraft}
             onChange={(e) => setSucursalTerminosDraft(e.target.value)}
             placeholder="Ej. Condiciones especiales de esta tienda..."
@@ -1294,7 +1306,7 @@ export default function CotizacionForm({
             <button
               type="button"
               disabled={savingSucursalTerminos}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              className={BTN_SECONDARY}
               onClick={() => void saveSucursalTerminos()}
             >
               {savingSucursalTerminos ? "Guardando..." : "Guardar términos de sucursal"}
@@ -1304,12 +1316,12 @@ export default function CotizacionForm({
       )}
 
       <div className="flex flex-wrap justify-center gap-2">
-        <button type="button" disabled={loading} className="btn-primary disabled:opacity-50" onClick={save}>
+        <button type="button" disabled={loading} className={BTN_PRIMARY} onClick={save}>
           {mode === "create" ? "Registrar cotización" : "Guardar cambios"}
         </button>
         <button
           type="button"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={BTN_SECONDARY}
           onClick={() => openModal("producto")}
         >
           + Nuevo producto
@@ -1317,7 +1329,7 @@ export default function CotizacionForm({
         {mode === "edit" && canDelete && onDelete && (
           <button
             type="button"
-            className="btn-primary bg-red-600 px-3 py-2 text-sm hover:bg-red-700"
+            className={`${BTN_PRIMARY} bg-brand hover:bg-brand-hover`}
             onClick={() => setConfirmDeleteOpen(true)}
           >
             Borrar cotización
@@ -1336,51 +1348,51 @@ export default function CotizacionForm({
             </p>
 
             <div className="mt-4 grid gap-3">
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Nombre del Cliente *
                 <input
                   autoFocus
                   value={clienteDraft.nombre_cliente}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, nombre_cliente: event.target.value }))}
                   placeholder="Ej. CEMEX Norte"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Número de Cliente
                 <input
                   value={clienteDraft.num_cliente}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, num_cliente: event.target.value }))}
                   placeholder="Ej. CL-10025"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Empresa
                 <input
                   value={clienteDraft.empresa}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, empresa: event.target.value }))}
                   placeholder="Ej. Promexma"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Teléfono
                 <input
                   value={clienteDraft.telefono}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, telefono: event.target.value }))}
                   placeholder="Ej. 9991234567"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Correo
                 <input
                   type="email"
                   value={clienteDraft.correo}
                   onChange={(event) => setClienteDraft((prev) => ({ ...prev, correo: event.target.value }))}
                   placeholder="Ej. cliente@empresa.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
@@ -1392,19 +1404,14 @@ export default function CotizacionForm({
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={modalLoading}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-              >
+              <button type="button" onClick={closeModal} disabled={modalLoading} className={BTN_SECONDARY}>
                 Descartar
               </button>
               <button
                 type="button"
                 onClick={() => void handleModalSave()}
                 disabled={modalLoading}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className={BTN_PRIMARY}
               >
                 {modalLoading ? "Guardando..." : "Guardar"}
               </button>
@@ -1424,32 +1431,32 @@ export default function CotizacionForm({
             </p>
 
             <div className="mt-4 grid gap-3">
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Nombre de la obra *
                 <input
                   autoFocus
                   value={obraDraft.nombre_obra}
                   onChange={(event) => setObraDraft((prev) => ({ ...prev, nombre_obra: event.target.value }))}
                   placeholder="Ej. Fraccionamiento Los Bosques"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Número de obra
                 <input
                   value={obraDraft.num_obra}
                   onChange={(event) => setObraDraft((prev) => ({ ...prev, num_obra: event.target.value }))}
                   placeholder="Ej. 67237602"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                 />
               </label>
-              <label className="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label className={`space-y-1.5 ${FIELD_LABEL}`}>
                 Referencia de pago
                 <input
                   value={obraDraft.referencia_pago}
                   onChange={(event) => setObraDraft((prev) => ({ ...prev, referencia_pago: event.target.value }))}
                   placeholder="Ej. 6723760274"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm normal-case outline-none ring-red-100 focus:border-red-500 focus:ring-2"
+                  className={`${FIELD_INPUT} normal-case`}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
@@ -1461,19 +1468,14 @@ export default function CotizacionForm({
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={modalLoading}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-              >
+              <button type="button" onClick={closeModal} disabled={modalLoading} className={BTN_SECONDARY}>
                 Descartar
               </button>
               <button
                 type="button"
                 onClick={() => void handleModalSave()}
                 disabled={modalLoading}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className={BTN_PRIMARY}
               >
                 {modalLoading ? "Guardando..." : "Guardar"}
               </button>
@@ -1534,18 +1536,14 @@ export default function CotizacionForm({
               )}
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-              <button
-                type="button"
-                onClick={cancelExcelImport}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              >
+              <button type="button" onClick={cancelExcelImport} className={BTN_SECONDARY}>
                 Descartar
               </button>
               <button
                 type="button"
                 disabled={!importPreview.ok.length}
                 onClick={confirmExcelImport}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className={BTN_PRIMARY}
               >
                 Agregar a Productos
               </button>

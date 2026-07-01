@@ -5,7 +5,17 @@ import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import PageHeader from "@/components/ui/PageHeader";
-import { BTN_SECONDARY, FIELD_INPUT, TABLE_BODY_ROW, TABLE_HEAD_CELL, TABLE_WRAP } from "@/components/ui/contentStyles";
+import {
+  ALERT_WARNING,
+  BTN_SECONDARY,
+  EMPTY_STATE,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  MOBILE_LIST_CARD,
+  TABLE_BODY_ROW,
+  TABLE_HEAD_CELL,
+  TABLE_WRAP,
+} from "@/components/ui/contentStyles";
 import {
   INVENTARIO_SEARCH_MIN_CHARS,
   listInventarioProductos,
@@ -48,9 +58,7 @@ export default function InventarioPage() {
 
   if (user?.rol !== "admin") {
     return (
-      <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-        Esta sección es solo para administradores.
-      </p>
+      <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>
     );
   }
 
@@ -70,7 +78,7 @@ export default function InventarioPage() {
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-        <label className="block flex-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <label className={`block flex-1 ${FIELD_LABEL}`}>
           Buscar (SKU, descripción, U.M. o precio base exacto)
           <input
             type="search"
@@ -94,7 +102,58 @@ export default function InventarioPage() {
         </p>
       ) : null}
 
-      <div className={TABLE_WRAP}>
+      {/* Mobile — card list */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className={EMPTY_STATE}>Cargando...</div>
+        ) : rows.length === 0 ? (
+          <div className={EMPTY_STATE}>
+            {qDebounced.length >= INVENTARIO_SEARCH_MIN_CHARS ? "Sin resultados." : "Sin datos."}
+          </div>
+        ) : (
+          rows.map((row) => (
+            <article key={row.id} className={MOBILE_LIST_CARD}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900">{row.sku ?? "—"}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">{row.descripcion}</p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold text-slate-900">
+                  ${row.precio_unitario_base.toFixed(2)}
+                </p>
+              </div>
+
+              <dl className="mt-3 space-y-2 text-sm">
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">U.M.</dt>
+                  <dd className="text-slate-700">{row.unidad_medida ?? "—"}</dd>
+                </div>
+              </dl>
+
+              <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={row.activo}
+                    onChange={async (event) => {
+                      const next = event.target.checked;
+                      const ok = await updateProducto(row.id, { activo: next });
+                      if (!ok) return toast.error("No se pudo actualizar.");
+                      setRows((prev) => prev.map((p) => (p.id === row.id ? { ...p, activo: next } : p)));
+                    }}
+                  />
+                  Activo
+                </label>
+                {!row.activo ? (
+                  <span className="text-xs text-slate-400">Inactivo</span>
+                ) : null}
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+
+      <div className={`hidden md:block ${TABLE_WRAP}`}>
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-slate-50">
             <tr>
