@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
+import PageHeader from "@/components/ui/PageHeader";
+import { BTN_SECONDARY, FIELD_INPUT, TABLE_BODY_ROW, TABLE_HEAD_CELL, TABLE_WRAP } from "@/components/ui/contentStyles";
 import {
   INVENTARIO_SEARCH_MIN_CHARS,
   listInventarioProductos,
@@ -57,26 +59,25 @@ export default function InventarioPage() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-semibold text-slate-900">Inventario</h2>
-        <button
-          type="button"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
-          onClick={() => setProductModalOpen(true)}
-        >
-          + Nuevo producto
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Cotizador"
+        title="Inventario"
+        actions={
+          <button type="button" className={BTN_SECONDARY} onClick={() => setProductModalOpen(true)}>
+            + Nuevo producto
+          </button>
+        }
+      />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-        <label className="block flex-1 text-sm font-medium text-slate-700">
+        <label className="block flex-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Buscar (SKU, descripción, U.M. o precio base exacto)
           <input
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder={`Mínimo ${INVENTARIO_SEARCH_MIN_CHARS} caracteres para buscar`}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+            className={`mt-1.5 ${FIELD_INPUT}`}
           />
         </label>
         {loading ? (
@@ -93,15 +94,15 @@ export default function InventarioPage() {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white [-webkit-overflow-scrolling:touch]">
+      <div className={TABLE_WRAP}>
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="whitespace-nowrap px-4 py-3">SKU</th>
-              <th className="min-w-[200px] px-4 py-3">Descripción</th>
-              <th className="whitespace-nowrap px-4 py-3">U.M.</th>
-              <th className="whitespace-nowrap px-4 py-3">Precio base</th>
-              <th className="whitespace-nowrap px-4 py-3">Activo</th>
+              <th className={TABLE_HEAD_CELL}>SKU</th>
+              <th className={`${TABLE_HEAD_CELL} min-w-[200px]`}>Descripción</th>
+              <th className={TABLE_HEAD_CELL}>U.M.</th>
+              <th className={TABLE_HEAD_CELL}>Precio base</th>
+              <th className={TABLE_HEAD_CELL}>Activo</th>
             </tr>
           </thead>
           <tbody>
@@ -121,7 +122,7 @@ export default function InventarioPage() {
               rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`border-t border-slate-100 ${row.activo ? "" : "bg-slate-50 text-slate-600"}`}
+                  className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-slate-50/80 text-slate-600"}`}
                 >
                   <td className="whitespace-nowrap px-4 py-3">{row.sku ?? "-"}</td>
                   <td className="px-4 py-3">{row.descripcion}</td>

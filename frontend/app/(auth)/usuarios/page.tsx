@@ -6,6 +6,17 @@ import ConfirmDeleteUsuarioModal from "@/components/usuarios/ConfirmDeleteUsuari
 import ImportUsuariosModal from "@/components/usuarios/ImportUsuariosModal";
 import UsuarioFormModal from "@/components/usuarios/UsuarioFormModal";
 import TablePagination from "@/components/ui/TablePagination";
+import PageHeader from "@/components/ui/PageHeader";
+import {
+  ALERT_WARNING,
+  BTN_GHOST,
+  BTN_SECONDARY,
+  FIELD_INPUT,
+  MOBILE_LIST_CARD,
+  TABLE_BODY_ROW,
+  TABLE_HEAD_CELL,
+  TABLE_WRAP,
+} from "@/components/ui/contentStyles";
 import { getCurrentUser } from "@/lib/auth";
 import {
   downloadUsuariosExcelTemplate,
@@ -210,78 +221,73 @@ export default function UsuariosPage() {
   }
 
   if (user?.rol !== "admin") {
-    return (
-      <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-        Esta sección es solo para administradores.
-      </p>
-    );
+    return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
   }
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-semibold text-slate-900">Usuarios</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            ref={excelInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={(e) => void handleExcelFileChange(e)}
-          />
-          <button
-            type="button"
-            disabled={exportLoading}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-            onClick={async () => {
-              setExportLoading(true);
-              try {
-                const rows = await listUsuarios("");
-                await downloadUsuariosExcel(rows);
-                toast.success("Excel descargado.");
-              } catch {
-                toast.error("No se pudo generar el Excel de usuarios.");
-              } finally {
-                setExportLoading(false);
-              }
-            }}
-          >
-            {exportLoading ? "Generando..." : "Descargar Usuarios"}
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
-            onClick={() => void downloadUsuariosExcelTemplate().catch(() => toast.error("No se pudo descargar la plantilla."))}
-          >
-            Descargar Plantilla
-          </button>
-          <button
-            type="button"
-            disabled={excelParsing || importing}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-            onClick={() => excelInputRef.current?.click()}
-          >
-            {excelParsing ? "Leyendo..." : "Importar Excel"}
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
-            onClick={openCreate}
-          >
-            + Nuevo usuario
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Cotizador"
+        title="Usuarios"
+        actions={
+          <>
+            <input
+              ref={excelInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => void handleExcelFileChange(e)}
+            />
+            <button
+              type="button"
+              disabled={exportLoading}
+              className={BTN_SECONDARY}
+              onClick={async () => {
+                setExportLoading(true);
+                try {
+                  const rows = await listUsuarios("");
+                  await downloadUsuariosExcel(rows);
+                  toast.success("Excel descargado.");
+                } catch {
+                  toast.error("No se pudo generar el Excel de usuarios.");
+                } finally {
+                  setExportLoading(false);
+                }
+              }}
+            >
+              {exportLoading ? "Generando..." : "Descargar Usuarios"}
+            </button>
+            <button
+              type="button"
+              className={BTN_SECONDARY}
+              onClick={() => void downloadUsuariosExcelTemplate().catch(() => toast.error("No se pudo descargar la plantilla."))}
+            >
+              Descargar Plantilla
+            </button>
+            <button
+              type="button"
+              disabled={excelParsing || importing}
+              className={BTN_SECONDARY}
+              onClick={() => excelInputRef.current?.click()}
+            >
+              {excelParsing ? "Leyendo..." : "Importar Excel"}
+            </button>
+            <button type="button" className="btn-primary w-full justify-center sm:w-auto" onClick={openCreate}>
+              + Nuevo usuario
+            </button>
+          </>
+        }
+      />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-        <label className="block flex-1 text-sm font-medium text-slate-700">
+        <label className="block flex-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Buscar (correo o nombre)
           <input
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="Ej. garcia@empresa.com"
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+            className={`mt-1.5 ${FIELD_INPUT}`}
           />
         </label>
         {loading ? (
@@ -291,15 +297,70 @@ export default function UsuariosPage() {
         )}
       </div>
 
-      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white [-webkit-overflow-scrolling:touch]">
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <p className="text-center text-sm text-slate-500">Cargando...</p>
+        ) : allRows.length === 0 ? (
+          <p className="text-center text-sm text-slate-500">{qDebounced ? "Sin resultados." : "Sin usuarios."}</p>
+        ) : (
+          visibleRows.map((row) => {
+            const isSelf = row.id === user.id;
+            return (
+              <article key={row.id} className={MOBILE_LIST_CARD}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{row.email}</p>
+                    <p className="mt-0.5 text-sm text-slate-600">{row.nombre_completo?.trim() || "—"}</p>
+                    {isSelf ? <p className="mt-1 text-xs text-amber-700">Tu cuenta (no editable)</p> : null}
+                  </div>
+                  <span className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600">
+                    {rolLabel(row.rol)}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={row.activo}
+                      disabled={isSelf}
+                      onChange={(event) => void handleActivoChange(row, event.target.checked)}
+                    />
+                    Activo
+                  </label>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isSelf}
+                    onClick={() => openEdit(row)}
+                    className={`${BTN_SECONDARY} flex-1`}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSelf}
+                    onClick={() => setDeleteTarget(row)}
+                    className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
+                  >
+                    Borrar
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className={`hidden md:block ${TABLE_WRAP}`}>
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-slate-50">
             <tr>
-              <th className="min-w-[200px] px-4 py-3">Correo</th>
-              <th className="min-w-[160px] px-4 py-3">Nombre</th>
-              <th className="whitespace-nowrap px-4 py-3">Rol</th>
-              <th className="whitespace-nowrap px-4 py-3">Activo</th>
-              <th className="whitespace-nowrap px-4 py-3">Acciones</th>
+              <th className={`${TABLE_HEAD_CELL} min-w-[200px]`}>Correo</th>
+              <th className={`${TABLE_HEAD_CELL} min-w-[160px]`}>Nombre</th>
+              <th className={TABLE_HEAD_CELL}>Rol</th>
+              <th className={TABLE_HEAD_CELL}>Activo</th>
+              <th className={TABLE_HEAD_CELL}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -321,7 +382,7 @@ export default function UsuariosPage() {
                 return (
                   <tr
                     key={row.id}
-                    className={`border-t border-slate-100 ${row.activo ? "" : "bg-slate-50 text-slate-600"}`}
+                    className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-slate-50/80 text-slate-600"}`}
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900">{row.email}</div>
@@ -336,7 +397,7 @@ export default function UsuariosPage() {
                         disabled={isSelf}
                         title={isSelf ? "No puedes modificar tu propio acceso" : undefined}
                         onChange={(event) => void handleRolChange(row, event.target.value as UserRole)}
-                        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500"
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                       >
                         <option value="tienda">{rolLabel("tienda")}</option>
                         <option value="admin">{rolLabel("admin")}</option>
@@ -356,9 +417,8 @@ export default function UsuariosPage() {
                         <button
                           type="button"
                           disabled={isSelf}
-                          title={isSelf ? "No puedes editar tu propia cuenta" : undefined}
                           onClick={() => openEdit(row)}
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          className={`${BTN_GHOST} border border-slate-200 px-2 py-1 text-xs disabled:opacity-50`}
                         >
                           Editar
                         </button>
@@ -366,7 +426,7 @@ export default function UsuariosPage() {
                           type="button"
                           disabled={isSelf}
                           onClick={() => setDeleteTarget(row)}
-                          className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          className={`${BTN_GHOST} border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50`}
                         >
                           Borrar
                         </button>

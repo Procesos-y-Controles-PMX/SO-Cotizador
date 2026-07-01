@@ -975,7 +975,7 @@ export default function CotizacionForm({
           generará un folio nuevo.
         </p>
       ) : null}
-      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-2">
+      <div className="grid gap-4 rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
           Sucursal
           <SearchCombobox
@@ -1093,7 +1093,7 @@ export default function CotizacionForm({
         </label>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
           <h3 className="font-semibold text-slate-900">Productos</h3>
           <div className="flex flex-wrap items-center gap-3">
@@ -1168,7 +1168,7 @@ export default function CotizacionForm({
             const productoCatalogo = productos.find((p) => p.id === producto.id_producto);
             const umDefault = productoCatalogo?.unidad_medida?.trim() || "";
             return (
-            <div key={producto.tempId} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
+            <div key={producto.tempId} className="grid gap-3 rounded-sm border border-slate-200 p-3 md:grid-cols-10 md:gap-2">
               {productosCotizacion.length > 1 ? (
                 <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Producto {index + 1}</p>
               ) : null}
@@ -1270,7 +1270,7 @@ export default function CotizacionForm({
       </div>
 
       {idSucursal && selectedSucursalNombre && !catalogLoading && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-slate-900">Términos adicionales de la sucursal (PDF)</h3>
@@ -1327,7 +1327,7 @@ export default function CotizacionForm({
 
       {modalType === "cliente" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 shadow-xl">
             <h4 className="text-base font-semibold text-slate-900">Nuevo cliente</h4>
             <p className="mt-1 text-sm text-slate-500">
               {sucursalNombre
@@ -1415,7 +1415,7 @@ export default function CotizacionForm({
 
       {modalType === "obra" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="w-full max-w-md rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 shadow-xl">
             <h4 className="text-base font-semibold text-slate-900">Nueva obra</h4>
             <p className="mt-1 text-sm text-slate-500">
               {clienteNombre
@@ -1495,7 +1495,7 @@ export default function CotizacionForm({
 
       {importExcelOpen && importPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl">
             <div className="border-b border-slate-100 px-5 py-4">
               <h4 className="text-base font-semibold text-slate-900">Importar desde Excel</h4>
               <p className="mt-1 text-sm text-slate-500">

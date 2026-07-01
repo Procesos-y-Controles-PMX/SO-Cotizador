@@ -1,8 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Saira_Condensed } from "next/font/google";
+import { IBM_Plex_Sans, Saira_Condensed } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+
+const plexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex-sans",
+  display: "swap",
+});
 
 const sairaCondensed = Saira_Condensed({
   subsets: ["latin"],
@@ -16,6 +23,12 @@ export const metadata: Metadata = {
   description: "Cotizador Promexma conectado a Supabase",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 type RootLayoutProps = {
   children: ReactNode;
 };
@@ -23,7 +36,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es">
-      <body className={`${sairaCondensed.variable} min-h-screen font-sans`}>
+      <body className={`${plexSans.variable} ${sairaCondensed.variable} min-h-screen font-sans`}>
         {children}
         <Toaster richColors position="top-right" />
       </body>

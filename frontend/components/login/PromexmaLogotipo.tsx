@@ -3,16 +3,19 @@ import Image from "next/image";
 interface PromexmaLogotipoProps {
   productLabel: string;
   variant?: "dark" | "light";
+  align?: "left" | "center";
 }
 
 export default function PromexmaLogotipo({
   productLabel,
   variant = "dark",
+  align = "left",
 }: PromexmaLogotipoProps) {
   const isDark = variant === "dark";
+  const centered = align === "center";
 
   return (
-    <div>
+    <div className={centered ? "flex flex-col items-center text-center" : undefined}>
       <div
         className={
           isDark
@@ -27,7 +30,7 @@ export default function PromexmaLogotipo({
           height={120}
           className={
             isDark
-              ? "h-16 xl:h-20 w-auto"
+              ? "h-14 sm:h-16 xl:h-20 w-auto max-w-[min(100%,280px)]"
               : "h-10 sm:h-11 w-auto"
           }
           priority
@@ -36,7 +39,7 @@ export default function PromexmaLogotipo({
       <p
         className={
           isDark
-            ? "mt-3 text-base text-white/55 tracking-wide"
+            ? "mt-2.5 sm:mt-3 text-sm sm:text-base text-white/55 tracking-wide"
             : "mt-2 text-sm text-slate-400 tracking-wide"
         }
       >

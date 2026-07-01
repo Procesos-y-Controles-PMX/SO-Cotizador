@@ -1,6 +1,7 @@
 "use client";
 
 import { PAGE_SIZE, pageDisplayRange, totalPages } from "@/lib/pagination";
+import { BTN_SECONDARY } from "@/components/ui/contentStyles";
 
 type Props = {
   page: number;
@@ -32,7 +33,7 @@ export default function TablePagination({
           type="button"
           disabled={loading || page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+          className={`${BTN_SECONDARY} !w-auto min-w-[5.5rem] py-2`}
         >
           Anterior
         </button>
@@ -43,7 +44,7 @@ export default function TablePagination({
           type="button"
           disabled={loading || page >= pages}
           onClick={() => onPageChange(page + 1)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
+          className={`${BTN_SECONDARY} !w-auto min-w-[5.5rem] py-2`}
         >
           Siguiente
         </button>

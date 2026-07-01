@@ -6,6 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { getCurrentUser, logout, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import {
+  SIDEBAR_NAV_ACTIVE,
+  SIDEBAR_NAV_IDLE,
+  SIDEBAR_SECTION_LABEL,
+  SIDEBAR_SHELL,
+  SIDEBAR_USER_CARD,
+} from "@/components/layout/shellStyles";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 interface NavItemDef {
   label: string;
@@ -19,10 +27,10 @@ interface NavGroup {
   items: NavItemDef[];
 }
 
-function MenuIcon({ className }: { className?: string }) {
+function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   );
 }
@@ -32,7 +40,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const navGroups: NavGroup[] = useMemo(
     () => [
@@ -88,19 +95,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     if (!loading && !session) router.replace("/login");
   }, [loading, router]);
 
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!mobileNavOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mobileNavOpen]);
-
   if (loading || !user) return <main className="min-h-screen" />;
 
   const filteredGroups = navGroups
@@ -112,6 +106,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       }),
     }))
     .filter((group) => group.items.length > 0);
+
+  const flatNavItems = filteredGroups.flatMap((group) => group.items);
 
   const isActive = (href: string) => {
     if (href === "/cotizaciones") {
@@ -131,7 +127,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     : "?";
 
   function handleLogout() {
-    setMobileNavOpen(false);
     logout();
     router.replace("/login");
   }
@@ -142,7 +137,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {filteredGroups.map((group) => (
           <div key={group.title} className="mb-5">
             {!collapsed && (
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">{group.title}</p>
+              <div className="mb-2 flex items-center gap-2 px-3">
+                <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-brand" aria-hidden />
+                <p className={SIDEBAR_SECTION_LABEL}>{group.title}</p>
+              </div>
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -154,9 +152,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     title={item.label}
                     onClick={onNavigate}
                     className={cn(
-                      "relative flex items-center gap-3 rounded-xl text-[13px] font-medium transition-all duration-200",
+                      "relative flex items-center gap-3 rounded-sm text-[13px] font-medium transition-all duration-200",
                       collapsed ? "justify-center px-3 py-2.5" : "px-3 py-2.5",
-                      active ? "bg-red-50 text-red-600" : "text-slate-500 hover:bg-gray-50 hover:text-slate-700"
+                      active ? SIDEBAR_NAV_ACTIVE : SIDEBAR_NAV_IDLE
                     )}
                   >
                     <span className="shrink-0">{item.icon}</span>
@@ -169,22 +167,22 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         ))}
       </nav>
 
-      <div className="shrink-0 border-t border-gray-100 px-3 py-3">
+      <div className={cn("shrink-0 border-t border-white/10 px-3 py-3", SIDEBAR_USER_CARD)}>
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-blue-600 text-xs font-bold text-white shadow-sm">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white shadow-sm">
             {initials}
           </div>
           {!collapsed && (
             <>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Usuario</p>
-                <p className="truncate text-xs font-semibold text-slate-800">{user.nombre_completo ?? user.email}</p>
-                <p className="text-[10px] text-gray-400">{user.rol}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Usuario</p>
+                <p className="truncate text-xs font-semibold text-slate-200">{user.nombre_completo ?? user.email}</p>
+                <p className="text-[10px] text-slate-500">{user.rol}</p>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                className="rounded-sm p-1.5 text-slate-500 transition-colors hover:bg-white/10 hover:text-slate-200"
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
               >
@@ -200,72 +198,27 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa]">
-      {mobileNavOpen && (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          aria-label="Cerrar menú"
-          onClick={() => setMobileNavOpen(false)}
-        />
-      )}
-
+    <div className="min-h-screen app-canvas">
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[min(280px,88vw)] flex-col border-r border-gray-100 bg-white shadow-lg transition-transform duration-300 ease-in-out md:hidden",
-          mobileNavOpen ? "translate-x-0" : "-translate-x-full pointer-events-none"
-        )}
-        aria-hidden={!mobileNavOpen}
-      >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-4">
-          <Link href="/cotizaciones" className="flex items-center gap-2.5" onClick={() => setMobileNavOpen(false)}>
-            <Image
-              src="/promexma-logo.png"
-              alt="Promexma"
-              width={2640}
-              height={554}
-              className="h-7 w-auto max-w-[30px] shrink-0"
-              style={{ width: "auto", height: "auto" }}
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-bold leading-none text-slate-800">Promexma</p>
-              <p className="mt-0.5 text-[10px] font-medium text-blue-500">SO Cotizador</p>
-            </div>
-          </Link>
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-            aria-label="Cerrar menú"
-            onClick={() => setMobileNavOpen(false)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        {navContent(false, () => setMobileNavOpen(false))}
-      </aside>
-
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-gray-100 bg-white shadow-sm transition-all duration-300 ease-in-out md:flex",
+          "fixed left-0 top-0 z-40 hidden shadow-lg transition-all duration-300 ease-in-out lg:flex lg:flex-col",
+          SIDEBAR_SHELL,
           sidebarCollapsed ? "w-[72px]" : "w-[250px]"
         )}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 px-5">
+        <div className="relative flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
           <Link href="/cotizaciones" className="flex items-center gap-2.5 overflow-hidden">
             <Image
-              src="/promexma-logo.png"
+              src="/circulo-promexma.png"
               alt="Promexma"
-              width={2640}
-              height={554}
-              className="h-7 w-auto max-w-[30px] shrink-0"
-              style={{ width: "auto", height: "auto" }}
+              width={30}
+              height={30}
+              className="shrink-0 rounded-full"
             />
             {!sidebarCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-bold leading-none text-slate-800">Promexma</p>
-                <p className="mt-0.5 text-[10px] font-medium text-blue-500">SO Cotizador</p>
+                <p className="text-sm font-bold leading-none text-white">Promexma</p>
+                <p className="mt-0.5 text-[10px] font-medium text-slate-500">SO Cotizador</p>
               </div>
             )}
           </Link>
@@ -273,7 +226,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setSidebarCollapsed((prev) => !prev)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-400 transition-all hover:bg-gray-50 hover:text-gray-600"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-slate-400 transition-all hover:border-slate-500 hover:bg-slate-800 hover:text-slate-200"
             aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
           >
             <svg
@@ -292,26 +245,36 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {navContent(sidebarCollapsed)}
       </aside>
 
-      <div className={cn("min-h-screen transition-all duration-300 md:ml-[250px]", sidebarCollapsed && "md:ml-[72px]")}>
-        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-6 md:py-4">
-          <button
-            type="button"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 md:hidden"
-            aria-label="Abrir menú de navegación"
-            aria-expanded={mobileNavOpen}
-            onClick={() => setMobileNavOpen(true)}
-          >
-            <MenuIcon className="h-5 w-5" />
-          </button>
+      <div className={cn("min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-sm lg:px-6 lg:py-4">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-semibold text-slate-900 md:text-xl">Cotizador Promexma</h1>
-            <p className="truncate text-xs text-slate-500 md:text-sm">
+            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-slate-900 lg:text-xl">
+              Cotizador Promexma
+            </h1>
+            <p className="truncate text-xs text-slate-500 lg:text-sm">
               {user.nombre_completo ?? user.email} · {user.rol}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 lg:hidden"
+            aria-label="Cerrar sesión"
+          >
+            <LogoutIcon className="h-5 w-5" />
+          </button>
         </header>
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="app-main-pad overflow-x-hidden p-3 lg:p-6">{children}</main>
       </div>
+
+      <MobileBottomNav
+        items={flatNavItems.map((item) => ({
+          label: item.label,
+          href: item.href,
+          icon: item.icon,
+          active: isActive(item.href),
+        }))}
+      />
     </div>
   );
 }

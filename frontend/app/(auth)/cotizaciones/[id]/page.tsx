@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
+import PageHeader from "@/components/ui/PageHeader";
+import { ALERT_WARNING, BTN_SECONDARY } from "@/components/ui/contentStyles";
 import { getCurrentUser } from "@/lib/auth";
 import {
   canDuplicateCotizacion,
@@ -40,28 +42,26 @@ export default function CotizacionDetallePage() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-semibold text-slate-900">Detalle de cotización</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/cotizaciones"
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-          >
-            Volver al historial
-          </Link>
-          {canDuplicate ? (
-            <Link
-              href={`/cotizaciones/nueva?copiar=${params.id}`}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-            >
-              Duplicar cotización
+      <PageHeader
+        eyebrow="Cotizador"
+        title="Detalle de cotización"
+        subtitle={folio ? `Folio ${folio}` : undefined}
+        actions={
+          <>
+            <Link href="/cotizaciones" className={BTN_SECONDARY}>
+              Volver al historial
             </Link>
-          ) : null}
-          <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary">
-            Ver PDF
-          </Link>
-        </div>
-      </div>
+            {canDuplicate ? (
+              <Link href={`/cotizaciones/nueva?copiar=${params.id}`} className={BTN_SECONDARY}>
+                Duplicar cotización
+              </Link>
+            ) : null}
+            <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary w-full justify-center sm:w-auto">
+              Ver PDF
+            </Link>
+          </>
+        }
+      />
 
       {allowed ? (
         <CotizacionForm
@@ -77,7 +77,7 @@ export default function CotizacionDetallePage() {
           }}
         />
       ) : (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+        <p className={ALERT_WARNING}>
           Solo puedes editar tus propias cotizaciones.
           {canDuplicate ? (
             <>

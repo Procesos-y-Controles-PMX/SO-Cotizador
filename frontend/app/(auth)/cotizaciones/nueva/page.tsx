@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
+import PageHeader from "@/components/ui/PageHeader";
+import { ALERT_WARNING, BTN_SECONDARY } from "@/components/ui/contentStyles";
 import { getCurrentUser } from "@/lib/auth";
 import {
   canDuplicateCotizacion,
@@ -68,10 +70,8 @@ function NuevaCotizacionContent() {
   if (copiarId && copyState.status === "denied") {
     return (
       <div className="space-y-3">
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          No tienes permiso para duplicar esta cotización.
-        </p>
-        <Link href="/cotizaciones" className="text-sm text-red-700 hover:underline">
+        <p className={ALERT_WARNING}>No tienes permiso para duplicar esta cotización.</p>
+        <Link href="/cotizaciones" className={`${BTN_SECONDARY} inline-flex`}>
           Volver al historial
         </Link>
       </div>
@@ -81,10 +81,8 @@ function NuevaCotizacionContent() {
   if (copiarId && copyState.status === "not_found") {
     return (
       <div className="space-y-3">
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          No se encontró la cotización a copiar.
-        </p>
-        <Link href="/cotizaciones" className="text-sm text-red-700 hover:underline">
+        <p className={ALERT_WARNING}>No se encontró la cotización a copiar.</p>
+        <Link href="/cotizaciones" className={`${BTN_SECONDARY} inline-flex`}>
           Volver al historial
         </Link>
       </div>
@@ -95,9 +93,11 @@ function NuevaCotizacionContent() {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-2xl font-semibold text-slate-900">
-        {isCopy ? "Duplicar cotización" : "Nueva cotización"}
-      </h2>
+      <PageHeader
+        eyebrow="Cotizador"
+        title={isCopy ? "Duplicar cotización" : "Nueva cotización"}
+        subtitle={isCopy ? `Basada en ${copyState.sourceFolio}` : "Completa los datos para generar una nueva cotización"}
+      />
       <CotizacionForm
         mode="create"
         initial={isCopy ? copyState.initial : undefined}
