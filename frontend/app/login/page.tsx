@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -8,12 +8,28 @@ import { loginByEmailPassword } from "@/lib/auth";
 import LoginShell from "@/components/login/LoginShell";
 import { loginButtonClass, loginInputClass, loginTitleClass } from "@/components/login/loginStyles";
 
+// When the unified portal is configured, /login only forwards there
+// (bookmarks keep working); without it the local form still renders.
+const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL;
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (PORTAL_URL) window.location.replace(`${PORTAL_URL}/login?app=cotizador`);
+  }, []);
+
+  if (PORTAL_URL) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-slate-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand" role="status" aria-label="Cargando" />
+      </main>
+    );
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
