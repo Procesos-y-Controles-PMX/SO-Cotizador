@@ -14,6 +14,8 @@ import {
   SIDEBAR_USER_CARD,
 } from "@/components/layout/shellStyles";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import AppCanvasMouseBackdrop from "@/components/common/AppCanvasMouseBackdrop";
+import ModuleTransition from "@/components/common/ModuleTransition";
 
 interface NavItemDef {
   label: string;
@@ -133,7 +135,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
-      <nav className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-4">
+      <nav className="sidebar-scroll flex-1 overflow-x-hidden overflow-y-auto px-3 py-4">
         {filteredGroups.map((group) => (
           <div key={group.title} className="mb-5">
             {!collapsed && (
@@ -159,6 +161,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                   >
                     <span className="shrink-0">{item.icon}</span>
                     {!collapsed && <span className="truncate">{item.label}</span>}
+                    {active && !collapsed ? (
+                      <span className="animate-rail-glow pointer-events-none absolute bottom-2 left-0 top-2 w-[3px] rounded-full bg-white/70" />
+                    ) : null}
                   </Link>
                 );
               })}
@@ -245,7 +250,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {navContent(sidebarCollapsed)}
       </aside>
 
-      <div className={cn("min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
+      <div className={cn("relative min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
+        <AppCanvasMouseBackdrop />
+
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200/80 bg-white/90 py-3 backdrop-blur-sm lg:py-4">
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-lg font-semibold tracking-tight text-slate-900 lg:text-xl">
@@ -264,7 +271,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <LogoutIcon className="h-5 w-5" />
           </button>
         </header>
-        <main className="app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">{children}</main>
+        <main className="relative z-10 app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">
+          <ModuleTransition>{children}</ModuleTransition>
+        </main>
       </div>
 
       <MobileBottomNav

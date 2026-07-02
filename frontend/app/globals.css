@@ -44,6 +44,48 @@ body {
   background-color: #f3f6fa;
 }
 
+.app-canvas-dots {
+  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.32) 0.8px, transparent 0.8px);
+  background-size: 20px 20px;
+}
+
+@keyframes rail-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.animate-rail-glow {
+  animation: rail-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes module-enter-up {
+  from { opacity: 0; transform: translate3d(0, 22px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes module-enter-down {
+  from { opacity: 0; transform: translate3d(0, -22px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes module-enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.module-enter-up { animation: module-enter-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.module-enter-down { animation: module-enter-down 0.28s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.module-enter-fade { animation: module-enter-fade 0.22s ease-out both; }
+
+@keyframes fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
 .login-safe-x {
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
@@ -71,7 +113,32 @@ body {
 
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar-scroll:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
 }
 
 .app-main-pad {
@@ -95,6 +162,16 @@ body {
 
 .btn-primary:active {
   background-color: var(--brand-active);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rail-glow { animation: none; }
+
+  .module-enter-up,
+  .module-enter-down,
+  .module-enter-fade { animation: module-enter-fade 0.15s ease-out both; }
+
+  .animate-fade-up { animation: none; }
 }
 
 :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
