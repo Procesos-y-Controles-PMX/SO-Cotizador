@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
+import ImportProductosModal from "@/components/productos/ImportProductosModal";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import PageHeader from "@/components/ui/PageHeader";
 import {
@@ -16,8 +17,18 @@ import {
   TABLE_HEAD_CELL,
   TABLE_WRAP,
 } from "@/components/ui/contentStyles";
+import { downloadProductosExcel } from "@/lib/excel/exportProductos";
 import {
+  downloadProductosExcelTemplate,
+  parseProductosExcelFile,
+  resolveProductosExcelRows,
+  type ProductosExcelImportPreview,
+} from "@/lib/excel/importProductos";
+import {
+  createProductosBulk,
+  getExistingProductoSkus,
   INVENTARIO_SEARCH_MIN_CHARS,
+  listAllProductos,
   listInventarioProductos,
   updateProducto,
 } from "@/lib/queries/productos";
@@ -32,6 +43,12 @@ export default function InventarioPage() {
   const [rows, setRows] = useState<CtzProducto[]>([]);
   const [loading, setLoading] = useState(true);
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPreview, setImportPreview] = useState<ProductosExcelImportPreview | null>(null);
+  const [excelParsing, setExcelParsing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const excelInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setQDebounced(qInput.trim()), SEARCH_DEBOUNCE_MS);
@@ -56,6 +73,56 @@ export default function InventarioPage() {
     setRows(data);
   }
 
+  async function handleExcelFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setExcelParsing(true);
+    try {
+      const [excelRows, existingSkus] = await Promise.all([
+        parseProductosExcelFile(file),
+        getExistingProductoSkus(),
+      ]);
+      const { preview, error } = resolveProductosExcelRows(excelRows, existingSkus);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      setImportPreview(preview);
+      setImportModalOpen(true);
+    } catch {
+      toast.error("No se pudo leer el Excel. Usa .xlsx con encabezados SKU, Descripción, U.M. y Precio base.");
+    } finally {
+      setExcelParsing(false);
+    }
+  }
+
+  async function handleConfirmImport() {
+    if (!importPreview?.ok.length) return;
+    setImporting(true);
+    const result = await createProductosBulk(
+      importPreview.ok.map((r) => ({
+        sku: r.sku,
+        descripcion: r.descripcion,
+        unidad_medida: r.unidad_medida,
+        precio_unitario_base: r.precio_unitario_base,
+      }))
+    );
+    setImporting(false);
+    if (result.inserted === 0 && result.failed > 0) {
+      toast.error("No se pudo importar ningún producto.");
+      return;
+    }
+    const parts: string[] = [];
+    if (result.inserted) parts.push(`${result.inserted} creado(s)`);
+    if (result.failed) parts.push(`${result.failed} fallido(s)`);
+    toast.success(`Importación completada: ${parts.join(", ")}.`);
+    setImportModalOpen(false);
+    setImportPreview(null);
+    await refreshRows();
+  }
+
   if (user?.rol !== "admin") {
     return (
       <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>
@@ -69,11 +136,58 @@ export default function InventarioPage() {
     <section className="space-y-4">
       <PageHeader
         eyebrow="Cotizador"
-        title="Inventario"
+        title="Listado de SKUs"
         actions={
-          <button type="button" className={BTN_SECONDARY} onClick={() => setProductModalOpen(true)}>
-            + Nuevo producto
-          </button>
+          <>
+            <input
+              ref={excelInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => void handleExcelFileChange(e)}
+            />
+            <button
+              type="button"
+              disabled={exportLoading}
+              className={BTN_SECONDARY}
+              onClick={async () => {
+                setExportLoading(true);
+                try {
+                  const productos = await listAllProductos();
+                  await downloadProductosExcel(productos);
+                  toast.success("Excel descargado.");
+                } catch {
+                  toast.error("No se pudo generar el Excel del listado de SKUs.");
+                } finally {
+                  setExportLoading(false);
+                }
+              }}
+            >
+              {exportLoading ? "Generando..." : "Descargar SKUs"}
+            </button>
+            <button
+              type="button"
+              className={BTN_SECONDARY}
+              onClick={() =>
+                void downloadProductosExcelTemplate().catch(() =>
+                  toast.error("No se pudo descargar la plantilla.")
+                )
+              }
+            >
+              Descargar Plantilla
+            </button>
+            <button
+              type="button"
+              disabled={excelParsing || importing}
+              className={BTN_SECONDARY}
+              onClick={() => excelInputRef.current?.click()}
+            >
+              {excelParsing ? "Leyendo..." : "Importar Excel"}
+            </button>
+            <button type="button" className={BTN_SECONDARY} onClick={() => setProductModalOpen(true)}>
+              + Nuevo producto
+            </button>
+          </>
         }
       />
 
@@ -214,6 +328,18 @@ export default function InventarioPage() {
           setProductModalOpen(false);
           await refreshRows();
         }}
+      />
+
+      <ImportProductosModal
+        open={importModalOpen}
+        preview={importPreview}
+        importing={importing}
+        onClose={() => {
+          if (importing) return;
+          setImportModalOpen(false);
+          setImportPreview(null);
+        }}
+        onConfirm={handleConfirmImport}
       />
     </section>
   );

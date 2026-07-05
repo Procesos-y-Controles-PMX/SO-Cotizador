@@ -52,3 +52,5 @@ db/
 
 # other
 other/
+.vercel
+.env*

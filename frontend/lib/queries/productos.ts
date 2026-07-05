@@ -156,6 +156,98 @@ export async function listAllProductosActivos(): Promise<CtzProducto[]> {
   return all;
 }
 
+/** Todos los productos (activos e inactivos, paginado). Para export Excel del listado de SKUs. */
+export async function listAllProductos(): Promise<CtzProducto[]> {
+  if (!supabase) return [];
+  const all: CtzProducto[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("ctz_productos")
+      .select("*")
+      .order("descripcion")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) break;
+    const batch = (data as CtzProducto[] | null) ?? [];
+    if (!batch.length) break;
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
+}
+
+/** SKUs existentes en minúsculas, para omitir duplicados en el import masivo. */
+export async function getExistingProductoSkus(): Promise<Set<string>> {
+  if (!supabase) return new Set();
+  const skus = new Set<string>();
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("ctz_productos")
+      .select("sku")
+      .not("sku", "is", null)
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) break;
+    const batch = (data as { sku: string | null }[] | null) ?? [];
+    if (!batch.length) break;
+    for (const row of batch) {
+      const sku = (row.sku ?? "").trim().toLowerCase();
+      if (sku) skus.add(sku);
+    }
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return skus;
+}
+
+export type ProductoBulkInsertRow = {
+  sku: string | null;
+  descripcion: string;
+  unidad_medida: string | null;
+  precio_unitario_base: number;
+};
+
+const BULK_CHUNK_SIZE = 100;
+
+export async function createProductosBulk(
+  rows: ProductoBulkInsertRow[]
+): Promise<{ inserted: number; failed: number }> {
+  if (!supabase || !rows.length) return { inserted: 0, failed: 0 };
+
+  let inserted = 0;
+  let failed = 0;
+
+  for (let i = 0; i < rows.length; i += BULK_CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + BULK_CHUNK_SIZE);
+    const payload = chunk.map((r) => ({
+      sku: r.sku,
+      descripcion: r.descripcion,
+      unidad_medida: r.unidad_medida,
+      precio_unitario_base: r.precio_unitario_base,
+      activo: true,
+    }));
+
+    const { data, error } = await supabase.from("ctz_productos").insert(payload).select("id");
+    if (!error && data) {
+      inserted += data.length;
+      continue;
+    }
+
+    for (const row of payload) {
+      const { data: one, error: oneError } = await supabase
+        .from("ctz_productos")
+        .insert(row)
+        .select("id")
+        .maybeSingle();
+      if (!oneError && one) inserted += 1;
+      else failed += 1;
+    }
+  }
+
+  return { inserted, failed };
+}
+
 export async function createProducto(payload: {
   sku?: string;
   descripcion: string;

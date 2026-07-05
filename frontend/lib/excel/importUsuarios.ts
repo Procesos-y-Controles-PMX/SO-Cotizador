@@ -6,7 +6,7 @@ export const USUARIOS_EXCEL_IMPORT_MAX_ROWS = 500;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function cellToString(value: unknown): string {
+export function cellToString(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return String(value).trim();
@@ -27,7 +27,7 @@ function stripKnownHeaderSuffix(label: string): string {
     .trim();
 }
 
-function findColumnIndex(headers: unknown[], candidates: string[]): number {
+export function findColumnIndex(headers: unknown[], candidates: string[]): number {
   const lowered = candidates.map((c) =>
     stripKnownHeaderSuffix(stripAccents(c.toLowerCase()).replace(/\s+/g, " "))
   );
