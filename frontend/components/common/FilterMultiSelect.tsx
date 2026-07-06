@@ -82,6 +82,10 @@ const FilterMultiSelect = memo(function FilterMultiSelect({
   }, []);
 
   const handleSelectAll = () => {
+    if (allSelected) {
+      onChange([]);
+      return;
+    }
     onChange(null);
   };
 
