@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_CHARS } from "@/lib/search";
 import { cn } from "@/lib/utils";
+import { AnimatedFilterDropdown } from "@/components/common/AnimatedFilterDropdown";
 
 export type SearchComboboxOption = {
   id: string;
@@ -144,12 +145,8 @@ export default function SearchCombobox({
           }
         }}
       />
-      {open && (showMinHint || showEmpty || showList || loading) && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg"
-        >
+      <AnimatedFilterDropdown open={open && (showMinHint || showEmpty || showList || loading)}>
+        <ul id={listId} role="listbox" className="py-1 text-sm">
           {loading && <li className="px-3 py-2 text-slate-500">Buscando...</li>}
           {showMinHint && !loading && (
             <li className="px-3 py-2 text-slate-500">Escribe al menos {minChars} caracteres</li>
@@ -175,7 +172,7 @@ export default function SearchCombobox({
               </li>
             ))}
         </ul>
-      )}
+      </AnimatedFilterDropdown>
     </div>
   );
 }

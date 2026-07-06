@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
 import { getUsuarioByEmail } from "@/lib/queries/usuarios";
@@ -1337,9 +1338,9 @@ export default function CotizacionForm({
         )}
       </div>
 
+      <AnimatePresence>
       {modalType === "cliente" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="w-full max-w-md rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 shadow-xl">
+        <FormDialogShell>
             <h4 className="text-base font-semibold text-slate-900">Nuevo cliente</h4>
             <p className="mt-1 text-sm text-slate-500">
               {sucursalNombre
@@ -1416,13 +1417,13 @@ export default function CotizacionForm({
                 {modalLoading ? "Guardando..." : "Guardar"}
               </button>
             </div>
-          </div>
-        </div>
+        </FormDialogShell>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {modalType === "obra" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="w-full max-w-md rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 shadow-xl">
+        <FormDialogShell>
             <h4 className="text-base font-semibold text-slate-900">Nueva obra</h4>
             <p className="mt-1 text-sm text-slate-500">
               {clienteNombre
@@ -1480,9 +1481,9 @@ export default function CotizacionForm({
                 {modalLoading ? "Guardando..." : "Guardar"}
               </button>
             </div>
-          </div>
-        </div>
+        </FormDialogShell>
       )}
+      </AnimatePresence>
 
       <NuevoProductoModal
         open={modalType === "producto"}
@@ -1572,3 +1573,26 @@ export default function CotizacionForm({
   );
 }
 
+
+/** Animated overlay + panel for the inline cliente/obra dialogs — same spring feel as ui/Modal. */
+function FormDialogShell({ children }: { children: React.ReactNode }) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4"
+      initial={reduceMotion ? undefined : { opacity: 0 }}
+      animate={reduceMotion ? undefined : { opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.15 } }}
+    >
+      <motion.div
+        className="w-full max-w-md rounded-sm border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl"
+        initial={reduceMotion ? undefined : { y: 24, opacity: 0 }}
+        animate={reduceMotion ? undefined : { y: 0, opacity: 1 }}
+        exit={reduceMotion ? undefined : { y: 16, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.8 }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+}
