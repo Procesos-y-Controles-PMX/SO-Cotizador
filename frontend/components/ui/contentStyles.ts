@@ -14,6 +14,10 @@ export const FIELD_INPUT =
 export const FIELD_SELECT =
   "w-full min-h-12 appearance-none rounded-sm border border-slate-200 bg-slate-50 bg-[length:12px] bg-[position:right_12px_center] bg-no-repeat px-4 py-2.5 pr-10 text-base text-slate-900 transition-all duration-200 focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/15 md:min-h-0 md:text-sm";
 
+/** Trigger for FilterSelect — FIELD_SELECT visual language without native chevron/padding (the component adds its own). */
+export const FIELD_SELECT_TRIGGER =
+  "min-h-12 w-full rounded-sm border border-slate-200 bg-slate-50 py-2.5 text-base text-slate-900 transition-all duration-200 focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 md:min-h-0 md:text-sm";
+
 export const BTN_PRIMARY =
   "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand/20 transition-colors hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto md:min-h-0";
 

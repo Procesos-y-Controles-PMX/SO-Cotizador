@@ -3,20 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import PageHeader from "@/components/ui/PageHeader";
+import Modal from "@/components/ui/Modal";
 import {
   ALERT_WARNING,
-  CHEVRON_SELECT,
   EMPTY_STATE,
   FIELD_LABEL,
-  FIELD_SELECT,
+  FIELD_SELECT_TRIGGER,
   PANEL_CARD,
+  PANEL_INSET,
 } from "@/components/ui/contentStyles";
+import FilterSelect from "@/components/common/FilterSelect";
+import { displayRegionLabel } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,
   type DashboardCotizacionRow,
 } from "@/lib/queries/dashboardStats";
 import { listSucursales } from "@/lib/queries/sucursales";
 import type { CtzSucursal } from "@/lib/types/db";
+import { cn } from "@/lib/utils";
 
 const MESES = [
   "Enero",
@@ -35,13 +39,126 @@ const MESES = [
 
 const SIN_REGION = "Sin región";
 
-function StatTile({ label, value, sublabel }: { label: string; value: string; sublabel?: string }) {
-  return (
-    <div className={`${PANEL_CARD} p-4`}>
+type BreakdownKind = "cotizaciones" | "tiendas" | "adopcion" | "usuarios";
+
+const BREAKDOWN_TITLES: Record<BreakdownKind, string> = {
+  cotizaciones: "Desglose de cotizaciones",
+  tiendas: "Tiendas con actividad",
+  adopcion: "Desglose de adopción",
+  usuarios: "Usuarios que cotizaron",
+};
+
+type BreakdownRow = { label: string; count: number };
+
+function StatTile({
+  label,
+  value,
+  sublabel,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+  onClick?: () => void;
+}) {
+  const className = cn(
+    PANEL_CARD,
+    "p-4 text-left transition-all",
+    onClick &&
+      "cursor-pointer hover:border-brand/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/20 active:scale-[0.99]"
+  );
+
+  const content = (
+    <>
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
       <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
       {sublabel ? <p className="mt-0.5 text-xs text-slate-500">{sublabel}</p> : null}
+      {onClick ? (
+        <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-brand/80">Ver desglose</p>
+      ) : null}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+function BreakdownBars({
+  rows,
+  total,
+  emptyMessage = "Sin datos para mostrar.",
+}: {
+  rows: BreakdownRow[];
+  total: number;
+  emptyMessage?: string;
+}) {
+  if (rows.length === 0) {
+    return <p className="py-4 text-center text-sm text-slate-500">{emptyMessage}</p>;
+  }
+
+  const max = rows[0]?.count ?? 0;
+
+  return (
+    <div className="space-y-3">
+      {rows.map(({ label, count }) => (
+        <div key={label} className="flex items-center gap-3">
+          <span className="w-28 shrink-0 truncate text-xs font-medium text-slate-600 sm:w-40" title={label}>
+            {label}
+          </span>
+          <div className="h-4 flex-1 rounded-sm bg-slate-100">
+            <div
+              className="h-full rounded-sm bg-brand transition-all"
+              style={{ width: `${max > 0 ? Math.max((count / max) * 100, 2) : 0}%` }}
+            />
+          </div>
+          <span className="w-16 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+            {count}
+            {total > 0 ? (
+              <span className="ml-1 font-normal text-slate-400">({((count / total) * 100).toFixed(0)}%)</span>
+            ) : null}
+          </span>
+        </div>
+      ))}
     </div>
+  );
+}
+
+function BreakdownList({
+  rows,
+  total,
+  emptyMessage = "Sin datos para mostrar.",
+}: {
+  rows: BreakdownRow[];
+  total: number;
+  emptyMessage?: string;
+}) {
+  if (rows.length === 0) {
+    return <p className="py-4 text-center text-sm text-slate-500">{emptyMessage}</p>;
+  }
+
+  return (
+    <ul className="divide-y divide-slate-100">
+      {rows.map(({ label, count }) => (
+        <li key={label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+          <span className="min-w-0 truncate text-slate-700" title={label}>
+            {label}
+          </span>
+          <span className="shrink-0 tabular-nums text-slate-500">
+            {count}
+            {total > 0 ? (
+              <span className="ml-1 text-slate-400">({((count / total) * 100).toFixed(0)}%)</span>
+            ) : null}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -56,6 +173,7 @@ export default function DashboardPage() {
   const [filterZona, setFilterZona] = useState("");
   const [filterTienda, setFilterTienda] = useState("");
   const [filterUsuario, setFilterUsuario] = useState("");
+  const [breakdownOpen, setBreakdownOpen] = useState<BreakdownKind | null>(null);
 
   useEffect(() => {
     if (user?.rol !== "admin") return;
@@ -125,7 +243,7 @@ export default function DashboardPage() {
     for (const row of filtered) {
       tiendasConUso.add(row.id_sucursal);
       usuariosDistintos.add(row.id_usuario);
-      const region = row.ctz_sucursales?.region?.trim() || SIN_REGION;
+      const region = displayRegionLabel(row.ctz_sucursales?.region?.trim() || SIN_REGION);
       porRegion.set(region, (porRegion.get(region) ?? 0) + 1);
     }
 
@@ -153,6 +271,93 @@ export default function DashboardPage() {
     };
   }, [filtered, sucursales, filterZona, filterTienda]);
 
+  const breakdowns = useMemo(() => {
+    const porRegion = new Map<string, number>();
+    const porTienda = new Map<string, { nombre: string; count: number }>();
+    const porUsuario = new Map<string, { label: string; count: number }>();
+    const porMes = new Map<string, { year: number; month: number; count: number }>();
+    let ventasCerradas = 0;
+
+    for (const row of filtered) {
+      const region = displayRegionLabel(row.ctz_sucursales?.region?.trim() || SIN_REGION);
+      porRegion.set(region, (porRegion.get(region) ?? 0) + 1);
+
+      const tiendaNombre = row.ctz_sucursales?.nombre?.trim() || "Sin tienda";
+      const tiendaEntry = porTienda.get(row.id_sucursal) ?? { nombre: tiendaNombre, count: 0 };
+      tiendaEntry.count += 1;
+      porTienda.set(row.id_sucursal, tiendaEntry);
+
+      const usuarioLabel =
+        row.ctz_usuarios?.nombre_completo?.trim() ||
+        row.ctz_usuarios?.email?.trim() ||
+        row.id_usuario;
+      const usuarioEntry = porUsuario.get(row.id_usuario) ?? { label: usuarioLabel, count: 0 };
+      usuarioEntry.count += 1;
+      porUsuario.set(row.id_usuario, usuarioEntry);
+
+      const date = new Date(row.created_at);
+      const mesLabel = `${MESES[date.getMonth()]} ${date.getFullYear()}`;
+      const mesEntry = porMes.get(mesLabel) ?? {
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        count: 0,
+      };
+      mesEntry.count += 1;
+      porMes.set(mesLabel, mesEntry);
+
+      if (row.venta_cerrada) ventasCerradas += 1;
+    }
+
+    const regiones: BreakdownRow[] = [...porRegion.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const tiendas: BreakdownRow[] = [...porTienda.values()]
+      .map(({ nombre, count }) => ({ label: nombre, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const usuarios: BreakdownRow[] = [...porUsuario.values()]
+      .map(({ label, count }) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const meses: BreakdownRow[] = [...porMes.entries()]
+      .map(([label, { year, month, count }]) => ({ label, count, year, month }))
+      .sort((a, b) => b.year - a.year || b.month - a.month)
+      .map(({ label, count }) => ({ label, count }));
+
+    const universoTiendas = sucursales.filter((s) => {
+      if (filterZona && (s.region?.trim() || SIN_REGION) !== filterZona) return false;
+      if (filterTienda && s.id !== filterTienda) return false;
+      return true;
+    });
+
+    const tiendasConUsoIds = new Set(porTienda.keys());
+    const conActividad: BreakdownRow[] = universoTiendas
+      .filter((s) => tiendasConUsoIds.has(s.id))
+      .map((s) => ({
+        label: s.nombre,
+        count: porTienda.get(s.id)?.count ?? 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const sinActividad: BreakdownRow[] = universoTiendas
+      .filter((s) => !tiendasConUsoIds.has(s.id))
+      .map((s) => ({ label: s.nombre, count: 0 }))
+      .sort((a, b) => a.label.localeCompare(b.label, "es"));
+
+    return {
+      regiones,
+      tiendas,
+      usuarios,
+      meses,
+      ventasCerradas,
+      ventasPendientes: filtered.length - ventasCerradas,
+      conActividad,
+      sinActividad,
+      totalTiendasUniverso: universoTiendas.length,
+    };
+  }, [filtered, sucursales, filterZona, filterTienda]);
+
   if (user?.rol !== "admin") {
     return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
   }
@@ -170,81 +375,76 @@ export default function DashboardPage() {
       <div className={`${PANEL_CARD} grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5`}>
         <label className={FIELD_LABEL}>
           Año
-          <select
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-          >
-            <option value="">Todos</option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={filterYear}
+              onChange={setFilterYear}
+              options={[
+                { value: "", label: "Todos" },
+                ...yearOptions.map((year) => ({ value: String(year), label: String(year) })),
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
         <label className={FIELD_LABEL}>
           Mes
-          <select
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-          >
-            <option value="">Todos</option>
-            {MESES.map((mes, index) => (
-              <option key={mes} value={index}>
-                {mes}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={filterMonth}
+              onChange={setFilterMonth}
+              options={[
+                { value: "", label: "Todos" },
+                ...MESES.map((mes, index) => ({ value: String(index), label: mes })),
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
         <label className={FIELD_LABEL}>
           Zona
-          <select
-            value={filterZona}
-            onChange={(e) => {
-              setFilterZona(e.target.value);
-              setFilterTienda("");
-            }}
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-          >
-            <option value="">Todas</option>
-            {zonaOptions.map((zona) => (
-              <option key={zona} value={zona}>
-                {zona}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={filterZona}
+              onChange={(value) => {
+                setFilterZona(value);
+                setFilterTienda("");
+              }}
+              options={[
+                { value: "", label: "Todas" },
+                ...zonaOptions.map((zona) => ({ value: zona, label: zona })),
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
         <label className={FIELD_LABEL}>
           Tienda
-          <select
-            value={filterTienda}
-            onChange={(e) => setFilterTienda(e.target.value)}
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-          >
-            <option value="">Todas</option>
-            {tiendaOptions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={filterTienda}
+              onChange={setFilterTienda}
+              options={[
+                { value: "", label: "Todas" },
+                ...tiendaOptions.map((s) => ({ value: String(s.id), label: s.nombre })),
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
         <label className={FIELD_LABEL}>
           Usuario
-          <select
-            value={filterUsuario}
-            onChange={(e) => setFilterUsuario(e.target.value)}
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-          >
-            <option value="">Todos</option>
-            {usuarioOptions.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={filterUsuario}
+              onChange={setFilterUsuario}
+              options={[
+                { value: "", label: "Todos" },
+                ...usuarioOptions.map((u) => ({ value: String(u.id), label: u.label })),
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
       </div>
 
@@ -253,21 +453,29 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatTile label="Cotizaciones" value={String(stats.totalCotizaciones)} sublabel="en el periodo filtrado" />
+            <StatTile
+              label="Cotizaciones"
+              value={String(stats.totalCotizaciones)}
+              sublabel="en el periodo filtrado"
+              onClick={() => setBreakdownOpen("cotizaciones")}
+            />
             <StatTile
               label="Tiendas con actividad"
               value={String(stats.tiendasConUso)}
               sublabel={`de ${stats.totalTiendas} tiendas activas`}
+              onClick={() => setBreakdownOpen("tiendas")}
             />
             <StatTile
               label="Adopción"
               value={`${stats.adopcion.toFixed(1)}%`}
               sublabel="tiendas que han cotizado"
+              onClick={() => setBreakdownOpen("adopcion")}
             />
             <StatTile
               label="Usuarios distintos"
               value={String(stats.usuariosDistintos)}
               sublabel="que generaron cotizaciones"
+              onClick={() => setBreakdownOpen("usuarios")}
             />
           </div>
 
@@ -305,6 +513,68 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+
+      <Modal
+        open={breakdownOpen !== null}
+        onClose={() => setBreakdownOpen(null)}
+        title={breakdownOpen ? BREAKDOWN_TITLES[breakdownOpen] : ""}
+      >
+        {breakdownOpen === "cotizaciones" ? (
+          <div className="space-y-6">
+            <section>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Por región</h4>
+              <BreakdownBars rows={breakdowns.regiones} total={stats.totalCotizaciones} />
+            </section>
+            <section>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Por mes</h4>
+              <BreakdownBars rows={breakdowns.meses} total={stats.totalCotizaciones} />
+            </section>
+            <section>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Estado de venta</h4>
+              <div className={`${PANEL_INSET} grid grid-cols-2 gap-3 p-3`}>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Cerradas</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{breakdowns.ventasCerradas}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">En proceso</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{breakdowns.ventasPendientes}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {breakdownOpen === "tiendas" ? (
+          <BreakdownBars rows={breakdowns.tiendas} total={stats.totalCotizaciones} emptyMessage="Ninguna tienda con cotizaciones en este periodo." />
+        ) : null}
+
+        {breakdownOpen === "adopcion" ? (
+          <div className="space-y-6">
+            <section>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                Con actividad ({breakdowns.conActividad.length})
+              </h4>
+              <p className="mb-3 text-xs text-slate-500">
+                {breakdowns.conActividad.length} de {breakdowns.totalTiendasUniverso} tiendas han cotizado
+              </p>
+              <BreakdownBars rows={breakdowns.conActividad} total={stats.totalCotizaciones} />
+            </section>
+            {breakdowns.sinActividad.length > 0 ? (
+              <section>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Sin actividad ({breakdowns.sinActividad.length})
+                </h4>
+                <BreakdownList rows={breakdowns.sinActividad} total={breakdowns.totalTiendasUniverso} />
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+
+        {breakdownOpen === "usuarios" ? (
+          <BreakdownBars rows={breakdowns.usuarios} total={stats.totalCotizaciones} emptyMessage="Ningún usuario con cotizaciones en este periodo." />
+        ) : null}
+      </Modal>
     </section>
   );
 }

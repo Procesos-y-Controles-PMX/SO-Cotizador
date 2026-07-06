@@ -18,15 +18,15 @@ import CotizacionProductoPickers from "@/components/cotizacion/CotizacionProduct
 import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import NuevoProductoModal from "@/components/productos/NuevoProductoModal";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import FilterSelect from "@/components/common/FilterSelect";
 import {
   ALERT_INFO,
   BTN_GHOST,
   BTN_PRIMARY,
   BTN_SECONDARY,
-  CHEVRON_SELECT,
   FIELD_INPUT,
   FIELD_LABEL,
-  FIELD_SELECT,
+  FIELD_SELECT_TRIGGER,
   PANEL_CARD,
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
@@ -1086,14 +1086,17 @@ export default function CotizacionForm({
         </div>
         <label className={FIELD_LABEL}>
           Tipo de pago
-          <select
-            className={`mt-1.5 ${FIELD_SELECT} ${CHEVRON_SELECT}`}
-            value={tipoPago}
-            onChange={(event) => setTipoPago(event.target.value as "Contado" | "Crédito")}
-          >
-            <option value="Contado">Contado</option>
-            <option value="Crédito">Crédito</option>
-          </select>
+          <div className="mt-1.5">
+            <FilterSelect
+              value={tipoPago}
+              onChange={(value) => setTipoPago(value as "Contado" | "Crédito")}
+              options={[
+                { value: "Contado", label: "Contado" },
+                { value: "Crédito", label: "Crédito" },
+              ]}
+              inputClassName={FIELD_SELECT_TRIGGER}
+            />
+          </div>
         </label>
         <label className={`md:col-span-2 ${FIELD_LABEL}`}>
           Referencia de pago
@@ -1131,16 +1134,19 @@ export default function CotizacionForm({
                 />
               </button>
             </div>
-            <label className="text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
               IVA
-              <select
-                className={`ml-2 ${FIELD_SELECT} ${CHEVRON_SELECT} !min-h-0 w-auto py-1 pl-2 pr-8 text-sm`}
-                value={ivaCotizacion}
-                onChange={(event) => handleIvaCotizacionChange(normalizeIvaPct(Number(event.target.value)))}
-              >
-                <option value={16}>16%</option>
-                <option value={8}>8%</option>
-              </select>
+              <div className="w-36">
+                <FilterSelect
+                  value={String(ivaCotizacion)}
+                  onChange={(value) => handleIvaCotizacionChange(normalizeIvaPct(Number(value)))}
+                  options={[
+                    { value: "16", label: "16%" },
+                    { value: "8", label: "8%" },
+                  ]}
+                  inputClassName={`${FIELD_SELECT_TRIGGER} !min-h-0 py-1 text-sm md:text-sm`}
+                />
+              </div>
             </label>
             <input
               ref={excelInputRef}
