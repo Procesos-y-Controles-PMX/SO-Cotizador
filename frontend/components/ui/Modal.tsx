@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { SMOOTH_DRAWER_ITEM_VARIANTS, SMOOTH_DRAWER_VARIANTS } from "@/lib/smoothDrawerMotion";
 
@@ -17,6 +18,11 @@ interface ModalProps {
 export default function Modal({ open, onClose, title, children, actions, wide = false }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -32,12 +38,14 @@ export default function Modal({ open, onClose, title, children, actions, wide = 
     };
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
           ref={overlayRef}
-          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-8"
+          className="fixed inset-0 z-[100] flex h-[100dvh] w-full items-end justify-center p-0 sm:items-center sm:p-4 md:p-8"
           initial={reduceMotion ? undefined : "hidden"}
           animate={reduceMotion ? undefined : "visible"}
           exit={reduceMotion ? undefined : "hidden"}
@@ -46,14 +54,14 @@ export default function Modal({ open, onClose, title, children, actions, wide = 
           }}
         >
           <motion.div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 h-full w-full bg-black/40 backdrop-blur-sm"
             variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
           />
 
           <motion.div
-            className={`relative flex max-h-[min(90vh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col overflow-hidden self-end rounded-t-sm bg-white shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:self-center sm:rounded-sm ${wide ? "max-w-2xl" : "max-w-lg"}`}
+            className={`relative flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col overflow-hidden self-end rounded-t-sm bg-white shadow-2xl sm:max-h-[calc(100dvh-4rem)] sm:self-center sm:rounded-sm ${wide ? "max-w-2xl" : "max-w-lg"}`}
             variants={SMOOTH_DRAWER_VARIANTS}
           >
             <motion.div
@@ -95,6 +103,7 @@ export default function Modal({ open, onClose, title, children, actions, wide = 
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
