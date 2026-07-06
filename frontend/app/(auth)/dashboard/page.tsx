@@ -12,8 +12,8 @@ import {
   PANEL_CARD,
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
-import FilterSelect from "@/components/common/FilterSelect";
-import { displayRegionLabel, matchesDisplayRegion, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
+import FilterMultiSelect, { matchesMultiFilter } from "@/components/common/FilterMultiSelect";
+import { displayRegionLabel, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,
   type DashboardCotizacionRow,
@@ -171,11 +171,11 @@ export default function DashboardPage() {
   const [sucursales, setSucursales] = useState<CtzSucursal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [filterYear, setFilterYear] = useState("");
-  const [filterMonth, setFilterMonth] = useState("");
-  const [filterZona, setFilterZona] = useState("");
-  const [filterTienda, setFilterTienda] = useState("");
-  const [filterUsuario, setFilterUsuario] = useState("");
+  const [filterYears, setFilterYears] = useState<string[] | null>(null);
+  const [filterMonths, setFilterMonths] = useState<string[] | null>(null);
+  const [filterZonas, setFilterZonas] = useState<string[] | null>(null);
+  const [filterTiendas, setFilterTiendas] = useState<string[] | null>(null);
+  const [filterUsuarios, setFilterUsuarios] = useState<string[] | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState<BreakdownKind | null>(null);
 
   useEffect(() => {
@@ -210,12 +210,8 @@ export default function DashboardPage() {
     return sortRegionKeys([...zonas]);
   }, [sucursales, rows]);
 
-  const tiendaOptions = useMemo(() => {
-    const list = filterZona
-      ? sucursales.filter((s) => matchesDisplayRegion(s.region, filterZona))
-      : sucursales;
-    return [...list].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [sucursales, filterZona]);
+  const yearOptionValues = useMemo(() => yearOptions.map((year) => String(year)), [yearOptions]);
+  const monthOptionValues = useMemo(() => MESES.map((_, index) => String(index)), []);
 
   const usuarioOptions = useMemo(() => {
     const byId = new Map<string, string>();
@@ -228,17 +224,56 @@ export default function DashboardPage() {
       .sort((a, b) => a.label.localeCompare(b.label, "es"));
   }, [rows]);
 
+  const tiendaOptions = useMemo(() => {
+    const list =
+      filterZonas === null || filterZonas.length === zonaOptions.length
+        ? sucursales
+        : filterZonas.length === 0
+          ? []
+          : sucursales.filter((s) => {
+              const label = displayRegionLabel(s.region?.trim() || SIN_REGION);
+              return filterZonas.includes(label);
+            });
+    return [...list].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [sucursales, filterZonas, zonaOptions]);
+
+  const tiendaOptionValues = useMemo(() => tiendaOptions.map((s) => String(s.id)), [tiendaOptions]);
+  const usuarioOptionValues = useMemo(() => usuarioOptions.map((u) => String(u.id)), [usuarioOptions]);
+
+  useEffect(() => {
+    if (filterTiendas === null) return;
+    const pruned = filterTiendas.filter((id) => tiendaOptionValues.includes(id));
+    if (pruned.length === filterTiendas.length) return;
+    setFilterTiendas(
+      pruned.length === 0 ? [] : pruned.length === tiendaOptionValues.length ? null : pruned,
+    );
+  }, [filterTiendas, tiendaOptionValues]);
+
   const filtered = useMemo(() => {
     return rows.filter((row) => {
       const date = new Date(row.created_at);
-      if (filterYear && date.getFullYear() !== Number(filterYear)) return false;
-      if (filterMonth && date.getMonth() !== Number(filterMonth)) return false;
-      if (filterZona && !matchesDisplayRegion(row.ctz_sucursales?.region, filterZona)) return false;
-      if (filterTienda && row.id_sucursal !== filterTienda) return false;
-      if (filterUsuario && row.id_usuario !== filterUsuario) return false;
+      if (!matchesMultiFilter(String(date.getFullYear()), filterYears, yearOptionValues)) return false;
+      if (!matchesMultiFilter(String(date.getMonth()), filterMonths, monthOptionValues)) return false;
+
+      const region = displayRegionLabel(row.ctz_sucursales?.region?.trim() || SIN_REGION);
+      if (!matchesMultiFilter(region, filterZonas, zonaOptions)) return false;
+      if (!matchesMultiFilter(row.id_sucursal, filterTiendas, tiendaOptionValues)) return false;
+      if (!matchesMultiFilter(row.id_usuario, filterUsuarios, usuarioOptionValues)) return false;
       return true;
     });
-  }, [rows, filterYear, filterMonth, filterZona, filterTienda, filterUsuario]);
+  }, [
+    rows,
+    filterYears,
+    filterMonths,
+    filterZonas,
+    filterTiendas,
+    filterUsuarios,
+    yearOptionValues,
+    monthOptionValues,
+    zonaOptions,
+    tiendaOptionValues,
+    usuarioOptionValues,
+  ]);
 
   const stats = useMemo(() => {
     const tiendasConUso = new Set<string>();
@@ -254,8 +289,9 @@ export default function DashboardPage() {
 
     // Denominador de adopción: tiendas activas dentro de los filtros de zona/tienda
     const universoTiendas = sucursales.filter((s) => {
-      if (filterZona && !matchesDisplayRegion(s.region, filterZona)) return false;
-      if (filterTienda && s.id !== filterTienda) return false;
+      const region = displayRegionLabel(s.region?.trim() || SIN_REGION);
+      if (!matchesMultiFilter(region, filterZonas, zonaOptions)) return false;
+      if (!matchesMultiFilter(String(s.id), filterTiendas, tiendaOptionValues)) return false;
       return true;
     });
 
@@ -274,7 +310,7 @@ export default function DashboardPage() {
       usuariosDistintos: usuariosDistintos.size,
       regiones,
     };
-  }, [filtered, sucursales, filterZona, filterTienda]);
+  }, [filtered, sucursales, filterZonas, filterTiendas, zonaOptions, tiendaOptionValues]);
 
   const breakdowns = useMemo(() => {
     const porRegion = new Map<string, number>();
@@ -331,8 +367,9 @@ export default function DashboardPage() {
       .map(({ label, count }) => ({ label, count }));
 
     const universoTiendas = sucursales.filter((s) => {
-      if (filterZona && !matchesDisplayRegion(s.region, filterZona)) return false;
-      if (filterTienda && s.id !== filterTienda) return false;
+      const region = displayRegionLabel(s.region?.trim() || SIN_REGION);
+      if (!matchesMultiFilter(region, filterZonas, zonaOptions)) return false;
+      if (!matchesMultiFilter(String(s.id), filterTiendas, tiendaOptionValues)) return false;
       return true;
     });
 
@@ -361,7 +398,7 @@ export default function DashboardPage() {
       sinActividad,
       totalTiendasUniverso: universoTiendas.length,
     };
-  }, [filtered, sucursales, filterZona, filterTienda]);
+  }, [filtered, sucursales, filterZonas, filterTiendas, zonaOptions, tiendaOptionValues]);
 
   if (user?.rol !== "admin") {
     return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
@@ -381,13 +418,11 @@ export default function DashboardPage() {
         <label className={FIELD_LABEL}>
           Año
           <div className="mt-1.5">
-            <FilterSelect
-              value={filterYear}
-              onChange={setFilterYear}
-              options={[
-                { value: "", label: "Todos" },
-                ...yearOptions.map((year) => ({ value: String(year), label: String(year) })),
-              ]}
+            <FilterMultiSelect
+              value={filterYears}
+              onChange={setFilterYears}
+              allLabel="Todos"
+              options={yearOptions.map((year) => ({ value: String(year), label: String(year) }))}
               inputClassName={FIELD_SELECT_TRIGGER}
             />
           </div>
@@ -395,13 +430,11 @@ export default function DashboardPage() {
         <label className={FIELD_LABEL}>
           Mes
           <div className="mt-1.5">
-            <FilterSelect
-              value={filterMonth}
-              onChange={setFilterMonth}
-              options={[
-                { value: "", label: "Todos" },
-                ...MESES.map((mes, index) => ({ value: String(index), label: mes })),
-              ]}
+            <FilterMultiSelect
+              value={filterMonths}
+              onChange={setFilterMonths}
+              allLabel="Todos"
+              options={MESES.map((mes, index) => ({ value: String(index), label: mes }))}
               inputClassName={FIELD_SELECT_TRIGGER}
             />
           </div>
@@ -409,16 +442,14 @@ export default function DashboardPage() {
         <label className={FIELD_LABEL}>
           Zona
           <div className="mt-1.5">
-            <FilterSelect
-              value={filterZona}
+            <FilterMultiSelect
+              value={filterZonas}
               onChange={(value) => {
-                setFilterZona(value);
-                setFilterTienda("");
+                setFilterZonas(value);
+                setFilterTiendas(null);
               }}
-              options={[
-                { value: "", label: "Todas" },
-                ...zonaOptions.map((zona) => ({ value: zona, label: zona })),
-              ]}
+              allLabel="Todas"
+              options={zonaOptions.map((zona) => ({ value: zona, label: zona }))}
               inputClassName={FIELD_SELECT_TRIGGER}
             />
           </div>
@@ -426,13 +457,11 @@ export default function DashboardPage() {
         <label className={FIELD_LABEL}>
           Tienda
           <div className="mt-1.5">
-            <FilterSelect
-              value={filterTienda}
-              onChange={setFilterTienda}
-              options={[
-                { value: "", label: "Todas" },
-                ...tiendaOptions.map((s) => ({ value: String(s.id), label: s.nombre })),
-              ]}
+            <FilterMultiSelect
+              value={filterTiendas}
+              onChange={setFilterTiendas}
+              allLabel="Todas"
+              options={tiendaOptions.map((s) => ({ value: String(s.id), label: s.nombre }))}
               inputClassName={FIELD_SELECT_TRIGGER}
             />
           </div>
@@ -440,13 +469,11 @@ export default function DashboardPage() {
         <label className={FIELD_LABEL}>
           Usuario
           <div className="mt-1.5">
-            <FilterSelect
-              value={filterUsuario}
-              onChange={setFilterUsuario}
-              options={[
-                { value: "", label: "Todos" },
-                ...usuarioOptions.map((u) => ({ value: String(u.id), label: u.label })),
-              ]}
+            <FilterMultiSelect
+              value={filterUsuarios}
+              onChange={setFilterUsuarios}
+              allLabel="Todos"
+              options={usuarioOptions.map((u) => ({ value: String(u.id), label: u.label }))}
               inputClassName={FIELD_SELECT_TRIGGER}
             />
           </div>
