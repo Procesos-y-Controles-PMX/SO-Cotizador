@@ -10,9 +10,11 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  /** Wider panel for data-heavy breakdowns. */
+  wide?: boolean;
 }
 
-export default function Modal({ open, onClose, title, children, actions }: ModalProps) {
+export default function Modal({ open, onClose, title, children, actions, wide = false }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
 
@@ -51,7 +53,7 @@ export default function Modal({ open, onClose, title, children, actions }: Modal
           />
 
           <motion.div
-            className="relative flex max-h-[min(90vh,calc(100dvh-env(safe-area-inset-bottom)))] w-full max-w-lg flex-col self-end rounded-t-sm bg-white shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:self-center sm:rounded-sm"
+            className={`relative flex max-h-[min(90vh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col overflow-hidden self-end rounded-t-sm bg-white shadow-2xl sm:max-h-[calc(100vh-4rem)] sm:self-center sm:rounded-sm ${wide ? "max-w-2xl" : "max-w-lg"}`}
             variants={SMOOTH_DRAWER_VARIANTS}
           >
             <motion.div
@@ -75,7 +77,10 @@ export default function Modal({ open, onClose, title, children, actions }: Modal
               </button>
             </motion.div>
 
-            <motion.div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6" variants={SMOOTH_DRAWER_ITEM_VARIANTS}>
+            <motion.div
+              className="min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+              variants={SMOOTH_DRAWER_ITEM_VARIANTS}
+            >
               {children}
             </motion.div>
 

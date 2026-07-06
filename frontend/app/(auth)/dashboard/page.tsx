@@ -13,7 +13,7 @@ import {
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
 import FilterSelect from "@/components/common/FilterSelect";
-import { displayRegionLabel } from "@/lib/cotizacion/groupByRegion";
+import { displayRegionLabel, matchesDisplayRegion, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,
   type DashboardCotizacionRow,
@@ -108,17 +108,20 @@ function BreakdownBars({
   return (
     <div className="space-y-3">
       {rows.map(({ label, count }) => (
-        <div key={label} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs font-medium text-slate-600 sm:w-40" title={label}>
+        <div
+          key={label}
+          className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] sm:gap-3"
+        >
+          <span className="truncate text-xs font-medium text-slate-600" title={label}>
             {label}
           </span>
-          <div className="h-4 flex-1 rounded-sm bg-slate-100">
+          <div className="min-w-0 overflow-hidden rounded-sm bg-slate-100">
             <div
-              className="h-full rounded-sm bg-brand transition-all"
+              className="h-4 max-w-full rounded-sm bg-brand transition-all"
               style={{ width: `${max > 0 ? Math.max((count / max) * 100, 2) : 0}%` }}
             />
           </div>
-          <span className="w-16 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+          <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
             {count}
             {total > 0 ? (
               <span className="ml-1 font-normal text-slate-400">({((count / total) * 100).toFixed(0)}%)</span>
@@ -200,14 +203,16 @@ export default function DashboardPage() {
 
   const zonaOptions = useMemo(() => {
     const zonas = new Set<string>();
-    for (const s of sucursales) zonas.add(s.region?.trim() || SIN_REGION);
-    for (const row of rows) zonas.add(row.ctz_sucursales?.region?.trim() || SIN_REGION);
-    return [...zonas].sort((a, b) => a.localeCompare(b, "es"));
+    for (const s of sucursales) zonas.add(displayRegionLabel(s.region?.trim() || SIN_REGION));
+    for (const row of rows) {
+      zonas.add(displayRegionLabel(row.ctz_sucursales?.region?.trim() || SIN_REGION));
+    }
+    return sortRegionKeys([...zonas]);
   }, [sucursales, rows]);
 
   const tiendaOptions = useMemo(() => {
     const list = filterZona
-      ? sucursales.filter((s) => (s.region?.trim() || SIN_REGION) === filterZona)
+      ? sucursales.filter((s) => matchesDisplayRegion(s.region, filterZona))
       : sucursales;
     return [...list].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [sucursales, filterZona]);
@@ -228,7 +233,7 @@ export default function DashboardPage() {
       const date = new Date(row.created_at);
       if (filterYear && date.getFullYear() !== Number(filterYear)) return false;
       if (filterMonth && date.getMonth() !== Number(filterMonth)) return false;
-      if (filterZona && (row.ctz_sucursales?.region?.trim() || SIN_REGION) !== filterZona) return false;
+      if (filterZona && !matchesDisplayRegion(row.ctz_sucursales?.region, filterZona)) return false;
       if (filterTienda && row.id_sucursal !== filterTienda) return false;
       if (filterUsuario && row.id_usuario !== filterUsuario) return false;
       return true;
@@ -249,7 +254,7 @@ export default function DashboardPage() {
 
     // Denominador de adopción: tiendas activas dentro de los filtros de zona/tienda
     const universoTiendas = sucursales.filter((s) => {
-      if (filterZona && (s.region?.trim() || SIN_REGION) !== filterZona) return false;
+      if (filterZona && !matchesDisplayRegion(s.region, filterZona)) return false;
       if (filterTienda && s.id !== filterTienda) return false;
       return true;
     });
@@ -326,7 +331,7 @@ export default function DashboardPage() {
       .map(({ label, count }) => ({ label, count }));
 
     const universoTiendas = sucursales.filter((s) => {
-      if (filterZona && (s.region?.trim() || SIN_REGION) !== filterZona) return false;
+      if (filterZona && !matchesDisplayRegion(s.region, filterZona)) return false;
       if (filterTienda && s.id !== filterTienda) return false;
       return true;
     });
@@ -488,17 +493,20 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {stats.regiones.map(({ region, count }) => (
-                  <div key={region} className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 truncate text-xs font-medium text-slate-600 sm:w-44">
+                  <div
+                    key={region}
+                    className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:gap-3"
+                  >
+                    <span className="truncate text-xs font-medium text-slate-600" title={region}>
                       {region}
                     </span>
-                    <div className="h-5 flex-1 rounded-sm bg-slate-100">
+                    <div className="min-w-0 overflow-hidden rounded-sm bg-slate-100">
                       <div
-                        className="h-full rounded-sm bg-brand transition-all"
+                        className="h-5 max-w-full rounded-sm bg-brand transition-all"
                         style={{ width: `${maxRegionCount > 0 ? Math.max((count / maxRegionCount) * 100, 2) : 0}%` }}
                       />
                     </div>
-                    <span className="w-16 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+                    <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
                       {count}
                       <span className="ml-1 font-normal text-slate-400">
                         {stats.totalCotizaciones > 0
@@ -518,6 +526,7 @@ export default function DashboardPage() {
         open={breakdownOpen !== null}
         onClose={() => setBreakdownOpen(null)}
         title={breakdownOpen ? BREAKDOWN_TITLES[breakdownOpen] : ""}
+        wide
       >
         {breakdownOpen === "cotizaciones" ? (
           <div className="space-y-6">
