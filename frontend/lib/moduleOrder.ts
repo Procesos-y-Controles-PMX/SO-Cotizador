@@ -4,6 +4,7 @@ export const MODULE_ORDER: readonly string[] = [
   '/cotizaciones',
   '/cotizaciones/nueva',
   '/inventario',
+  '/sucursales',
   '/usuarios',
 ]
 
