@@ -72,6 +72,8 @@ export type CtzCotizacion = {
   subtotal: number;
   iva_total: number;
   total: number;
+  /** Snapshot al registrar; el PDF no usa los términos actuales de la sucursal. */
+  terminos_adicionales: string | null;
   venta_cerrada: boolean;
   created_at: string;
   updated_at: string;

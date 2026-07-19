@@ -904,6 +904,7 @@ export default function CotizacionForm({
         return;
       }
       const obraPayload = resolveObraPayload();
+      const terminosSnapshot = sucursalTerminosDraft.trim() || null;
       const cotizacionBase = {
         id_usuario: user.id,
         id_sucursal: idSucursal,
@@ -918,6 +919,7 @@ export default function CotizacionForm({
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
         total: totals.total,
+        terminos_adicionales: terminosSnapshot,
         venta_cerrada: false,
       };
       let result: Awaited<ReturnType<typeof createCotizacion>> = { ok: false, error: "unknown" };
@@ -1294,8 +1296,10 @@ export default function CotizacionForm({
             <div>
               <h3 className="font-semibold text-slate-900">Términos adicionales de la sucursal (PDF)</h3>
               <p className="mt-1 text-xs text-slate-500">
-                Se aplican a las cotizaciones con sucursal <strong>{selectedSucursalNombre}</strong>. Una línea nueva por
-                viñeta o párrafo. Guarda aquí cuando termines de editarlos (no se guardan al registrar solo la cotización).
+                Plantilla para la sucursal <strong>{selectedSucursalNombre}</strong>. Al registrar una cotización se
+                copian aquí y quedan fijos en ese PDF: si después cambias estos términos, las cotizaciones ya
+                guardadas no se modifican. Una línea nueva por viñeta. Usa &quot;Guardar términos de sucursal&quot; para
+                actualizar la plantilla de cotizaciones futuras.
               </p>
             </div>
           </div>

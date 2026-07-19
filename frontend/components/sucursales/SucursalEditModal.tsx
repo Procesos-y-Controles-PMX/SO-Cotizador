@@ -134,7 +134,8 @@ export default function SucursalEditModal({ open, sucursal, onClose, onSaved }: 
           </label>
 
           <p className="text-xs text-slate-500">
-            La dirección y los términos se muestran en el PDF de las cotizaciones de esta sucursal.
+            La dirección se muestra en el PDF. Los términos se copian a cada cotización al registrarla y quedan
+            fijos en ese documento; cambiarlos aquí solo afecta cotizaciones nuevas.
           </p>
         </div>
       ) : null}
