@@ -904,7 +904,8 @@ export default function CotizacionForm({
         return;
       }
       const obraPayload = resolveObraPayload();
-      const terminosSnapshot = sucursalTerminosDraft.trim() || null;
+      const terminosSnapshot =
+        sucursalTerminosDraft.trim() || sucursal.terminos_adicionales?.trim() || null;
       const cotizacionBase = {
         id_usuario: user.id,
         id_sucursal: idSucursal,

@@ -179,11 +179,9 @@ export function CotizacionPDFDocument({
   cuentasSrc: string;
 }) {
   const ivaPct = pdfIvaCotizacionPct(quote);
-  // Snapshot en la cotización; fallback a sucursal solo para filas previas a la migración.
-  const terminosFuente =
-    quote.terminos_adicionales ?? quote.ctz_sucursales?.terminos_adicionales ?? null;
+  // Solo el snapshot de la cotización — nunca los términos vivos de la sucursal.
   const terminosExtra =
-    terminosFuente
+    quote.terminos_adicionales
       ?.split("\n")
       .map((l) => l.trim())
       .filter((l) => l.length > 0) ?? [];
