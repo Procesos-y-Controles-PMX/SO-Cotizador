@@ -134,8 +134,8 @@ export default function SucursalEditModal({ open, sucursal, onClose, onSaved }: 
           </label>
 
           <p className="text-xs text-slate-500">
-            La dirección se muestra en el PDF. Los términos se copian a cada cotización al registrarla y quedan
-            fijos en ese documento; cambiarlos aquí solo afecta cotizaciones nuevas.
+            Plantilla para cotizaciones nuevas: dirección y términos se copian a cada cotización al registrarla y
+            quedan fijos en ese PDF. Editarlos aquí no cambia cotizaciones ya guardadas.
           </p>
         </div>
       ) : null}

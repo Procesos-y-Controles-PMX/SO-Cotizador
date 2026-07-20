@@ -12,6 +12,8 @@ export type CotizacionFormInitial = {
   comentarios: string | null;
   mostrar_con_iva: boolean;
   iva_porcentaje?: number;
+  terminos_adicionales?: string | null;
+  direccion_sucursal?: string | null;
   productos: ProductoInput[];
 };
 
@@ -29,6 +31,8 @@ export function cotizacionToFormInitial(
     comentarios: data.comentarios,
     mostrar_con_iva: data.mostrar_con_iva,
     iva_porcentaje: data.iva_porcentaje ?? data.ctz_cotizacion_items[0]?.iva_porcentaje ?? 16,
+    terminos_adicionales: data.terminos_adicionales,
+    direccion_sucursal: data.direccion_sucursal,
     productos: data.ctz_cotizacion_items.map((row) => ({
       id_producto: row.id_producto,
       descripcion_registro: row.descripcion_registro,

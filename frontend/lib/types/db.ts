@@ -74,6 +74,8 @@ export type CtzCotizacion = {
   total: number;
   /** Snapshot al registrar; el PDF no usa los términos actuales de la sucursal. */
   terminos_adicionales: string | null;
+  /** Snapshot al registrar; el PDF no usa la dirección actual de la sucursal. */
+  direccion_sucursal: string | null;
   venta_cerrada: boolean;
   created_at: string;
   updated_at: string;

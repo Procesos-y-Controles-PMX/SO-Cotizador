@@ -179,14 +179,14 @@ export function CotizacionPDFDocument({
   cuentasSrc: string;
 }) {
   const ivaPct = pdfIvaCotizacionPct(quote);
-  // Solo el snapshot de la cotización — nunca los términos vivos de la sucursal.
+  // Solo snapshots de la cotización — nunca plantilla/dirección viva de la sucursal.
   const terminosExtra =
     quote.terminos_adicionales
       ?.split("\n")
       .map((l) => l.trim())
       .filter((l) => l.length > 0) ?? [];
   const referenciaPago = quote.referencia_pago?.trim() ?? "";
-  const sucursalDireccion = quote.ctz_sucursales?.direccion?.trim() ?? "";
+  const sucursalDireccion = quote.direccion_sucursal?.trim() ?? "";
 
   return (
     <Document title={quote.folio}>

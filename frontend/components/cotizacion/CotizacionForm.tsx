@@ -41,7 +41,7 @@ import {
   type ProductoInput,
 } from "@/lib/queries/cotizaciones";
 import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
-import { listSucursales, updateSucursal } from "@/lib/queries/sucursales";
+import { listSucursales } from "@/lib/queries/sucursales";
 import {
   calcLineAmounts,
   normalizeIvaPct,
@@ -182,8 +182,7 @@ export default function CotizacionForm({
   const [excelParsing, setExcelParsing] = useState(false);
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [sucursalTerminosDraft, setSucursalTerminosDraft] = useState("");
-  const [savingSucursalTerminos, setSavingSucursalTerminos] = useState(false);
+  const [terminosDraft, setTerminosDraft] = useState(initial?.terminos_adicionales ?? "");
   const [precioUnitarioDraft, setPrecioUnitarioDraft] = useState<Record<string, string>>({});
   const [cantidadDraft, setCantidadDraft] = useState<Record<string, string>>({});
   const [productosCotizacion, setProductosCotizacion] = useState<ProductoLocal[]>(() => {
@@ -350,13 +349,15 @@ export default function CotizacionForm({
   }, [idCliente]);
 
   useEffect(() => {
+    // En edición los términos ya están congelados en la cotización.
+    if (mode !== "create") return;
     if (!idSucursal) {
-      setSucursalTerminosDraft("");
+      setTerminosDraft("");
       return;
     }
     const s = sucursales.find((row) => row.id === idSucursal);
-    setSucursalTerminosDraft(s?.terminos_adicionales ?? "");
-  }, [idSucursal, sucursales]);
+    setTerminosDraft(s?.terminos_adicionales ?? "");
+  }, [idSucursal, sucursales, mode]);
 
   const totals = useMemo(() => {
     const subtotal = Number(productosCotizacion.reduce((acc, producto) => acc + producto.subtotal_item, 0).toFixed(2));
@@ -373,25 +374,6 @@ export default function CotizacionForm({
     () => sucursales.find((row) => row.id === idSucursal)?.nombre ?? null,
     [sucursales, idSucursal]
   );
-
-  async function saveSucursalTerminos() {
-    if (!idSucursal) {
-      toast.error("Selecciona una sucursal primero.");
-      return;
-    }
-    setSavingSucursalTerminos(true);
-    const text = sucursalTerminosDraft.trim();
-    const ok = await updateSucursal(idSucursal, { terminos_adicionales: text ? text : null });
-    setSavingSucursalTerminos(false);
-    if (!ok) {
-      toast.error("No se pudieron guardar los términos de la sucursal.");
-      return;
-    }
-    setSucursales((prev) =>
-      prev.map((row) => (row.id === idSucursal ? { ...row, terminos_adicionales: text ? text : null } : row))
-    );
-    toast.success("Términos de sucursal guardados.");
-  }
 
   function setProductoFromCapturedPrice(tempId: string, precioCapturado: number, cantidad?: number) {
     setProductosCotizacion((prev) =>
@@ -905,7 +887,7 @@ export default function CotizacionForm({
       }
       const obraPayload = resolveObraPayload();
       const terminosSnapshot =
-        sucursalTerminosDraft.trim() || sucursal.terminos_adicionales?.trim() || null;
+        terminosDraft.trim() || sucursal.terminos_adicionales?.trim() || null;
       const cotizacionBase = {
         id_usuario: user.id,
         id_sucursal: idSucursal,
@@ -921,6 +903,7 @@ export default function CotizacionForm({
         iva_total: totals.ivaTotal,
         total: totals.total,
         terminos_adicionales: terminosSnapshot,
+        direccion_sucursal: sucursal.direccion?.trim() || null,
         venta_cerrada: false,
       };
       let result: Awaited<ReturnType<typeof createCotizacion>> = { ok: false, error: "unknown" };
@@ -1295,12 +1278,23 @@ export default function CotizacionForm({
         <div className={`p-4 ${PANEL_CARD}`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-slate-900">Términos adicionales de la sucursal (PDF)</h3>
+              <h3 className="font-semibold text-slate-900">
+                {mode === "create" ? "Términos adicionales de esta cotización (PDF)" : "Términos congelados en esta cotización"}
+              </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Plantilla para la sucursal <strong>{selectedSucursalNombre}</strong>. Al registrar una cotización se
-                copian aquí y quedan fijos en ese PDF: si después cambias estos términos, las cotizaciones ya
-                guardadas no se modifican. Una línea nueva por viñeta. Usa &quot;Guardar términos de sucursal&quot; para
-                actualizar la plantilla de cotizaciones futuras.
+                {mode === "create" ? (
+                  <>
+                    Se copian a <strong>esta</strong> cotización al registrarla y quedan fijos en su PDF. Cambiar la
+                    plantilla de la sucursal (en Sucursales) no afecta cotizaciones ya guardadas. Una línea nueva por
+                    viñeta.
+                  </>
+                ) : (
+                  <>
+                    Estos términos se guardaron con la cotización y no cambian si editas la plantilla de{" "}
+                    <strong>{selectedSucursalNombre}</strong>. La plantilla para cotizaciones nuevas se edita en
+                    Sucursales.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -1309,21 +1303,14 @@ export default function CotizacionForm({
           </div>
           <textarea
             className={`min-h-[120px] ${FIELD_INPUT}`}
-            value={sucursalTerminosDraft}
-            onChange={(e) => setSucursalTerminosDraft(e.target.value)}
-            placeholder="Ej. Condiciones especiales de esta tienda..."
+            value={mode === "create" ? terminosDraft : (initial?.terminos_adicionales ?? "")}
+            onChange={(e) => {
+              if (mode === "create") setTerminosDraft(e.target.value);
+            }}
+            readOnly={mode !== "create"}
+            placeholder={mode === "create" ? "Ej. Condiciones especiales de esta cotización..." : "Sin términos adicionales"}
             aria-label="Términos adicionales para el PDF"
           />
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              disabled={savingSucursalTerminos}
-              className={BTN_SECONDARY}
-              onClick={() => void saveSucursalTerminos()}
-            >
-              {savingSucursalTerminos ? "Guardando..." : "Guardar términos de sucursal"}
-            </button>
-          </div>
         </div>
       )}
 

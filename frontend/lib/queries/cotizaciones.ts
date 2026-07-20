@@ -36,8 +36,6 @@ export type CotizacionWithRelations = CtzCotizacion & {
     nombre: string;
     region: string | null;
     prefijo_folio: string;
-    terminos_adicionales: string | null;
-    direccion: string | null;
   } | null;
   ctz_usuarios: { email: string; nombre_completo: string | null; rol: string } | null;
   ctz_cotizacion_items: (CtzCotizacionItem & {
@@ -71,7 +69,7 @@ const COTIZACIONES_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
       ctz_obras(nombre_obra,num_obra,referencia_pago),
-      ctz_sucursales(nombre,region,prefijo_folio,terminos_adicionales,direccion),
+      ctz_sucursales(nombre,region,prefijo_folio),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `;
@@ -134,7 +132,7 @@ export async function getCotizacionById(id: string): Promise<CotizacionWithRelat
       *,
       ctz_clientes(nombre_cliente),
       ctz_obras(nombre_obra,num_obra,referencia_pago),
-      ctz_sucursales(nombre,region,prefijo_folio,terminos_adicionales,direccion),
+      ctz_sucursales(nombre,region,prefijo_folio),
       ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `
