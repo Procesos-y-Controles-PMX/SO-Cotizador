@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
+import { Terminal, TypingAnimation } from "@/components/magicui/terminal";
 import { BTN_PRIMARY, BTN_SECONDARY, CHEVRON_SELECT, FIELD_SELECT } from "@/components/ui/contentStyles";
 import { uniqueRegionsFromRows, uniqueSucursalesFromRows } from "@/lib/cotizacion/groupByRegion";
 import type { BulkPdfScope } from "@/lib/pdf/exportCotizacionesZip";
@@ -67,8 +68,10 @@ export default function DownloadCotizacionesZipModal({
     return { mode: "all" };
   }
 
-  const progressLabel =
-    progress && progress.total > 0 ? `Generando PDF ${progress.current}/${progress.total}...` : null;
+  const hasProgress = Boolean(progress && progress.total > 0);
+  const percent = hasProgress
+    ? Math.round(((progress!.current) / progress!.total) * 100)
+    : 0;
 
   return (
     <Modal
@@ -171,7 +174,21 @@ export default function DownloadCotizacionesZipModal({
           </label>
         ) : null}
 
-        {progressLabel ? <p className="text-sm text-slate-600">{progressLabel}</p> : null}
+        {loading ? (
+          <Terminal sequence={false} className="max-w-full">
+            <TypingAnimation duration={30} className="text-emerald-400">
+              {"> Generando PDFs del alcance seleccionado…"}
+            </TypingAnimation>
+            <span className="text-sm text-slate-300">
+              {hasProgress
+                ? `Procesando ${progress!.current}/${progress!.total} cotizaciones`
+                : "Iniciando compresión ZIP…"}
+            </span>
+            {hasProgress ? (
+              <span className="text-xs text-slate-500">{percent}% completado</span>
+            ) : null}
+          </Terminal>
+        ) : null}
       </div>
     </Modal>
   );

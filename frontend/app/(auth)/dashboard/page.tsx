@@ -13,6 +13,8 @@ import {
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
 import FilterMultiSelect, { matchesMultiFilter } from "@/components/common/FilterMultiSelect";
+import { NumberTicker } from "@/components/magicui/number-ticker";
+import { InteractiveGridPattern } from "@/components/magicui/interactive-grid-pattern";
 import { displayRegionLabel, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,
@@ -53,11 +55,15 @@ type BreakdownRow = { label: string; count: number };
 function StatTile({
   label,
   value,
+  suffix = "",
+  decimals = 0,
   sublabel,
   onClick,
 }: {
   label: string;
-  value: string;
+  value: number;
+  suffix?: string;
+  decimals?: number;
   sublabel?: string;
   onClick?: () => void;
 }) {
@@ -71,7 +77,10 @@ function StatTile({
   const content = (
     <>
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-900">
+        <NumberTicker value={value} decimalPlaces={decimals} className="text-slate-900" />
+        {suffix}
+      </p>
       {sublabel ? <p className="mt-0.5 text-xs text-slate-500">{sublabel}</p> : null}
       {onClick ? (
         <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-brand/80">Ver desglose</p>
@@ -481,31 +490,44 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <div className={EMPTY_STATE}>Cargando métricas...</div>
+        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
+          <InteractiveGridPattern
+            width={36}
+            height={36}
+            squares={[34, 12]}
+            className="inset-0 h-full w-full [mask-image:radial-gradient(320px_circle_at_center,white,transparent)]"
+            squaresClassName="stroke-slate-300/50 hover:fill-brand/20"
+          />
+          <span className="relative z-10 text-sm font-medium text-slate-500">
+            Cargando métricas...
+          </span>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatTile
               label="Cotizaciones"
-              value={String(stats.totalCotizaciones)}
+              value={stats.totalCotizaciones}
               sublabel="en el periodo filtrado"
               onClick={() => setBreakdownOpen("cotizaciones")}
             />
             <StatTile
               label="Tiendas con actividad"
-              value={String(stats.tiendasConUso)}
+              value={stats.tiendasConUso}
               sublabel={`de ${stats.totalTiendas} tiendas activas`}
               onClick={() => setBreakdownOpen("tiendas")}
             />
             <StatTile
               label="Adopción"
-              value={`${stats.adopcion.toFixed(1)}%`}
+              value={stats.adopcion}
+              decimals={1}
+              suffix="%"
               sublabel="tiendas que han cotizado"
               onClick={() => setBreakdownOpen("adopcion")}
             />
             <StatTile
               label="Usuarios distintos"
-              value={String(stats.usuariosDistintos)}
+              value={stats.usuariosDistintos}
               sublabel="que generaron cotizaciones"
               onClick={() => setBreakdownOpen("usuarios")}
             />
