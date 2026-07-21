@@ -1,8 +1,10 @@
 "use client";
 
+
+import { Terminal, TypingAnimation } from "@promexma/ui";
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
-import { Terminal, TypingAnimation } from "@/components/magicui/terminal";
+
 import { BTN_PRIMARY, BTN_SECONDARY, CHEVRON_SELECT, FIELD_SELECT } from "@/components/ui/contentStyles";
 import { uniqueRegionsFromRows, uniqueSucursalesFromRows } from "@/lib/cotizacion/groupByRegion";
 import type { BulkPdfScope } from "@/lib/pdf/exportCotizacionesZip";

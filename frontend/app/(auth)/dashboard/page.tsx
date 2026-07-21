@@ -1,5 +1,7 @@
 "use client";
 
+
+import { NumberTicker, InteractiveGridPattern } from "@promexma/ui";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import PageHeader from "@/components/ui/PageHeader";
@@ -13,8 +15,7 @@ import {
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
 import FilterMultiSelect, { matchesMultiFilter } from "@/components/common/FilterMultiSelect";
-import { NumberTicker } from "@/components/magicui/number-ticker";
-import { InteractiveGridPattern } from "@/components/magicui/interactive-grid-pattern";
+
 import { displayRegionLabel, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,

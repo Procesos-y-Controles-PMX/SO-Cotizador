@@ -1,5 +1,7 @@
 "use client";
 
+
+import { InteractiveGridPattern } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,7 +16,7 @@ import {
   SIDEBAR_USER_CARD,
 } from "@/components/layout/shellStyles";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
-import { InteractiveGridPattern } from "@/components/magicui/interactive-grid-pattern";
+
 import ModuleTransition from "@/components/common/ModuleTransition";
 
 interface NavItemDef {

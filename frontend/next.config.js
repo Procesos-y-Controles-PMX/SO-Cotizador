@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@promexma/ui"],
   // Fija la raíz del proyecto en frontend/ para que `next dev` no infiera
   // el repo padre como workspace y falle al resolver dependencias (tailwindcss).
   // Solo en local: en Vercel el root ya es frontend/ y sobreescribir
