@@ -493,9 +493,7 @@ export default function DashboardPage() {
       {loading ? (
         <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
           <InteractiveGridPattern
-            width={36}
-            height={36}
-            squares={[34, 12]}
+            cellSize={36}
             className="inset-0 h-full w-full [mask-image:radial-gradient(320px_circle_at_center,white,transparent)]"
             squaresClassName="stroke-slate-300/50 hover:fill-brand/20"
           />
