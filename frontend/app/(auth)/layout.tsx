@@ -274,15 +274,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       <div className={cn("relative min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
         {/* Clip oversized skewed grid so it cannot create empty page scroll. */}
-        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
+                <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
           <InteractiveGridPattern
             width={48}
             height={48}
             squares={[30, 18]}
-            className={cn(
-              "absolute inset-x-0 inset-y-[-30%] h-[160%] w-full border-0 skew-y-6",
-              "[mask-image:radial-gradient(1100px_circle_at_50%_-5%,white,transparent)]",
-            )}
+            className="absolute inset-0 h-full w-full"
             squaresClassName="stroke-slate-300/80"
           />
         </div>
