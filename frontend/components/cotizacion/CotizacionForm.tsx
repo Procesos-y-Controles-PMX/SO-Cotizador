@@ -942,6 +942,7 @@ export default function CotizacionForm({
     }
     const cotizacionId = initial.id;
     const obraPayload = resolveObraPayload();
+    const terminosSnapshot = terminosDraft.trim() || null;
     const ok = await updateCotizacion(
       cotizacionId,
       {
@@ -957,6 +958,7 @@ export default function CotizacionForm({
         subtotal: totals.subtotal,
         iva_total: totals.ivaTotal,
         total: totals.total,
+        terminos_adicionales: terminosSnapshot,
       },
       productosPayload
     );
@@ -1278,21 +1280,17 @@ export default function CotizacionForm({
         <div className={`p-4 ${PANEL_CARD}`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-slate-900">
-                {mode === "create" ? "Términos adicionales de esta cotización (PDF)" : "Términos congelados en esta cotización"}
-              </h3>
+              <h3 className="font-semibold text-slate-900">Términos adicionales de esta cotización (PDF)</h3>
               <p className="mt-1 text-xs text-slate-500">
                 {mode === "create" ? (
                   <>
-                    Se copian a <strong>esta</strong> cotización al registrarla y quedan fijos en su PDF. Cambiar la
-                    plantilla de la sucursal (en Sucursales) no afecta cotizaciones ya guardadas. Una línea nueva por
-                    viñeta.
+                    Se guardan en <strong>esta</strong> cotización al registrarla. Cambiar la plantilla de la sucursal
+                    (en Sucursales) no afecta cotizaciones ya guardadas. Una línea nueva por viñeta.
                   </>
                 ) : (
                   <>
-                    Estos términos se guardaron con la cotización y no cambian si editas la plantilla de{" "}
-                    <strong>{selectedSucursalNombre}</strong>. La plantilla para cotizaciones nuevas se edita en
-                    Sucursales.
+                    Puedes editarlos aquí; al guardar cambios solo se actualiza <strong>esta</strong> cotización, no la
+                    plantilla de <strong>{selectedSucursalNombre}</strong>. Otras cotizaciones no se modifican.
                   </>
                 )}
               </p>
@@ -1303,12 +1301,9 @@ export default function CotizacionForm({
           </div>
           <textarea
             className={`min-h-[120px] ${FIELD_INPUT}`}
-            value={mode === "create" ? terminosDraft : (initial?.terminos_adicionales ?? "")}
-            onChange={(e) => {
-              if (mode === "create") setTerminosDraft(e.target.value);
-            }}
-            readOnly={mode !== "create"}
-            placeholder={mode === "create" ? "Ej. Condiciones especiales de esta cotización..." : "Sin términos adicionales"}
+            value={terminosDraft}
+            onChange={(e) => setTerminosDraft(e.target.value)}
+            placeholder="Ej. Condiciones especiales de esta cotización..."
             aria-label="Términos adicionales para el PDF"
           />
         </div>
