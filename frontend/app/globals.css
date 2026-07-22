@@ -92,8 +92,25 @@ body {
   padding-right: max(1rem, env(safe-area-inset-right));
 }
 
+/* Notch / Dynamic Island — used on login only (desktop resets below) */
+.login-safe-top {
+  padding-top: max(1rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
+}
+
+/*
+ * Home indicator + mobile browser chrome (Safari/Chrome floating URL bar is
+ * NOT included in safe-area-inset-bottom — reserve ~5rem so Acceder clears it).
+ */
 .login-safe-bottom {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.25rem));
+}
+
+@media (min-width: 1024px) {
+  .login-safe-top,
+  .login-safe-bottom {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 
 .app-safe-x {

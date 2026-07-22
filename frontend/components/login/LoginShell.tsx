@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import MagazineDots from "@/components/kokonutui/magazine-dots";
 import PromexmaLogotipo from "@/components/login/PromexmaLogotipo";
+
+const LOGIN_THEME = "#0d1117";
 
 interface LoginShellProps {
   productLabel: string;
@@ -12,6 +14,48 @@ interface LoginShellProps {
   children: ReactNode;
 }
 
+/** Dark status bar / theme-color while login is mounted (Safari top chrome). */
+function useLoginChromeTheme() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevScheme = root.style.colorScheme;
+    root.style.colorScheme = "dark";
+
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    const created = !meta;
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    const prevTheme = meta.getAttribute("content");
+    meta.setAttribute("content", LOGIN_THEME);
+
+    let apple = document.querySelector(
+      'meta[name="apple-mobile-web-app-status-bar-style"]',
+    ) as HTMLMetaElement | null;
+    const createdApple = !apple;
+    if (!apple) {
+      apple = document.createElement("meta");
+      apple.name = "apple-mobile-web-app-status-bar-style";
+      document.head.appendChild(apple);
+    }
+    const prevApple = apple.getAttribute("content");
+    apple.setAttribute("content", "black-translucent");
+
+    return () => {
+      root.style.colorScheme = prevScheme;
+      if (created) meta?.remove();
+      else if (prevTheme != null) meta?.setAttribute("content", prevTheme);
+      else meta?.removeAttribute("content");
+
+      if (createdApple) apple?.remove();
+      else if (prevApple != null) apple?.setAttribute("content", prevApple);
+      else apple?.removeAttribute("content");
+    };
+  }, []);
+}
+
 export default function LoginShell({
   productLabel,
   heroLine1,
@@ -19,10 +63,12 @@ export default function LoginShell({
   heroDescription,
   children,
 }: LoginShellProps) {
+  useLoginChromeTheme();
+
   return (
     <MagazineDots interactive className="min-h-dvh !items-stretch !justify-start">
       <main className="relative z-10 grid min-h-dvh w-full lg:grid-cols-2">
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-brand z-20" />
+        <div className="absolute left-0 right-0 top-[env(safe-area-inset-top,0px)] z-20 h-0.5 bg-brand" />
 
         {/* Desktop — branding column */}
         <section className="hidden lg:flex flex-col justify-center px-12 xl:px-16 py-10">
@@ -48,9 +94,9 @@ export default function LoginShell({
         </section>
 
         {/* Mobile + form column */}
-        <section className="flex min-h-dvh flex-col lg:min-h-0 lg:justify-center login-safe-x login-safe-bottom px-4 sm:px-6 lg:px-12 xl:px-16 pt-[max(0.75rem,env(safe-area-inset-top))] pb-4 lg:py-10">
+        <section className="login-safe-x login-safe-top login-safe-bottom flex min-h-dvh flex-col px-4 sm:px-6 lg:min-h-0 lg:justify-center lg:px-12 lg:py-10 xl:px-16">
           {/* Mobile — branding on dark canvas (not inside the white card) */}
-          <div className="lg:hidden shrink-0 px-1 pt-3 pb-5 text-center">
+          <div className="lg:hidden shrink-0 px-1 pt-1 pb-5 text-center">
             <PromexmaLogotipo
               productLabel={productLabel}
               variant="dark"
