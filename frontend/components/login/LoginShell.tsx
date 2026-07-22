@@ -14,12 +14,19 @@ interface LoginShellProps {
   children: ReactNode;
 }
 
-/** Dark status bar / theme-color while login is mounted (Safari top chrome). */
+/** Dark canvas + status bar while login is mounted (kills white iOS overscroll). */
 function useLoginChromeTheme() {
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     const prevScheme = root.style.colorScheme;
+    const prevHtmlBg = root.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevOverscroll = root.style.overscrollBehavior;
     root.style.colorScheme = "dark";
+    root.style.backgroundColor = LOGIN_THEME;
+    body.style.backgroundColor = LOGIN_THEME;
+    root.style.overscrollBehavior = "none";
 
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     const created = !meta;
@@ -45,6 +52,9 @@ function useLoginChromeTheme() {
 
     return () => {
       root.style.colorScheme = prevScheme;
+      root.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+      root.style.overscrollBehavior = prevOverscroll;
       if (created) meta?.remove();
       else if (prevTheme != null) meta?.setAttribute("content", prevTheme);
       else meta?.removeAttribute("content");

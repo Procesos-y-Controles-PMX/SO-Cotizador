@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   if (PORTAL_URL) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-slate-50">
+      <main className="flex min-h-dvh items-center justify-center bg-[#0d1117]">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand" role="status" aria-label="Cargando" />
       </main>
     );
