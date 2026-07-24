@@ -1,13 +1,17 @@
 "use client";
 
 
-import { InteractiveGridPattern } from "@promexma/ui";
+import { GridLoadingScreen, InteractiveGridPattern } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { getCurrentUser, logout, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import {
+  AmbientGridProvider,
+  useAmbientGrid,
+} from "@/contexts/AmbientGridContext";
 import {
   SIDEBAR_NAV_ACTIVE,
   SIDEBAR_NAV_IDLE,
@@ -39,11 +43,45 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
+function AmbientCanvas() {
+  const ambient = useAmbientGrid();
+  const spinner = Boolean(ambient?.spinner);
+  const origin = ambient?.spinnerOrigin ?? [0.5, 0.55];
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      aria-hidden
+      data-ambient-grid-clip
+    >
+      <InteractiveGridPattern
+        cellSize={40}
+        skewY={6}
+        wave={!spinner}
+        waveDuration={5}
+        waveGap={4}
+        spinner={spinner}
+        spinnerMs={1400}
+        spinnerRadius={3.5}
+        trailMs={750}
+        spinnerOrigin={origin}
+        className="absolute inset-0 [mask-image:radial-gradient(ellipse_90%_80%_at_50%_40%,white,transparent)]"
+        squaresClassName="stroke-slate-300/80"
+      />
+    </div>
+  );
+}
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [meshReady, setMeshReady] = useState(false);
+
+  useEffect(() => {
+    setMeshReady(true);
+  }, []);
 
   const navGroups: NavGroup[] = useMemo(
     () => [
@@ -119,7 +157,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     if (!loading && !session) router.replace("/login");
   }, [loading, router]);
 
-  if (loading || !user) return <main className="min-h-screen" />;
+  if (loading || !user) {
+    return <GridLoadingScreen message="Verificando sesión..." variant="light" />;
+  }
 
   const filteredGroups = navGroups
     .map((group) => ({
@@ -225,6 +265,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   );
 
   return (
+    <AmbientGridProvider meshReady={meshReady}>
     <div className="min-h-screen app-canvas">
       <aside
         className={cn(
@@ -273,18 +314,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className={cn("relative min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
-        {/* Clip oversized skewed grid so it cannot create empty page scroll. */}
-                        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
-          <InteractiveGridPattern
-            cellSize={40}
-            skewY={6}
-            wave
-            waveDuration={5}
-            waveGap={4}
-            className="absolute inset-0 [mask-image:radial-gradient(ellipse_90%_80%_at_50%_40%,white,transparent)]"
-            squaresClassName="stroke-slate-300/80"
-          />
-        </div>
+        <AmbientCanvas />
 
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-transparent py-3 lg:py-4">
           <div className="min-w-0 flex-1">
@@ -318,6 +348,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         }))}
       />
     </div>
+    </AmbientGridProvider>
   );
 }
 

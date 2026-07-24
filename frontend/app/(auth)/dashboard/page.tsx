@@ -1,7 +1,8 @@
 "use client";
 
 
-import { NumberTicker, InteractiveGridPattern } from "@promexma/ui";
+import { NumberTicker } from "@promexma/ui";
+import BrandLoader from "@/components/ui/BrandLoader";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import PageHeader from "@/components/ui/PageHeader";
@@ -491,22 +492,7 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-line bg-muted/60">
-          <InteractiveGridPattern
-            cellSize={36}
-            skewY={6}
-            spinner
-            spinnerMs={1400}
-            spinnerRadius={3}
-            trailMs={700}
-            spinnerOrigin={[0.5, 0.5]}
-            className="inset-0 h-full w-full [mask-image:radial-gradient(320px_circle_at_center,white,transparent)]"
-            squaresClassName="stroke-slate-300/50"
-          />
-          <span className="relative z-10 text-sm font-medium text-fg-subtle">
-            Cargando métricas...
-          </span>
-        </div>
+        <BrandLoader center size="lg" label="Cargando métricas..." />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
