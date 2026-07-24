@@ -1,6 +1,9 @@
+"use client";
+
+import { InteractiveGridPattern } from "@promexma/ui";
 import { cn } from "@/lib/utils";
 
-const SIZE_CLASS = {
+const RING_SIZE = {
   xs: "h-4 w-4",
   sm: "h-6 w-6",
   md: "h-8 w-8",
@@ -8,7 +11,19 @@ const SIZE_CLASS = {
   xl: "h-12 w-12",
 } as const;
 
-export type BrandLoaderSize = keyof typeof SIZE_CLASS;
+const INSET_BOX = {
+  md: "h-28 w-28",
+  lg: "h-36 w-36",
+  xl: "h-44 w-44",
+} as const;
+
+const INSET_RADIUS = {
+  md: 2.2,
+  lg: 2.8,
+  xl: 3.2,
+} as const;
+
+export type BrandLoaderSize = keyof typeof RING_SIZE;
 
 type BrandLoaderProps = {
   size?: BrandLoaderSize;
@@ -19,7 +34,39 @@ type BrandLoaderProps = {
   label?: string;
 };
 
-/** Red arc spinner — canonical loading indicator (Documentación unidades list). */
+function CssRing({ size }: { size: BrandLoaderSize }) {
+  return (
+    <div
+      aria-label="Cargando"
+      className={cn("animate-spin rounded-full border-b-2 border-brand", RING_SIZE[size])}
+      role="status"
+    />
+  );
+}
+
+function InsetOrbit({ size }: { size: "md" | "lg" | "xl" }) {
+  return (
+    <div
+      className={cn("relative overflow-hidden", INSET_BOX[size])}
+      role="status"
+      aria-label="Cargando"
+    >
+      <InteractiveGridPattern
+        cellSize={18}
+        skewY={6}
+        spinner
+        spinnerMs={1300}
+        spinnerRadius={INSET_RADIUS[size]}
+        trailMs={650}
+        spinnerOrigin={[0.5, 0.5]}
+        className="absolute inset-0"
+        squaresClassName="stroke-slate-300/70"
+      />
+    </div>
+  );
+}
+
+/** Canonical loading indicator — grid trail for md+, CSS ring for tiny UI. */
 export default function BrandLoader({
   size = "md",
   className,
@@ -27,18 +74,14 @@ export default function BrandLoader({
   paddingClass = "py-12",
   label,
 }: BrandLoaderProps) {
-  const spinner = (
-    <div
-      aria-label="Cargando"
-      className={cn("animate-spin rounded-full border-b-2 border-brand", SIZE_CLASS[size])}
-      role="status"
-    />
-  );
+  const useRing = size === "xs" || size === "sm";
+  const gridSize = useRing ? "md" : size;
+  const indicator = useRing ? <CssRing size={size} /> : <InsetOrbit size={gridSize} />;
 
   if (center) {
     return (
       <div className={cn("flex flex-col items-center justify-center", paddingClass, className)}>
-        {spinner}
+        {indicator}
         {label ? <p className="mt-4 text-sm font-medium text-fg-subtle">{label}</p> : null}
       </div>
     );
@@ -46,7 +89,7 @@ export default function BrandLoader({
 
   return (
     <div className={cn(label ? "flex flex-col items-center" : undefined, className)}>
-      {spinner}
+      {indicator}
       {label ? <p className="mt-3 text-sm font-medium text-fg-subtle">{label}</p> : null}
     </div>
   );

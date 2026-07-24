@@ -494,8 +494,14 @@ export default function DashboardPage() {
         <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-line bg-muted/60">
           <InteractiveGridPattern
             cellSize={36}
+            skewY={6}
+            spinner
+            spinnerMs={1400}
+            spinnerRadius={3}
+            trailMs={700}
+            spinnerOrigin={[0.5, 0.5]}
             className="inset-0 h-full w-full [mask-image:radial-gradient(320px_circle_at_center,white,transparent)]"
-            squaresClassName="stroke-slate-300/50 hover:fill-brand/20"
+            squaresClassName="stroke-slate-300/50"
           />
           <span className="relative z-10 text-sm font-medium text-fg-subtle">
             Cargando métricas...
