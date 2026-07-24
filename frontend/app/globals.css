@@ -75,7 +75,7 @@
   --color-brand-active: var(--brand-active);
   --color-steel: var(--steel);
 
-  /* Semantic neutral ramp → Tailwind color utilities (bg-*/text-*/border-*). */
+  /* Semantic neutral ramp exposed as Tailwind color utilities. */
   --color-fg: var(--fg);
   --color-fg-strong: var(--fg-strong);
   --color-fg-muted: var(--fg-muted);
