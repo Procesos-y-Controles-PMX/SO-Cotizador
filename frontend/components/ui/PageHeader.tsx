@@ -5,11 +5,11 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
-  /** Show the light/dark toggle in the actions row (default true). */
+  /** Show the light/dark toggle in the actions row. Prefer sidebar GridThemeToggle; default off. */
   showThemeToggle?: boolean;
 }
 
-export default function PageHeader({ eyebrow, title, subtitle, actions, showThemeToggle = true }: PageHeaderProps) {
+export default function PageHeader({ eyebrow, title, subtitle, actions, showThemeToggle = false }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
       <div>

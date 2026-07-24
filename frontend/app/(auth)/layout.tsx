@@ -1,7 +1,7 @@
 "use client";
 
 
-import { GridLoadingScreen, InteractiveGridPattern } from "@promexma/ui";
+import { GridLoadingScreen, InteractiveGridPattern, GridThemeToggle, ThemeToggle } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -234,7 +234,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         ))}
       </nav>
 
-      <div className={cn("shrink-0 border-t border-white/10 px-3 py-3", SIDEBAR_USER_CARD)}>
+      <div className={cn("shrink-0 space-y-2 border-t border-white/10 px-3 py-3", SIDEBAR_USER_CARD)}>
+        {collapsed ? (
+          <div className="flex justify-center">
+            <GridThemeToggle compact />
+          </div>
+        ) : (
+          <GridThemeToggle />
+        )}
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white shadow-sm">
             {initials}
@@ -325,14 +332,17 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               {user.nombre_completo ?? user.email} · {user.rol}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-fg-subtle hover:bg-muted hover:text-fg-strong lg:hidden"
-            aria-label="Cerrar sesión"
-          >
-            <LogoutIcon className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle className="lg:hidden" />
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-fg-subtle hover:bg-muted hover:text-fg-strong lg:hidden"
+              aria-label="Cerrar sesión"
+            >
+              <LogoutIcon className="h-5 w-5" />
+            </button>
+          </div>
         </header>
         <main className="relative z-10 app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">
           <ModuleTransition>{children}</ModuleTransition>
