@@ -158,7 +158,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   }, [loading, router]);
 
   if (loading || !user) {
-    return <GridLoadingScreen message="Verificando sesión..." variant="light" />;
+    return <GridLoadingScreen message="Verificando sesión..." variant="dark" />;
   }
 
   const filteredGroups = navGroups
