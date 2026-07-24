@@ -40,7 +40,7 @@ export default function PromexmaLogotipo({
         className={
           isDark
             ? "mt-2.5 sm:mt-3 text-sm sm:text-base text-white/55 tracking-wide"
-            : "mt-2 text-sm text-slate-400 tracking-wide"
+            : "mt-2 text-sm text-fg-faint tracking-wide"
         }
       >
         {productLabel}

@@ -153,7 +153,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
         </>
       }
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         {mode === "create"
           ? "El usuario iniciará sesión con este correo y contraseña."
           : isSelf
@@ -171,7 +171,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
             disabled={isSelf}
             onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))}
             placeholder="usuario@empresa.com"
-            className={`${FIELD_INPUT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+            className={`${FIELD_INPUT} normal-case disabled:bg-muted disabled:text-fg-subtle`}
           />
         </label>
         <label className={`space-y-1.5 ${FIELD_LABEL}`}>
@@ -181,7 +181,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
             disabled={isSelf}
             onChange={(event) => setDraft((prev) => ({ ...prev, nombre_completo: event.target.value }))}
             placeholder="Nombre Apellido"
-            className={`${FIELD_INPUT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+            className={`${FIELD_INPUT} normal-case disabled:bg-muted disabled:text-fg-subtle`}
           />
         </label>
         {!isSelf ? (
@@ -220,7 +220,7 @@ export default function UsuarioFormModal({ open, mode, initial, currentUserId, o
             onChange={(event) =>
               setDraft((prev) => ({ ...prev, rol: event.target.value as UserRole }))
             }
-            className={`${FIELD_SELECT} ${CHEVRON_SELECT} normal-case disabled:bg-slate-50 disabled:text-slate-500`}
+            className={`${FIELD_SELECT} ${CHEVRON_SELECT} normal-case disabled:bg-muted disabled:text-fg-subtle`}
           >
             <option value="tienda">Tienda</option>
             <option value="admin">Administrador</option>

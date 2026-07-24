@@ -37,8 +37,8 @@ export default function CotizacionDetallePage() {
     });
   }, [params.id, user]);
 
-  if (!loaded) return <p className="text-sm text-slate-500">Cargando detalle...</p>;
-  if (!initial) return <p className="text-sm text-slate-500">Cotizacion no encontrada.</p>;
+  if (!loaded) return <p className="text-sm text-fg-subtle">Cargando detalle...</p>;
+  if (!initial) return <p className="text-sm text-fg-subtle">Cotizacion no encontrada.</p>;
 
   return (
     <section className="space-y-4">

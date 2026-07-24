@@ -32,7 +32,7 @@ export default function ConfirmDeleteCotizacionModal({ open, loading = false, on
         </>
       }
     >
-      <p className="text-sm text-slate-500">¿Estás seguro de que quieres borrar esta cotización?</p>
+      <p className="text-sm text-fg-subtle">¿Estás seguro de que quieres borrar esta cotización?</p>
     </Modal>
   );
 }

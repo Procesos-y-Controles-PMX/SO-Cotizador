@@ -77,12 +77,12 @@ function StatTile({
 
   const content = (
     <>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-900">
-        <NumberTicker value={value} decimalPlaces={decimals} className="text-slate-900" />
+      <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">{label}</p>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-fg">
+        <NumberTicker value={value} decimalPlaces={decimals} className="text-fg" />
         {suffix}
       </p>
-      {sublabel ? <p className="mt-0.5 text-xs text-slate-500">{sublabel}</p> : null}
+      {sublabel ? <p className="mt-0.5 text-xs text-fg-subtle">{sublabel}</p> : null}
       {onClick ? (
         <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-brand/80">Ver desglose</p>
       ) : null}
@@ -110,7 +110,7 @@ function BreakdownBars({
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
-    return <p className="py-4 text-center text-sm text-slate-500">{emptyMessage}</p>;
+    return <p className="py-4 text-center text-sm text-fg-subtle">{emptyMessage}</p>;
   }
 
   const max = rows[0]?.count ?? 0;
@@ -122,19 +122,19 @@ function BreakdownBars({
           key={label}
           className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] sm:gap-3"
         >
-          <span className="truncate text-xs font-medium text-slate-600" title={label}>
+          <span className="truncate text-xs font-medium text-fg-muted" title={label}>
             {label}
           </span>
-          <div className="min-w-0 overflow-hidden rounded-sm bg-slate-100">
+          <div className="min-w-0 overflow-hidden rounded-sm bg-muted-strong">
             <div
               className="h-4 max-w-full rounded-sm bg-brand transition-all"
               style={{ width: `${max > 0 ? Math.max((count / max) * 100, 2) : 0}%` }}
             />
           </div>
-          <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+          <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-fg-strong">
             {count}
             {total > 0 ? (
-              <span className="ml-1 font-normal text-slate-400">({((count / total) * 100).toFixed(0)}%)</span>
+              <span className="ml-1 font-normal text-fg-faint">({((count / total) * 100).toFixed(0)}%)</span>
             ) : null}
           </span>
         </div>
@@ -153,20 +153,20 @@ function BreakdownList({
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
-    return <p className="py-4 text-center text-sm text-slate-500">{emptyMessage}</p>;
+    return <p className="py-4 text-center text-sm text-fg-subtle">{emptyMessage}</p>;
   }
 
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-line-subtle">
       {rows.map(({ label, count }) => (
         <li key={label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-          <span className="min-w-0 truncate text-slate-700" title={label}>
+          <span className="min-w-0 truncate text-fg-strong" title={label}>
             {label}
           </span>
-          <span className="shrink-0 tabular-nums text-slate-500">
+          <span className="shrink-0 tabular-nums text-fg-subtle">
             {count}
             {total > 0 ? (
-              <span className="ml-1 text-slate-400">({((count / total) * 100).toFixed(0)}%)</span>
+              <span className="ml-1 text-fg-faint">({((count / total) * 100).toFixed(0)}%)</span>
             ) : null}
           </span>
         </li>
@@ -491,13 +491,13 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
+        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-xl border border-line bg-muted/60">
           <InteractiveGridPattern
             cellSize={36}
             className="inset-0 h-full w-full [mask-image:radial-gradient(320px_circle_at_center,white,transparent)]"
             squaresClassName="stroke-slate-300/50 hover:fill-brand/20"
           />
-          <span className="relative z-10 text-sm font-medium text-slate-500">
+          <span className="relative z-10 text-sm font-medium text-fg-subtle">
             Cargando métricas...
           </span>
         </div>
@@ -533,9 +533,9 @@ export default function DashboardPage() {
           </div>
 
           <div className={`${PANEL_CARD} p-4`}>
-            <h2 className="mb-4 text-sm font-semibold text-slate-900">Cotizaciones por región</h2>
+            <h2 className="mb-4 text-sm font-semibold text-fg">Cotizaciones por región</h2>
             {stats.regiones.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">
+              <p className="py-6 text-center text-sm text-fg-subtle">
                 No hay cotizaciones con los filtros aplicados.
               </p>
             ) : (
@@ -545,18 +545,18 @@ export default function DashboardPage() {
                     key={region}
                     className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:gap-3"
                   >
-                    <span className="truncate text-xs font-medium text-slate-600" title={region}>
+                    <span className="truncate text-xs font-medium text-fg-muted" title={region}>
                       {region}
                     </span>
-                    <div className="min-w-0 overflow-hidden rounded-sm bg-slate-100">
+                    <div className="min-w-0 overflow-hidden rounded-sm bg-muted-strong">
                       <div
                         className="h-5 max-w-full rounded-sm bg-brand transition-all"
                         style={{ width: `${maxRegionCount > 0 ? Math.max((count / maxRegionCount) * 100, 2) : 0}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+                    <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-fg-strong">
                       {count}
-                      <span className="ml-1 font-normal text-slate-400">
+                      <span className="ml-1 font-normal text-fg-faint">
                         {stats.totalCotizaciones > 0
                           ? `(${((count / stats.totalCotizaciones) * 100).toFixed(0)}%)`
                           : ""}
@@ -579,23 +579,23 @@ export default function DashboardPage() {
         {breakdownOpen === "cotizaciones" ? (
           <div className="space-y-6">
             <section>
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Por región</h4>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-fg-subtle">Por región</h4>
               <BreakdownBars rows={breakdowns.regiones} total={stats.totalCotizaciones} />
             </section>
             <section>
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Por mes</h4>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-fg-subtle">Por mes</h4>
               <BreakdownBars rows={breakdowns.meses} total={stats.totalCotizaciones} />
             </section>
             <section>
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Estado de venta</h4>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-fg-subtle">Estado de venta</h4>
               <div className={`${PANEL_INSET} grid grid-cols-2 gap-3 p-3`}>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Cerradas</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{breakdowns.ventasCerradas}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Cerradas</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-fg">{breakdowns.ventasCerradas}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">En proceso</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{breakdowns.ventasPendientes}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">En proceso</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-fg">{breakdowns.ventasPendientes}</p>
                 </div>
               </div>
             </section>
@@ -609,17 +609,17 @@ export default function DashboardPage() {
         {breakdownOpen === "adopcion" ? (
           <div className="space-y-6">
             <section>
-              <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-fg-subtle">
                 Con actividad ({breakdowns.conActividad.length})
               </h4>
-              <p className="mb-3 text-xs text-slate-500">
+              <p className="mb-3 text-xs text-fg-subtle">
                 {breakdowns.conActividad.length} de {breakdowns.totalTiendasUniverso} tiendas han cotizado
               </p>
               <BreakdownBars rows={breakdowns.conActividad} total={stats.totalCotizaciones} />
             </section>
             {breakdowns.sinActividad.length > 0 ? (
               <section>
-                <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-fg-subtle">
                   Sin actividad ({breakdowns.sinActividad.length})
                 </h4>
                 <BreakdownList rows={breakdowns.sinActividad} total={breakdowns.totalTiendasUniverso} />

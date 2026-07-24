@@ -18,13 +18,13 @@ export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations
       <a href={downloadUrl} download={fileName} className="btn-primary inline-block">
         Descargar PDF
       </a>
-      <div className="relative h-[75vh] overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="relative h-[75vh] overflow-hidden rounded-lg border border-line bg-card">
         {loadError ? (
-          <p className="flex h-full items-center justify-center text-sm text-slate-500">No se pudo cargar el PDF.</p>
+          <p className="flex h-full items-center justify-center text-sm text-fg-subtle">No se pudo cargar el PDF.</p>
         ) : (
           <>
             {loading ? (
-              <p className="absolute inset-0 z-10 flex items-center justify-center bg-white text-sm text-slate-500">
+              <p className="absolute inset-0 z-10 flex items-center justify-center bg-card text-sm text-fg-subtle">
                 Cargando vista previa...
               </p>
             ) : null}

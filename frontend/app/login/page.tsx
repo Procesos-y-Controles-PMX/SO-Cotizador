@@ -58,14 +58,14 @@ export default function LoginPage() {
     >
       <div className="mb-6 sm:mb-8">
         <h2 className={loginTitleClass}>Iniciar sesión</h2>
-        <p className="mt-2 text-sm sm:text-base text-slate-500">
+        <p className="mt-2 text-sm sm:text-base text-fg-subtle">
           Ingresa tus credenciales para acceder al sistema.
         </p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">
             Correo electrónico
           </label>
           <input
@@ -80,7 +80,7 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">
             Contraseña
           </label>
           <input

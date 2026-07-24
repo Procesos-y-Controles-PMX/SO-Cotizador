@@ -184,7 +184,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     <span className="shrink-0">{item.icon}</span>
                     {!collapsed && <span className="truncate">{item.label}</span>}
                     {active && !collapsed ? (
-                      <span className="animate-rail-glow pointer-events-none absolute bottom-2 left-0 top-2 w-[3px] rounded-full bg-white/70" />
+                      <span className="animate-rail-glow pointer-events-none absolute bottom-2 left-0 top-2 w-[3px] rounded-full bg-card/70" />
                     ) : null}
                   </Link>
                 );
@@ -202,14 +202,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {!collapsed && (
             <>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Usuario</p>
-                <p className="truncate text-xs font-semibold text-slate-200">{user.nombre_completo ?? user.email}</p>
-                <p className="text-[10px] text-slate-500">{user.rol}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Usuario</p>
+                <p className="truncate text-xs font-semibold text-fg-faint">{user.nombre_completo ?? user.email}</p>
+                <p className="text-[10px] text-fg-subtle">{user.rol}</p>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-sm p-1.5 text-slate-500 transition-colors hover:bg-white/10 hover:text-slate-200"
+                className="rounded-sm p-1.5 text-fg-subtle transition-colors hover:bg-white/10 hover:text-fg-faint"
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
               >
@@ -245,7 +245,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             {!sidebarCollapsed && (
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-none text-white">Promexma</p>
-                <p className="mt-0.5 text-[10px] font-medium text-slate-500">SO Cotizador</p>
+                <p className="mt-0.5 text-[10px] font-medium text-fg-subtle">SO Cotizador</p>
               </div>
             )}
           </Link>
@@ -253,7 +253,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setSidebarCollapsed((prev) => !prev)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-slate-400 transition-all hover:border-slate-500 hover:bg-slate-800 hover:text-slate-200"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-fg-faint transition-all hover:border-slate-500 hover:bg-slate-800 hover:text-fg-faint"
             aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
           >
             <svg
@@ -288,17 +288,17 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-transparent py-3 lg:py-4">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-slate-900 lg:text-xl">
+            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-fg lg:text-xl">
               Cotizador Promexma
             </h1>
-            <p className="truncate text-xs text-slate-500 lg:text-sm">
+            <p className="truncate text-xs text-fg-subtle lg:text-sm">
               {user.nombre_completo ?? user.email} · {user.rol}
             </p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 lg:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-fg-subtle hover:bg-muted hover:text-fg-strong lg:hidden"
             aria-label="Cerrar sesión"
           >
             <LogoutIcon className="h-5 w-5" />

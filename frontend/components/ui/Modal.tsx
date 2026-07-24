@@ -61,18 +61,18 @@ export default function Modal({ open, onClose, title, children, actions, wide = 
           />
 
           <motion.div
-            className={`relative flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col overflow-hidden self-end rounded-t-sm bg-white shadow-2xl sm:max-h-[calc(100dvh-4rem)] sm:self-center sm:rounded-sm ${wide ? "max-w-2xl" : "max-w-lg"}`}
+            className={`relative flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col overflow-hidden self-end rounded-t-sm bg-card shadow-2xl sm:max-h-[calc(100dvh-4rem)] sm:self-center sm:rounded-sm ${wide ? "max-w-2xl" : "max-w-lg"}`}
             variants={SMOOTH_DRAWER_VARIANTS}
           >
             <motion.div
-              className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6"
+              className="flex shrink-0 items-center justify-between border-b border-line px-5 py-4 sm:px-6"
               variants={SMOOTH_DRAWER_ITEM_VARIANTS}
             >
-              <h3 className="font-display text-lg font-semibold tracking-tight text-slate-900">{title}</h3>
+              <h3 className="font-display text-lg font-semibold tracking-tight text-fg">{title}</h3>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-fg-faint transition-colors hover:bg-muted-strong hover:text-fg-muted"
                 aria-label="Cerrar"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -94,7 +94,7 @@ export default function Modal({ open, onClose, title, children, actions, wide = 
 
             {actions ? (
               <motion.div
-                className="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-6"
+                className="flex shrink-0 flex-col-reverse gap-2 border-t border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-6"
                 variants={SMOOTH_DRAWER_ITEM_VARIANTS}
               >
                 {actions}

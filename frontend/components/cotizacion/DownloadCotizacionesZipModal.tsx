@@ -101,14 +101,14 @@ export default function DownloadCotizacionesZipModal({
         </>
       }
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         Se incluyen las cotizaciones que coinciden con la búsqueda actual del historial.
       </p>
 
       <div className="mt-4 space-y-3">
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-slate-700">Alcance</legend>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <legend className="text-sm font-medium text-fg-strong">Alcance</legend>
+          <label className="flex items-center gap-2 text-sm text-fg-strong">
             <input
               type="radio"
               name="zip-scope"
@@ -118,7 +118,7 @@ export default function DownloadCotizacionesZipModal({
             />
             Todas las regiones
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-fg-strong">
             <input
               type="radio"
               name="zip-scope"
@@ -128,7 +128,7 @@ export default function DownloadCotizacionesZipModal({
             />
             Una región
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-fg-strong">
             <input
               type="radio"
               name="zip-scope"
@@ -142,7 +142,7 @@ export default function DownloadCotizacionesZipModal({
 
         {mode === "region" ? (
           <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-slate-700">Región</span>
+            <span className="text-sm font-medium text-fg-strong">Región</span>
             <select
               className={`${FIELD_SELECT} ${CHEVRON_SELECT} disabled:opacity-50`}
               value={selectedRegion}
@@ -160,7 +160,7 @@ export default function DownloadCotizacionesZipModal({
 
         {mode === "sucursal" ? (
           <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-slate-700">Tienda</span>
+            <span className="text-sm font-medium text-fg-strong">Tienda</span>
             <select
               className={`${FIELD_SELECT} ${CHEVRON_SELECT} disabled:opacity-50`}
               value={selectedSucursal}
@@ -181,13 +181,13 @@ export default function DownloadCotizacionesZipModal({
             <TypingAnimation duration={30} className="text-emerald-400">
               {"> Generando PDFs del alcance seleccionado…"}
             </TypingAnimation>
-            <span className="text-sm text-slate-300">
+            <span className="text-sm text-fg-faint">
               {hasProgress
                 ? `Procesando ${progress!.current}/${progress!.total} cotizaciones`
                 : "Iniciando compresión ZIP…"}
             </span>
             {hasProgress ? (
-              <span className="text-xs text-slate-500">{percent}% completado</span>
+              <span className="text-xs text-fg-subtle">{percent}% completado</span>
             ) : null}
           </Terminal>
         ) : null}

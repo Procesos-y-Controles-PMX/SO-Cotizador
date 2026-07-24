@@ -127,7 +127,7 @@ export default function LoginShell({
 
           <div className="mt-auto flex w-full flex-col justify-end lg:mt-0 lg:justify-center">
             <div className="w-full max-w-md xl:max-w-lg mx-auto lg:mx-0">
-              <div className="bg-white rounded-2xl border border-white/20 shadow-xl shadow-black/25 p-6 sm:p-8 lg:bg-white/95 lg:backdrop-blur-md lg:p-10">
+              <div className="bg-card rounded-2xl border border-white/20 shadow-xl shadow-black/25 p-6 sm:p-8 lg:bg-card/95 lg:backdrop-blur-md lg:p-10">
                 {children}
               </div>
 

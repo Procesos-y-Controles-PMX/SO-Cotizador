@@ -55,7 +55,7 @@ export default function ImportUsuariosModal({
         </>
       }
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         Primera fila: <strong>Correo</strong> y <strong>Nombre</strong>. Se crearán con rol{" "}
         <strong>Tienda</strong> y una <strong>contraseña generada</strong> (cámbiala después en Editar).
         Los correos ya registrados se omiten.
@@ -67,7 +67,7 @@ export default function ImportUsuariosModal({
             <p className="mb-2 font-semibold text-emerald-800">
               Listos para crear ({preview.ok.length}){listSuffix(preview.ok.length)}
             </p>
-            <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-emerald-100 bg-emerald-50/50 p-2 text-xs text-slate-800">
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-emerald-100 bg-emerald-50/50 p-2 text-xs text-fg">
               {okSlice.map((row) => (
                 <li key={`ok-${row.excelRowIndex}-${row.email}`}>
                   Fila {row.excelRowIndex}: {row.email}

@@ -31,7 +31,7 @@ export default function AnimatedSearchInput({
   return (
     <div className="relative w-full">
       {LeftIcon && (
-        <LeftIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <LeftIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-faint" size={16} />
       )}
       <input
         id={id}
@@ -42,7 +42,7 @@ export default function AnimatedSearchInput({
         placeholder={placeholder}
         autoComplete="off"
         autoFocus={autoFocus}
-        className={className ?? `${FILTER_CONTROL_CLASS} ${LeftIcon ? "pl-9" : "pl-3"} pr-10 placeholder:text-slate-400`}
+        className={className ?? `${FILTER_CONTROL_CLASS} ${LeftIcon ? "pl-9" : "pl-3"} pr-10 placeholder:text-fg-faint`}
       />
       <div className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2">
         <AnimatePresence mode="popLayout">
@@ -55,7 +55,7 @@ export default function AnimatedSearchInput({
               transition={{ duration: 0.18 }}
               className="inline-flex"
             >
-              <Send className="h-4 w-4 text-slate-400" />
+              <Send className="h-4 w-4 text-fg-faint" />
             </motion.span>
           ) : (
             <motion.span
@@ -66,7 +66,7 @@ export default function AnimatedSearchInput({
               transition={{ duration: 0.18 }}
               className="inline-flex"
             >
-              <Search className="h-4 w-4 text-slate-400" />
+              <Search className="h-4 w-4 text-fg-faint" />
             </motion.span>
           )}
         </AnimatePresence>

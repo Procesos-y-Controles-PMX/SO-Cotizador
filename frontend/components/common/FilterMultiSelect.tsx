@@ -121,24 +121,24 @@ const FilterMultiSelect = memo(function FilterMultiSelect({
         className={`${controlClass} flex items-center text-left ${Icon ? "pl-9 pr-9" : "pl-3 pr-9"} ${disabled ? "" : "cursor-pointer"}`}
       >
         {Icon && (
-          <Icon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Icon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-faint" size={16} />
         )}
         <span className="truncate">{triggerLabel}</span>
         <ChevronDown
-          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint transition-transform ${open ? "rotate-180" : ""}`}
           size={16}
         />
       </button>
 
       <AnimatedFilterDropdown open={open && !disabled} className="overflow-hidden" maxHeightClass="max-h-none">
         {showSearch && (
-          <div className="border-b border-slate-100 p-2">
+          <div className="border-b border-line-subtle p-2">
             <AnimatedSearchInput
               value={query}
               onChange={setQuery}
               placeholder="Buscar..."
               autoFocus
-              className="h-8 w-full rounded-sm border border-slate-200 bg-white px-2 pr-9 text-sm text-slate-800 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 placeholder:text-slate-400"
+              className="h-8 w-full rounded-sm border border-line bg-card px-2 pr-9 text-sm text-fg outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 placeholder:text-fg-faint"
             />
           </div>
         )}
@@ -148,10 +148,10 @@ const FilterMultiSelect = memo(function FilterMultiSelect({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={handleSelectAll}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 ${allSelected ? "bg-red-50 font-medium text-brand" : "text-slate-700"}`}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted ${allSelected ? "bg-red-50 font-medium text-brand" : "text-fg-strong"}`}
             >
               <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${allSelected ? "border-brand bg-brand text-white" : "border-slate-300"}`}
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${allSelected ? "border-brand bg-brand text-white" : "border-line-strong"}`}
               >
                 {allSelected && <Check size={10} />}
               </span>
@@ -160,7 +160,7 @@ const FilterMultiSelect = memo(function FilterMultiSelect({
           </AnimatedFilterDropdownItem>
 
           {filteredOptions.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-600">Sin coincidencias</p>
+            <p className="px-3 py-2 text-sm text-fg-muted">Sin coincidencias</p>
           ) : (
             filteredOptions.map((option) => {
               const selected = selectedSet.has(option.value);
@@ -170,10 +170,10 @@ const FilterMultiSelect = memo(function FilterMultiSelect({
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleToggle(option.value)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 ${selected ? "bg-red-50 font-medium text-brand" : "text-slate-700"}`}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted ${selected ? "bg-red-50 font-medium text-brand" : "text-fg-strong"}`}
                   >
                     <span
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${selected ? "border-brand bg-brand text-white" : "border-slate-300"}`}
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border ${selected ? "border-brand bg-brand text-white" : "border-line-strong"}`}
                     >
                       {selected && <Check size={10} />}
                     </span>

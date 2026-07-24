@@ -203,9 +203,9 @@ export default function InventarioPage() {
           />
         </label>
         {loading ? (
-          <span className="text-sm text-slate-500 sm:pb-2">Cargando...</span>
+          <span className="text-sm text-fg-subtle sm:pb-2">Cargando...</span>
         ) : (
-          <span className="text-sm text-slate-500 sm:pb-2">
+          <span className="text-sm text-fg-subtle sm:pb-2">
             {qDebounced ? `${rows.length} resultado(s)` : "Primeros 10 (activos primero)"}
           </span>
         )}
@@ -229,23 +229,23 @@ export default function InventarioPage() {
             <article key={row.id} className={MOBILE_LIST_CARD}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">{row.sku ?? "—"}</p>
-                  <p className="mt-0.5 text-sm text-slate-600">{row.descripcion}</p>
+                  <p className="font-semibold text-fg">{row.sku ?? "—"}</p>
+                  <p className="mt-0.5 text-sm text-fg-muted">{row.descripcion}</p>
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-slate-900">
+                <p className="shrink-0 text-sm font-semibold text-fg">
                   ${row.precio_unitario_base.toFixed(2)}
                 </p>
               </div>
 
               <dl className="mt-3 space-y-2 text-sm">
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">U.M.</dt>
-                  <dd className="text-slate-700">{row.unidad_medida ?? "—"}</dd>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-fg-faint">U.M.</dt>
+                  <dd className="text-fg-strong">{row.unidad_medida ?? "—"}</dd>
                 </div>
               </dl>
 
-              <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3">
-                <label className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="mt-4 flex items-center gap-2 border-t border-line-subtle pt-3">
+                <label className="flex items-center gap-2 text-sm text-fg-muted">
                   <input
                     type="checkbox"
                     checked={row.activo}
@@ -259,7 +259,7 @@ export default function InventarioPage() {
                   Activo
                 </label>
                 {!row.activo ? (
-                  <span className="text-xs text-slate-400">Inactivo</span>
+                  <span className="text-xs text-fg-faint">Inactivo</span>
                 ) : null}
               </div>
             </article>
@@ -269,7 +269,7 @@ export default function InventarioPage() {
 
       <div className={`hidden md:block ${TABLE_WRAP}`}>
         <table className="w-full min-w-[560px] text-left text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-muted">
             <tr>
               <th className={TABLE_HEAD_CELL}>SKU</th>
               <th className={`${TABLE_HEAD_CELL} min-w-[200px]`}>Descripción</th>
@@ -281,13 +281,13 @@ export default function InventarioPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-fg-subtle">
                   Cargando...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-fg-subtle">
                   {qDebounced.length >= INVENTARIO_SEARCH_MIN_CHARS ? "Sin resultados." : "Sin datos."}
                 </td>
               </tr>
@@ -295,7 +295,7 @@ export default function InventarioPage() {
               rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-slate-50/80 text-slate-600"}`}
+                  className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-muted/80 text-fg-muted"}`}
                 >
                   <td className="whitespace-nowrap px-4 py-3">{row.sku ?? "-"}</td>
                   <td className="px-4 py-3">{row.descripcion}</td>

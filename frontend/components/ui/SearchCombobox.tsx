@@ -121,7 +121,7 @@ export default function SearchCombobox({
         value={inputText}
         placeholder={placeholder}
         className={cn(
-          "w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-slate-50",
+          "w-full rounded-md border border-line-strong px-2 py-1 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-muted",
           inputClassName
         )}
         onFocus={() => setOpen(true)}
@@ -147,26 +147,26 @@ export default function SearchCombobox({
       />
       <AnimatedFilterDropdown open={open && (showMinHint || showEmpty || showList || loading)}>
         <ul id={listId} role="listbox" className="py-1 text-sm">
-          {loading && <li className="px-3 py-2 text-slate-500">Buscando...</li>}
+          {loading && <li className="px-3 py-2 text-fg-subtle">Buscando...</li>}
           {showMinHint && !loading && (
-            <li className="px-3 py-2 text-slate-500">Escribe al menos {minChars} caracteres</li>
+            <li className="px-3 py-2 text-fg-subtle">Escribe al menos {minChars} caracteres</li>
           )}
-          {showEmpty && !loading && <li className="px-3 py-2 text-slate-500">Sin resultados</li>}
+          {showEmpty && !loading && <li className="px-3 py-2 text-fg-subtle">Sin resultados</li>}
           {showList &&
             options.map((opt, index) => (
               <li key={opt.id} role="option" aria-selected={index === highlightIndex}>
                 <button
                   type="button"
                   className={cn(
-                    "w-full px-3 py-2 text-left hover:bg-slate-50",
+                    "w-full px-3 py-2 text-left hover:bg-muted",
                     index === highlightIndex && "bg-red-50"
                   )}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => selectOption(opt)}
                 >
-                  <span className="block font-medium text-slate-900">{opt.label}</span>
+                  <span className="block font-medium text-fg">{opt.label}</span>
                   {opt.sublabel ? (
-                    <span className="block truncate text-xs text-slate-500">{opt.sublabel}</span>
+                    <span className="block truncate text-xs text-fg-subtle">{opt.sublabel}</span>
                   ) : null}
                 </button>
               </li>

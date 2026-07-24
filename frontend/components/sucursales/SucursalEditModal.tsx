@@ -90,16 +90,16 @@ export default function SucursalEditModal({ open, sucursal, onClose, onSaved }: 
         <div className="space-y-4">
           <div className={`grid gap-3 p-3 text-sm sm:grid-cols-2 ${PANEL_INSET}`}>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Centro</p>
-              <p className="mt-1 font-medium text-slate-900">{sucursal.centro ?? "—"}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Centro</p>
+              <p className="mt-1 font-medium text-fg">{sucursal.centro ?? "—"}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Región</p>
-              <p className="mt-1 font-medium text-slate-900">{sucursal.region ?? "—"}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Región</p>
+              <p className="mt-1 font-medium text-fg">{sucursal.region ?? "—"}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Prefijo folio</p>
-              <p className="mt-1 font-medium text-slate-900">{sucursal.prefijo_folio}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-fg-subtle">Prefijo folio</p>
+              <p className="mt-1 font-medium text-fg">{sucursal.prefijo_folio}</p>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export default function SucursalEditModal({ open, sucursal, onClose, onSaved }: 
             />
           </label>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-fg-subtle">
             Plantilla para cotizaciones nuevas: dirección y términos se copian a cada cotización al registrarla y
             quedan fijos en ese PDF. Editarlos aquí no cambia cotizaciones ya guardadas.
           </p>

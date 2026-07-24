@@ -25,7 +25,7 @@ export default function TablePagination({
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         Mostrando {from}–{to} de {total}
       </p>
       <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export default function TablePagination({
         >
           Anterior
         </button>
-        <span className="text-sm text-slate-600">
+        <span className="text-sm text-fg-muted">
           Página {page} de {pages}
         </span>
         <button

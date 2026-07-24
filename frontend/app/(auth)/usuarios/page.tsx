@@ -280,7 +280,7 @@ export default function UsuariosPage() {
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-        <label className="block flex-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <label className="block flex-1 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Buscar (correo o nombre)
           <input
             type="search"
@@ -291,17 +291,17 @@ export default function UsuariosPage() {
           />
         </label>
         {loading ? (
-          <span className="text-sm text-slate-500 sm:pb-2">Cargando...</span>
+          <span className="text-sm text-fg-subtle sm:pb-2">Cargando...</span>
         ) : (
-          <span className="text-sm text-slate-500 sm:pb-2">{allRows.length} usuario(s)</span>
+          <span className="text-sm text-fg-subtle sm:pb-2">{allRows.length} usuario(s)</span>
         )}
       </div>
 
       <div className="space-y-3 md:hidden">
         {loading ? (
-          <p className="text-center text-sm text-slate-500">Cargando...</p>
+          <p className="text-center text-sm text-fg-subtle">Cargando...</p>
         ) : allRows.length === 0 ? (
-          <p className="text-center text-sm text-slate-500">{qDebounced ? "Sin resultados." : "Sin usuarios."}</p>
+          <p className="text-center text-sm text-fg-subtle">{qDebounced ? "Sin resultados." : "Sin usuarios."}</p>
         ) : (
           visibleRows.map((row) => {
             const isSelf = row.id === user.id;
@@ -309,16 +309,16 @@ export default function UsuariosPage() {
               <article key={row.id} className={MOBILE_LIST_CARD}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">{row.email}</p>
-                    <p className="mt-0.5 text-sm text-slate-600">{row.nombre_completo?.trim() || "—"}</p>
+                    <p className="font-semibold text-fg">{row.email}</p>
+                    <p className="mt-0.5 text-sm text-fg-muted">{row.nombre_completo?.trim() || "—"}</p>
                     {isSelf ? <p className="mt-1 text-xs text-amber-700">Tu cuenta (no editable)</p> : null}
                   </div>
-                  <span className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600">
+                  <span className="shrink-0 rounded-lg border border-line bg-muted px-2 py-1 text-xs font-semibold text-fg-muted">
                     {rolLabel(row.rol)}
                   </span>
                 </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="mt-3 flex items-center gap-2 border-t border-line-subtle pt-3">
+                  <label className="flex items-center gap-2 text-sm text-fg-muted">
                     <input
                       type="checkbox"
                       checked={row.activo}
@@ -354,7 +354,7 @@ export default function UsuariosPage() {
 
       <div className={`hidden md:block ${TABLE_WRAP}`}>
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-muted">
             <tr>
               <th className={`${TABLE_HEAD_CELL} min-w-[200px]`}>Correo</th>
               <th className={`${TABLE_HEAD_CELL} min-w-[160px]`}>Nombre</th>
@@ -366,13 +366,13 @@ export default function UsuariosPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-fg-subtle">
                   Cargando...
                 </td>
               </tr>
             ) : allRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-fg-subtle">
                   {qDebounced ? "Sin resultados." : "Sin usuarios."}
                 </td>
               </tr>
@@ -382,10 +382,10 @@ export default function UsuariosPage() {
                 return (
                   <tr
                     key={row.id}
-                    className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-slate-50/80 text-slate-600"}`}
+                    className={`${TABLE_BODY_ROW} ${row.activo ? "" : "bg-muted/80 text-fg-muted"}`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{row.email}</div>
+                      <div className="font-medium text-fg">{row.email}</div>
                       {isSelf ? (
                         <span className="text-xs text-amber-700">Tu cuenta (no editable)</span>
                       ) : null}
@@ -397,7 +397,7 @@ export default function UsuariosPage() {
                         disabled={isSelf}
                         title={isSelf ? "No puedes modificar tu propio acceso" : undefined}
                         onChange={(event) => void handleRolChange(row, event.target.value as UserRole)}
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500"
+                        className="rounded-lg border border-line bg-card px-2 py-1 text-sm disabled:bg-muted disabled:text-fg-subtle"
                       >
                         <option value="tienda">{rolLabel("tienda")}</option>
                         <option value="admin">{rolLabel("admin")}</option>
@@ -418,7 +418,7 @@ export default function UsuariosPage() {
                           type="button"
                           disabled={isSelf}
                           onClick={() => openEdit(row)}
-                          className={`${BTN_GHOST} border border-slate-200 px-2 py-1 text-xs disabled:opacity-50`}
+                          className={`${BTN_GHOST} border border-line px-2 py-1 text-xs disabled:opacity-50`}
                         >
                           Editar
                         </button>

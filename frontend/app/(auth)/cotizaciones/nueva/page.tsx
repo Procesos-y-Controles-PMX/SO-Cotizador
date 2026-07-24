@@ -64,7 +64,7 @@ function NuevaCotizacionContent() {
   }, [copiarId, user]);
 
   if (copiarId && copyState.status === "loading") {
-    return <p className="text-sm text-slate-500">Cargando cotización a copiar...</p>;
+    return <p className="text-sm text-fg-subtle">Cargando cotización a copiar...</p>;
   }
 
   if (copiarId && copyState.status === "denied") {
@@ -110,7 +110,7 @@ function NuevaCotizacionContent() {
 
 export default function NuevaCotizacionPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-slate-500">Cargando...</p>}>
+    <Suspense fallback={<p className="text-sm text-fg-subtle">Cargando...</p>}>
       <NuevaCotizacionContent />
     </Suspense>
   );

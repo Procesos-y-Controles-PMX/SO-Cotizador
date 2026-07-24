@@ -87,7 +87,7 @@ export default function SucursalesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Cargando sucursales...</p>
+        <p className="text-sm text-fg-subtle">Cargando sucursales...</p>
       ) : (
         <>
           <div className="space-y-3 md:hidden">
@@ -95,11 +95,11 @@ export default function SucursalesPage() {
               <article key={row.id} className={MOBILE_LIST_CARD}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="font-semibold text-slate-900">{row.nombre}</h2>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <h2 className="font-semibold text-fg">{row.nombre}</h2>
+                    <p className="mt-1 text-xs text-fg-subtle">
                       {[row.centro, row.region, row.ciudad].filter(Boolean).join(" · ") || "Sin región"}
                     </p>
-                    <p className="mt-2 text-sm text-slate-700">{row.direccion ?? "Sin dirección"}</p>
+                    <p className="mt-2 text-sm text-fg-strong">{row.direccion ?? "Sin dirección"}</p>
                   </div>
                   <button type="button" className={BTN_GHOST} onClick={() => setEditing(row)}>
                     Editar
@@ -111,7 +111,7 @@ export default function SucursalesPage() {
 
           <div className={`hidden md:block ${TABLE_WRAP}`}>
             <table className="min-w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className="border-b border-line bg-muted">
                 <tr>
                   <th className={TABLE_HEAD_CELL}>Sucursal</th>
                   <th className={TABLE_HEAD_CELL}>Centro</th>
@@ -124,11 +124,11 @@ export default function SucursalesPage() {
               <tbody>
                 {filtered.map((row) => (
                   <tr key={row.id} className={TABLE_BODY_ROW}>
-                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">{row.nombre}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">{row.centro ?? "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">{row.region ?? "—"}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">{row.ciudad ?? "—"}</td>
-                    <td className="max-w-md px-4 py-3 text-slate-700">{row.direccion ?? "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-fg">{row.nombre}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{row.centro ?? "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{row.region ?? "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{row.ciudad ?? "—"}</td>
+                    <td className="max-w-md px-4 py-3 text-fg-strong">{row.direccion ?? "—"}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button type="button" className={BTN_GHOST} onClick={() => setEditing(row)}>
                         Editar
@@ -141,7 +141,7 @@ export default function SucursalesPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <p className="text-sm text-slate-500">No hay sucursales que coincidan con la búsqueda.</p>
+            <p className="text-sm text-fg-subtle">No hay sucursales que coincidan con la búsqueda.</p>
           ) : null}
         </>
       )}

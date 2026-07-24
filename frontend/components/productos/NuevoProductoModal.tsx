@@ -70,7 +70,7 @@ export default function NuevoProductoModal({ open, onClose, onCreated }: Props) 
         </>
       }
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-fg-subtle">
         El precio se define en cada cotización; en catálogo queda en $0.00.
       </p>
 

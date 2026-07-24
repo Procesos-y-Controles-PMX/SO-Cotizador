@@ -140,7 +140,7 @@ export default function CotizacionesPage() {
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const linkClass = stacked
-      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-brand"
+      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-line bg-muted px-3 text-sm font-semibold text-brand"
       : `${BTN_GHOST} text-brand hover:text-brand-hover`;
 
     return (
@@ -230,27 +230,27 @@ export default function CotizacionesPage() {
             <article key={row.id} className={MOBILE_LIST_CARD}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">{row.folio}</p>
-                  <p className="mt-0.5 truncate text-sm text-slate-600">
+                  <p className="font-semibold text-fg">{row.folio}</p>
+                  <p className="mt-0.5 truncate text-sm text-fg-muted">
                     {row.ctz_clientes?.nombre_cliente ?? "-"}
                   </p>
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-slate-900">{money(row.total)}</p>
+                <p className="shrink-0 text-sm font-semibold text-fg">{money(row.total)}</p>
               </div>
 
               <dl className="mt-3 space-y-2 text-sm">
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Obra</dt>
-                  <dd className="text-slate-700">{obraNombreCotizacion(row)}</dd>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-fg-faint">Obra</dt>
+                  <dd className="text-fg-strong">{obraNombreCotizacion(row)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">Sucursal</dt>
-                  <dd className="text-slate-700">{row.ctz_sucursales?.nombre ?? "-"}</dd>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-fg-faint">Sucursal</dt>
+                  <dd className="text-fg-strong">{row.ctz_sucursales?.nombre ?? "-"}</dd>
                 </div>
               </dl>
 
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
-                <label className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-line-subtle pt-3">
+                <label className="flex items-center gap-2 text-sm text-fg-muted">
                   <input
                     type="checkbox"
                     checked={row.venta_cerrada}
@@ -270,7 +270,7 @@ export default function CotizacionesPage() {
       {/* Desktop — table (unchanged layout) */}
       <div className={`hidden md:block ${TABLE_WRAP}`}>
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-muted">
             <tr>
               <th className={TABLE_HEAD_CELL}>Folio</th>
               <th className={TABLE_HEAD_CELL}>Cliente</th>
@@ -285,13 +285,13 @@ export default function CotizacionesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
+                <td className="px-4 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
                   Cargando...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={emptyColSpan}>
+                <td className="px-4 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
                   No hay cotizaciones para mostrar.
                 </td>
               </tr>

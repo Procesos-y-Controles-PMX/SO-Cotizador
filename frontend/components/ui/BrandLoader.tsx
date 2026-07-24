@@ -39,7 +39,7 @@ export default function BrandLoader({
     return (
       <div className={cn("flex flex-col items-center justify-center", paddingClass, className)}>
         {spinner}
-        {label ? <p className="mt-4 text-sm font-medium text-slate-500">{label}</p> : null}
+        {label ? <p className="mt-4 text-sm font-medium text-fg-subtle">{label}</p> : null}
       </div>
     );
   }
@@ -47,7 +47,7 @@ export default function BrandLoader({
   return (
     <div className={cn(label ? "flex flex-col items-center" : undefined, className)}>
       {spinner}
-      {label ? <p className="mt-3 text-sm font-medium text-slate-500">{label}</p> : null}
+      {label ? <p className="mt-3 text-sm font-medium text-fg-subtle">{label}</p> : null}
     </div>
   );
 }

@@ -19,12 +19,26 @@
   --status-crit: #DC2626;
   --focus-ring-color: var(--steel);
   --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 14px 30px -20px rgba(16, 24, 40, 0.25);
+
+  /* Semantic neutral ramp (Phase 2 retrofit). Foreground text, surfaces, lines. */
+  --fg: #0f172a;          /* was slate-900 */
+  --fg-strong: #334155;   /* was slate-700 */
+  --fg-muted: #475569;    /* was slate-600 */
+  --fg-subtle: #64748b;   /* was slate-500 */
+  --fg-faint: #94a3b8;    /* was slate-400 */
+  --card: #ffffff;        /* was white */
+  --muted: #f8fafc;       /* was slate-50 */
+  --muted-strong: #f1f5f9;/* was slate-100 */
+  --line: #e2e8f0;        /* was slate-200 */
+  --line-subtle: #f1f5f9; /* was slate-100 */
+  --line-strong: #cbd5e1; /* was slate-300 */
+  --canvas: #f3f6fa;      /* app content canvas */
 }
 
 /*
- * Phase 1 (infra): dark tokens + root canvas flip only. Component-level
- * hardcoded utilities (bg-white, text-slate-900, …) are converted to
- * semantic tokens in the Phase 2 retrofit — until then they stay light.
+ * Phase 2 (retrofit): the neutral ramp below flips the component surfaces,
+ * text and lines that Phase 1 left light. Hardcoded utilities in the app were
+ * swept to the semantic tokens (bg-card, text-fg-subtle, border-line, …).
  */
 .dark {
   color-scheme: dark;
@@ -35,6 +49,19 @@
   --brand-tint: rgba(237, 28, 36, 0.14);
   --focus-ring-color: #5b7fc0;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 30px -20px rgba(0, 0, 0, 0.7);
+
+  --fg: #e6edf3;
+  --fg-strong: #c9d1d9;
+  --fg-muted: #9da7b2;
+  --fg-subtle: #7d8590;
+  --fg-faint: #6e7681;
+  --card: #161b22;
+  --muted: #1c2128;
+  --muted-strong: #262c36;
+  --line: #30363d;
+  --line-subtle: #21262d;
+  --line-strong: #3d444d;
+  --canvas: #0d1117;
 }
 
 .dark body {
@@ -47,6 +74,20 @@
   --color-brand-hover: var(--brand-hover);
   --color-brand-active: var(--brand-active);
   --color-steel: var(--steel);
+
+  /* Semantic neutral ramp → Tailwind color utilities (bg-*/text-*/border-*). */
+  --color-fg: var(--fg);
+  --color-fg-strong: var(--fg-strong);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-faint: var(--fg-faint);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-line-strong: var(--line-strong);
+
   --font-display: var(--font-saira);
   --font-sans: var(--font-plex-sans);
 
@@ -61,12 +102,14 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply antialiased;
+  background-color: var(--muted);
+  color: var(--fg);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
 .app-canvas {
-  background-color: #f3f6fa;
+  background-color: var(--canvas);
 }
 
 .app-canvas-dots {

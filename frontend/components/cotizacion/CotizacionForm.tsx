@@ -1067,7 +1067,7 @@ export default function CotizacionForm({
             }}
           />
           {!idObra && initial?.nombre_obra ? (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-fg-subtle">
               Obra registrada anteriormente: {initial.nombre_obra}
             </p>
           ) : null}
@@ -1099,10 +1099,10 @@ export default function CotizacionForm({
 
       <div className={`p-4 ${PANEL_CARD}`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
-          <h3 className="font-semibold text-slate-900">Productos</h3>
+          <h3 className="font-semibold text-fg">Productos</h3>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-fg-strong">
                 {preciosIncluyenIva ? "Precios con IVA incluido" : "Precios sin IVA incluido"}
               </span>
               <button
@@ -1116,13 +1116,13 @@ export default function CotizacionForm({
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
+                  className={`pointer-events-none inline-block h-5 w-5 translate-y-0.5 rounded-full bg-card shadow transition-transform ${
                     preciosIncluyenIva ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 text-sm text-fg-muted">
               IVA
               <div className="w-36">
                 <FilterSelect
@@ -1163,7 +1163,7 @@ export default function CotizacionForm({
         </div>
 
         <div className="space-y-3">
-          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-10">
+          <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-fg-subtle md:grid md:grid-cols-10">
             <p className="md:col-span-2">SKU</p>
             <p className="md:col-span-2">Descripción</p>
             <p className="md:col-span-1">U.M.</p>
@@ -1177,7 +1177,7 @@ export default function CotizacionForm({
             return (
             <div key={producto.tempId} className={`grid gap-3 p-3 md:grid-cols-10 md:gap-2 ${PANEL_INSET}`}>
               {productosCotizacion.length > 1 ? (
-                <p className="text-xs font-semibold text-slate-500 md:col-span-10 md:hidden">Producto {index + 1}</p>
+                <p className="text-xs font-semibold text-fg-subtle md:col-span-10 md:hidden">Producto {index + 1}</p>
               ) : null}
               <CotizacionProductoPickers
                 productoId={producto.id_producto}
@@ -1188,7 +1188,7 @@ export default function CotizacionForm({
                 onProductCleared={() => clearProductoCotizacion(producto.tempId)}
               />
               <label className="block md:col-span-1">
-                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">U.M.</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted md:sr-only">U.M.</span>
                 <input
                   className={FIELD_INPUT}
                   placeholder={umDefault || "U.M."}
@@ -1201,7 +1201,7 @@ export default function CotizacionForm({
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Cantidad</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted md:sr-only">Cantidad</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1213,7 +1213,7 @@ export default function CotizacionForm({
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">{precioUnitarioLabel}</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted md:sr-only">{precioUnitarioLabel}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1225,7 +1225,7 @@ export default function CotizacionForm({
                 />
               </label>
               <div className="md:col-span-1">
-                <span className="mb-1 block text-xs font-medium text-slate-600 md:sr-only">Accion</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted md:sr-only">Accion</span>
                 <button
                   type="button"
                   className={`${BTN_SECONDARY} !min-h-0 w-full text-red-600 md:py-1`}
@@ -1268,7 +1268,7 @@ export default function CotizacionForm({
           >
             + Producto
           </button>
-          <div className="flex flex-wrap items-center justify-end gap-4 text-sm text-slate-700">
+          <div className="flex flex-wrap items-center justify-end gap-4 text-sm text-fg-strong">
             <p>Subtotal: {money(totals.subtotal)}</p>
             <p>IVA: {money(totals.ivaTotal)}</p>
             <p className="font-semibold">Total: {money(totals.total)}</p>
@@ -1280,8 +1280,8 @@ export default function CotizacionForm({
         <div className={`p-4 ${PANEL_CARD}`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-slate-900">Términos adicionales de esta cotización (PDF)</h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <h3 className="font-semibold text-fg">Términos adicionales de esta cotización (PDF)</h3>
+              <p className="mt-1 text-xs text-fg-subtle">
                 {mode === "create" ? (
                   <>
                     Se guardan en <strong>esta</strong> cotización al registrarla. Cambiar la plantilla de la sucursal
@@ -1296,7 +1296,7 @@ export default function CotizacionForm({
               </p>
             </div>
           </div>
-          <div className={`mb-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${PANEL_INSET}`}>
+          <div className={`mb-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle ${PANEL_INSET}`}>
             Texto para el PDF
           </div>
           <textarea
@@ -1334,8 +1334,8 @@ export default function CotizacionForm({
       <AnimatePresence>
       {modalType === "cliente" && (
         <FormDialogShell>
-            <h4 className="text-base font-semibold text-slate-900">Nuevo cliente</h4>
-            <p className="mt-1 text-sm text-slate-500">
+            <h4 className="text-base font-semibold text-fg">Nuevo cliente</h4>
+            <p className="mt-1 text-sm text-fg-subtle">
               {sucursalNombre
                 ? `Se registrará en la sucursal: ${sucursalNombre}.`
                 : "Completa los campos del cliente."}
@@ -1417,8 +1417,8 @@ export default function CotizacionForm({
       <AnimatePresence>
       {modalType === "obra" && (
         <FormDialogShell>
-            <h4 className="text-base font-semibold text-slate-900">Nueva obra</h4>
-            <p className="mt-1 text-sm text-slate-500">
+            <h4 className="text-base font-semibold text-fg">Nueva obra</h4>
+            <p className="mt-1 text-sm text-fg-subtle">
               {clienteNombre
                 ? `Se registrará para el cliente: ${clienteNombre}.`
                 : "Completa los campos de la obra."}
@@ -1491,10 +1491,10 @@ export default function CotizacionForm({
 
       {importExcelOpen && importPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-sm border border-slate-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h4 className="text-base font-semibold text-slate-900">Importar desde Excel</h4>
-              <p className="mt-1 text-sm text-slate-500">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-sm border border-line bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl">
+            <div className="border-b border-line-subtle px-5 py-4">
+              <h4 className="text-base font-semibold text-fg">Importar desde Excel</h4>
+              <p className="mt-1 text-sm text-fg-subtle">
                 Primera fila: encabezados. Obligatorio: <strong>SKU</strong> o <strong>SKU (obligatorio)</strong>.
                 Opcional: Cantidad / Cantidad (opcional), Precio / Precio (opcional). El IVA de las filas importadas
                 usa el <strong>IVA</strong> del formulario. La unidad de medida siempre viene del
@@ -1506,7 +1506,7 @@ export default function CotizacionForm({
               {importPreview.ok.length > 0 && (
                 <div>
                   <p className="mb-2 font-semibold text-emerald-800">Listos para agregar ({importPreview.ok.length})</p>
-                  <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-emerald-100 bg-emerald-50/50 p-2 text-xs text-slate-800">
+                  <ul className="max-h-40 space-y-1 overflow-y-auto rounded border border-emerald-100 bg-emerald-50/50 p-2 text-xs text-fg">
                     {importPreview.ok.map((row, i) => (
                       <li key={`ok-${row.excelRowIndex}-${i}`}>
                         Fila {row.excelRowIndex}: {row.skuRaw} · {row.product.descripcion.slice(0, 40)}
@@ -1529,7 +1529,7 @@ export default function CotizacionForm({
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-line-subtle px-5 py-4">
               <button type="button" onClick={cancelExcelImport} className={BTN_SECONDARY}>
                 Descartar
               </button>
@@ -1578,7 +1578,7 @@ function FormDialogShell({ children }: { children: React.ReactNode }) {
       exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.15 } }}
     >
       <motion.div
-        className="w-full max-w-md rounded-sm border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl"
+        className="w-full max-w-md rounded-sm border border-line bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] shadow-xl"
         initial={reduceMotion ? undefined : { y: 24, opacity: 0 }}
         animate={reduceMotion ? undefined : { y: 0, opacity: 1 }}
         exit={reduceMotion ? undefined : { y: 16, opacity: 0 }}
