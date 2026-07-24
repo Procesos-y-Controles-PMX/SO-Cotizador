@@ -1,11 +1,15 @@
+import { ThemeToggle } from "@promexma/ui";
+
 interface PageHeaderProps {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  /** Show the light/dark toggle in the actions row (default true). */
+  showThemeToggle?: boolean;
 }
 
-export default function PageHeader({ eyebrow, title, subtitle, actions }: PageHeaderProps) {
+export default function PageHeader({ eyebrow, title, subtitle, actions, showThemeToggle = true }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
       <div>
@@ -17,7 +21,12 @@ export default function PageHeader({ eyebrow, title, subtitle, actions }: PageHe
         </h1>
         {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">{actions}</div> : null}
+      {actions || showThemeToggle ? (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          {actions}
+          {showThemeToggle ? <ThemeToggle /> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
