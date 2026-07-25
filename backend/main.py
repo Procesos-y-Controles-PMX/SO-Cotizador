@@ -1,9 +1,24 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from supabase_client import get_supabase_client
 
-app = FastAPI(title="SO Cotizador API")
+# Disable interactive API docs in production (endpoint/schema recon on a
+# service that talks to Supabase with the service-role key). ON locally.
+_IS_PRODUCTION = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
+_DOCS_ENABLED = (
+    os.getenv("ENABLE_API_DOCS", "").strip().lower() in ("1", "true", "yes")
+    or not _IS_PRODUCTION
+)
+
+app = FastAPI(
+    title="SO Cotizador API",
+    docs_url="/docs" if _DOCS_ENABLED else None,
+    redoc_url="/redoc" if _DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if _DOCS_ENABLED else None,
+)
 
 origins = [
     "http://localhost:3000",
