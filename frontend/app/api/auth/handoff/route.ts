@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { isOwnerAdminEmail } from "@/lib/owner-admin";
 import type { CtzUsuario } from "@/lib/types/db";
 
 /**
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "Token inválido." }, { status: 401 });
     }
 
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({
+      ok: true,
+      user: isOwnerAdminEmail(user.email) ? { ...user, rol: "admin", activo: true } : user,
+    });
   } catch {
     return NextResponse.json(
       { ok: false, message: "Token inválido o expirado. Inicia sesión de nuevo." },

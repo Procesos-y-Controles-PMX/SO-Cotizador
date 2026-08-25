@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isOwnerAdminEmail } from "@/lib/owner-admin";
 import { createSupabaseServerClient, missingSupabaseServerEnv } from "@/lib/supabase-server";
 import type { CtzUsuario } from "@/lib/types/db";
 
@@ -47,11 +48,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = (candidates ?? []).find(
-      (row) =>
-        row.activo === true &&
-        String(row.password ?? "").trim() === password,
-    );
+    const data = (candidates ?? []).find((row) => {
+      const passwordMatch = String(row.password ?? "").trim() === password;
+      if (!passwordMatch) return false;
+      if (isOwnerAdminEmail(email)) return true;
+      return row.activo === true;
+    });
 
     if (!data) {
       return NextResponse.json(
@@ -61,7 +63,12 @@ export async function POST(request: Request) {
     }
 
     const { password: _password, ...user } = data;
-    return NextResponse.json({ ok: true, user: user as CtzUsuario });
+    const sessionUser = {
+      ...user,
+      rol: isOwnerAdminEmail(email) ? "admin" : user.rol,
+      activo: isOwnerAdminEmail(email) ? true : user.activo,
+    } as CtzUsuario;
+    return NextResponse.json({ ok: true, user: sessionUser });
   } catch (err) {
     console.error("Login route error:", err);
     return NextResponse.json({ ok: false, message: "Error al iniciar sesión." }, { status: 500 });
