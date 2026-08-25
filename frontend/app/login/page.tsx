@@ -50,7 +50,7 @@ export default function LoginPage() {
     <LoginShell
       productLabel="SO Cotizador"
       heroLine1="Sistema de Gestión"
-      heroLine2="de Cotizaciones"
+      heroLine2="Cotizador"
       heroDescription="Plataforma para la administración, seguimiento y gestión de cotizaciones de sucursales CEMEX."
     >
       <div className="mb-6 sm:mb-8">

@@ -30,7 +30,7 @@ export default function PromexmaLogotipo({
           height={120}
           className={
             isDark
-              ? "h-14 sm:h-16 xl:h-20 w-auto max-w-[min(100%,280px)]"
+              ? "h-16 sm:h-20 xl:h-24 w-auto max-w-[min(100%,320px)]"
               : "h-10 sm:h-11 w-auto"
           }
           priority
