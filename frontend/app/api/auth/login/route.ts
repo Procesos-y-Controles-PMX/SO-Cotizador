@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isOwnerAdminEmail } from "@/lib/owner-admin";
 import { createSupabaseServerClient, missingSupabaseServerEnv } from "@/lib/supabase-server";
 import type { CtzUsuario } from "@/lib/types/db";
+import { clientMetaFromRequest, logSoFailedAccess } from "@/lib/so-access-log";
+import { scorePasswordCloseness } from "@/lib/password-closeness";
 
 const USUARIO_SESSION_SELECT =
   "id, email, nombre_completo, rol, activo, created_at";
@@ -56,6 +58,23 @@ export async function POST(request: Request) {
     });
 
     if (!data) {
+      const first = (candidates ?? [])[0];
+      const meta = clientMetaFromRequest(request);
+      const close = first
+        ? scorePasswordCloseness(password, String(first.password ?? ""), email)
+        : { closeness: "n_a" as const, distance: null, attemptLen: password.length, hint: null };
+      void logSoFailedAccess({
+        app: "cotizador",
+        correo: email,
+        nombre: first?.nombre_completo,
+        reason: first ? (first.activo === true || isOwnerAdminEmail(email) ? "wrong_password" : "inactive") : "unknown_email",
+        closeness: close.closeness,
+        distance: close.distance,
+        attemptLen: close.attemptLen,
+        hint: close.hint,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
       return NextResponse.json(
         { ok: false, message: "Credenciales inválidas o usuario inactivo." },
         { status: 401 },
