@@ -18,6 +18,7 @@ import {
   TABLE_WRAP,
 } from "@/components/ui/contentStyles";
 import { getCurrentUser } from "@/lib/auth";
+import { isOwnerAdminEmail } from "@/lib/owner-admin";
 import {
   downloadUsuariosExcelTemplate,
   parseUsuariosExcelFile,
@@ -220,6 +221,8 @@ export default function UsuariosPage() {
     }
   }
 
+  const isGeneralAdmin = isOwnerAdminEmail(user?.email);
+
   if (user?.rol !== "admin") {
     return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
   }
@@ -238,25 +241,27 @@ export default function UsuariosPage() {
               className="hidden"
               onChange={(e) => void handleExcelFileChange(e)}
             />
-            <button
-              type="button"
-              disabled={exportLoading}
-              className={BTN_SECONDARY}
-              onClick={async () => {
-                setExportLoading(true);
-                try {
-                  const rows = await listUsuarios("");
-                  await downloadUsuariosExcel(rows);
-                  toast.success("Excel descargado.");
-                } catch {
-                  toast.error("No se pudo generar el Excel de usuarios.");
-                } finally {
-                  setExportLoading(false);
-                }
-              }}
-            >
-              {exportLoading ? "Generando..." : "Descargar Usuarios"}
-            </button>
+            {isGeneralAdmin ? (
+              <button
+                type="button"
+                disabled={exportLoading}
+                className={BTN_SECONDARY}
+                onClick={async () => {
+                  setExportLoading(true);
+                  try {
+                    const rows = await listUsuarios("");
+                    await downloadUsuariosExcel(rows);
+                    toast.success("Excel descargado.");
+                  } catch {
+                    toast.error("No se pudo generar el Excel de usuarios.");
+                  } finally {
+                    setExportLoading(false);
+                  }
+                }}
+              >
+                {exportLoading ? "Generando..." : "Descargar Usuarios"}
+              </button>
+            ) : null}
             <button
               type="button"
               className={BTN_SECONDARY}

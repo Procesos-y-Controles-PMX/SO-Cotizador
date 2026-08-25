@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { getCurrentUser, logout, useAuth } from "@/lib/auth";
+import { logout, useAuth } from "@/lib/auth";
+import { isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import {
   AmbientGridProvider,
@@ -28,6 +29,7 @@ interface NavItemDef {
   href: string;
   icon: ReactNode;
   roles?: Array<"admin" | "tienda">;
+  ownerOnly?: boolean;
 }
 
 interface NavGroup {
@@ -146,6 +148,17 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               </svg>
             ),
           },
+          {
+            label: "Accesos",
+            href: "/accesos",
+            roles: ["admin"],
+            ownerOnly: true,
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            ),
+          },
         ],
       },
     ],
@@ -153,9 +166,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    const session = getCurrentUser();
-    if (!loading && !session) router.replace("/login");
-  }, [loading, router]);
+    if (!loading && !user) router.replace("/login");
+  }, [loading, user, router]);
 
   if (loading || !user) {
     return <GridLoadingScreen message="Verificando sesión..." variant="dark" />;
@@ -165,6 +177,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
+        if (item.ownerOnly && !isOwnerAdminEmail(user.email)) return false;
         if (!item.roles) return true;
         return item.roles.includes(user.rol as "admin" | "tienda");
       }),
