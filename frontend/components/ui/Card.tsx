@@ -7,7 +7,7 @@ export interface CardProps {
 export default function Card({ children, className = "", onClick }: CardProps) {
   return (
     <div
-      className={`rounded-sm border border-line bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ${className}`}
+      className={`neu-raised rounded-sm p-5 ${className}`}
       onClick={onClick}
     >
       {children}
@@ -33,7 +33,7 @@ const accentMap = {
 export function StatCard({ icon, value, label, sublabel, accentColor = "blue" }: StatCardProps) {
   const colors = accentMap[accentColor];
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative">
       <div className="flex flex-col gap-4">
         <div className={`flex h-11 w-11 items-center justify-center rounded-sm ${colors.iconBg} ${colors.iconText}`}>
           {icon}
