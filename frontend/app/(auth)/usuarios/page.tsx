@@ -10,6 +10,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import {
   ALERT_WARNING,
   BTN_GHOST,
+  BTN_PRIMARY,
   BTN_SECONDARY,
   FIELD_INPUT,
   MOBILE_LIST_CARD,
@@ -277,7 +278,7 @@ export default function UsuariosPage() {
             >
               {excelParsing ? "Leyendo..." : "Importar Excel"}
             </button>
-            <button type="button" className="btn-primary w-full justify-center sm:w-auto" onClick={openCreate}>
+            <button type="button" className={BTN_PRIMARY} onClick={openCreate}>
               + Nuevo usuario
             </button>
           </>

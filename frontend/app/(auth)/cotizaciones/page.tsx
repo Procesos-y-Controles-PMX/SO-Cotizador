@@ -9,6 +9,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import TablePagination from "@/components/ui/TablePagination";
 import {
   BTN_GHOST,
+  BTN_PRIMARY,
   BTN_SECONDARY,
   EMPTY_STATE,
   FIELD_INPUT,
@@ -202,7 +203,7 @@ export default function CotizacionesPage() {
             >
               {excelLoading ? "Generando Excel..." : "Descargar Excel"}
             </button>
-            <Link href="/cotizaciones/nueva" className="btn-primary w-full justify-center sm:w-auto">
+            <Link href="/cotizaciones/nueva" className={BTN_PRIMARY}>
               Nueva cotización
             </Link>
           </>

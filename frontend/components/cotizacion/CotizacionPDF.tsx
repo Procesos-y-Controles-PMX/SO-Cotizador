@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BTN_PRIMARY } from "@/components/ui/contentStyles";
 import { cotizacionPdfDocumentUrl, pdfFileNameFromFolio } from "@/lib/pdf/cotizacionPdf";
 import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 
@@ -15,7 +16,7 @@ export function CotizacionPDFPreview({ quote }: { quote: CotizacionWithRelations
 
   return (
     <div className="space-y-3">
-      <a href={downloadUrl} download={fileName} className="btn-primary inline-block">
+      <a href={downloadUrl} download={fileName} className={BTN_PRIMARY}>
         Descargar PDF
       </a>
       <div className="relative h-[75vh] overflow-hidden rounded-lg border border-line bg-card">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
 import PageHeader from "@/components/ui/PageHeader";
-import { ALERT_WARNING, BTN_SECONDARY } from "@/components/ui/contentStyles";
+import { ALERT_WARNING, BTN_PRIMARY, BTN_SECONDARY } from "@/components/ui/contentStyles";
 import { getCurrentUser } from "@/lib/auth";
 import {
   canDuplicateCotizacion,
@@ -56,7 +56,7 @@ export default function CotizacionDetallePage() {
                 Duplicar cotización
               </Link>
             ) : null}
-            <Link href={`/cotizaciones/${params.id}/pdf`} className="btn-primary w-full justify-center sm:w-auto">
+            <Link href={`/cotizaciones/${params.id}/pdf`} className={BTN_PRIMARY}>
               Ver PDF
             </Link>
           </>
