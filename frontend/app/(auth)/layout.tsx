@@ -16,6 +16,8 @@ import {
 import {
   SIDEBAR_NAV_ACTIVE,
   SIDEBAR_NAV_IDLE,
+  SIDEBAR_NAV_LIST,
+  SIDEBAR_NAV_LIST_COLLAPSED,
   SIDEBAR_SECTION_LABEL,
   SIDEBAR_SHELL,
   SIDEBAR_USER_CARD,
@@ -221,7 +223,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <p className={SIDEBAR_SECTION_LABEL}>{group.title}</p>
               </div>
             )}
-            <ul className={cn("px-2", collapsed ? "space-y-2.5" : "space-y-2")}>
+            <ul className={collapsed ? SIDEBAR_NAV_LIST_COLLAPSED : SIDEBAR_NAV_LIST}>
               {group.items.map((item) => {
                 const active = isActive(item.href);
                 return (
