@@ -1,13 +1,9 @@
-/** Shared Promexma shell styles — clay, aligned with SO Equipo Móvil */
+/** Re-export clay shell from SO-UI so call sites stay stable. */
 
-/** Layout only — add `flex` when the sidebar is visible (never with `hidden`). */
-export const SIDEBAR_SHELL = "neu-sidebar h-screen flex-col";
-
-export const SIDEBAR_NAV_ACTIVE = "neu-nav-active text-white";
-
-export const SIDEBAR_NAV_IDLE = "neu-nav-idle text-fg-muted hover:text-fg";
-
-export const SIDEBAR_SECTION_LABEL =
-  "text-xs font-bold uppercase tracking-[0.14em] text-brand";
-
-export const SIDEBAR_USER_CARD = "neu-tray rounded-sm p-3";
+export {
+  SIDEBAR_SHELL,
+  SIDEBAR_NAV_ACTIVE,
+  SIDEBAR_NAV_IDLE,
+  SIDEBAR_SECTION_LABEL,
+  SIDEBAR_USER_CARD,
+} from "@promexma/ui";

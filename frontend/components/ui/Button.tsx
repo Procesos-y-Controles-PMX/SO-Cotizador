@@ -13,7 +13,7 @@ const variantStyles: Record<Variant, string> = {
   primary: "btn-primary",
   secondary: "neu-button text-fg-strong",
   ghost: "bg-transparent text-fg-muted hover:text-fg",
-  danger: "bg-red-50 text-red-600 hover:bg-red-100",
+  danger: "btn-danger",
 };
 
 const sizeStyles: Record<Size, string> = {
