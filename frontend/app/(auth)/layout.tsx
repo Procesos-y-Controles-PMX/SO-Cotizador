@@ -335,7 +335,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {navContent(sidebarCollapsed)}
       </aside>
 
-      <div className={cn("relative min-h-screen transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
+      <div className={cn("relative min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
         <AmbientCanvas />
 
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-transparent py-3 lg:py-4">
@@ -359,7 +359,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="relative z-10 app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">
+        <main className="relative z-10 min-w-0 app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">
           <ModuleTransition>{children}</ModuleTransition>
         </main>
       </div>

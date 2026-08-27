@@ -8,7 +8,6 @@ import DownloadCotizacionesZipModal from "@/components/cotizacion/DownloadCotiza
 import PageHeader from "@/components/ui/PageHeader";
 import TablePagination from "@/components/ui/TablePagination";
 import {
-  BTN_GHOST,
   BTN_PRIMARY,
   BTN_SECONDARY,
   EMPTY_STATE,
@@ -34,7 +33,7 @@ import {
 import { canDuplicateCotizacion } from "@/lib/cotizacion/cotizacionToFormInitial";
 import { obraNombreCotizacion } from "@/lib/queries/obras";
 import { PAGE_SIZE } from "@/lib/pagination";
-import { money } from "@/lib/utils";
+import { cn, money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
   const [search, setSearch] = useState("");
@@ -137,15 +136,15 @@ export default function CotizacionesPage() {
     }
   }
 
-  const emptyColSpan = isAdmin ? 8 : 7;
+  const emptyColSpan = 7;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const linkClass = stacked
       ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-line bg-muted px-3 text-sm font-semibold text-brand"
-      : `${BTN_GHOST} text-brand hover:text-brand-hover`;
+      : "text-xs font-semibold text-brand hover:text-brand-hover";
 
     return (
-      <div className={stacked ? "flex flex-wrap gap-2" : "flex flex-wrap items-center justify-end gap-x-2 gap-y-1"}>
+      <div className={stacked ? "flex flex-wrap gap-2" : "flex flex-col items-end gap-0.5"}>
         <Link href={`/cotizaciones/${row.id}`} className={linkClass}>
           Ver detalle
         </Link>
@@ -154,10 +153,14 @@ export default function CotizacionesPage() {
             Duplicar
           </Link>
         ) : null}
-        {stacked && isAdmin ? (
+        {isAdmin ? (
           <button
             type="button"
-            className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
+            className={
+              stacked
+                ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
+                : "text-xs font-semibold text-red-600 hover:text-red-500"
+            }
             onClick={() => setDeleteTarget(row)}
           >
             Borrar
@@ -168,7 +171,7 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="min-w-0 space-y-4">
       <PageHeader
         eyebrow="Cotizador"
         title="Historial de cotizaciones"
@@ -268,43 +271,41 @@ export default function CotizacionesPage() {
         )}
       </div>
 
-      {/* Desktop — table (unchanged layout) */}
-      <div className={`hidden md:block ${TABLE_WRAP}`}>
-        <table className="w-full min-w-[640px] text-left text-sm">
+      <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-hidden md:block")}>
+        <table className="w-full table-fixed text-left text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className={TABLE_HEAD_CELL}>Folio</th>
-              <th className={TABLE_HEAD_CELL}>Cliente</th>
-              <th className={TABLE_HEAD_CELL}>Obra</th>
-              <th className={TABLE_HEAD_CELL}>Sucursal</th>
-              <th className={TABLE_HEAD_CELL}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} text-center`}>Venta cerrada</th>
-              <th className={`${TABLE_HEAD_CELL} text-right`}></th>
-              {isAdmin ? <th className={`${TABLE_HEAD_CELL} text-right`}>Borrar</th> : null}
+              <th className={`${TABLE_HEAD_CELL} w-[16%]`}>Folio</th>
+              <th className={`${TABLE_HEAD_CELL} w-[18%]`}>Cliente</th>
+              <th className={`${TABLE_HEAD_CELL} w-[20%]`}>Obra</th>
+              <th className={`${TABLE_HEAD_CELL} w-[12%]`}>Sucursal</th>
+              <th className={`${TABLE_HEAD_CELL} w-[10%]`}>Total</th>
+              <th className={`${TABLE_HEAD_CELL} w-[10%] whitespace-normal text-center`}>Venta cerrada</th>
+              <th className={`${TABLE_HEAD_CELL} w-[14%] text-right`}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
+                <td className="px-3 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
                   Cargando...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
+                <td className="px-3 py-6 text-center text-fg-subtle" colSpan={emptyColSpan}>
                   No hay cotizaciones para mostrar.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
               <tr key={row.id} className={TABLE_BODY_ROW}>
-                <td className="whitespace-nowrap px-4 py-3 font-medium">{row.folio}</td>
-                <td className="px-4 py-3">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
-                <td className="px-4 py-3">{obraNombreCotizacion(row)}</td>
-                <td className="whitespace-nowrap px-4 py-3">{row.ctz_sucursales?.nombre ?? "-"}</td>
-                <td className="whitespace-nowrap px-4 py-3">{money(row.total)}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-center">
+                <td className="overflow-hidden break-words px-3 py-3 align-top font-medium">{row.folio}</td>
+                <td className="overflow-hidden break-words px-3 py-3 align-top">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
+                <td className="overflow-hidden break-words px-3 py-3 align-top">{obraNombreCotizacion(row)}</td>
+                <td className="overflow-hidden break-words px-3 py-3 align-top">{row.ctz_sucursales?.nombre ?? "-"}</td>
+                <td className="px-3 py-3 align-top">{money(row.total)}</td>
+                <td className="px-3 py-3 text-center align-top">
                   <input
                     type="checkbox"
                     checked={row.venta_cerrada}
@@ -312,20 +313,9 @@ export default function CotizacionesPage() {
                     onChange={(event) => void handleVentaCerradaToggle(row, event.target.checked)}
                   />
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
+                <td className="px-3 py-3 text-right align-top">
                   {renderRowActions(row)}
                 </td>
-                {isAdmin ? (
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      className={`${BTN_GHOST} text-red-600 hover:bg-red-50 hover:text-red-700`}
-                      onClick={() => setDeleteTarget(row)}
-                    >
-                      Borrar
-                    </button>
-                  </td>
-                ) : null}
               </tr>
               ))
             )}
