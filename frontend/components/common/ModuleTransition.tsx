@@ -22,7 +22,7 @@ export default function ModuleTransition({ children }: { children: React.ReactNo
   }, [index])
 
   return (
-    <div key={pathname} className={`flex min-h-full flex-1 flex-col ${animClass}`}>
+    <div key={pathname} className={`flex min-h-full min-w-0 flex-1 flex-col ${animClass}`}>
       {children}
     </div>
   )
