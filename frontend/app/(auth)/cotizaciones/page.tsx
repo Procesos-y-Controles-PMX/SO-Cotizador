@@ -143,14 +143,18 @@ export default function CotizacionesPage() {
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const actionBtnClass = stacked
       ? `${BTN_GHOST} min-h-10 flex-1 justify-center border border-line text-sm font-semibold`
-      : `${BTN_GHOST} border border-line px-2 py-1 text-xs`;
+      : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-line px-2 py-1 text-xs min-h-8`;
 
     const deleteBtnClass = stacked
       ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
-      : `${BTN_GHOST} border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50`;
+      : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 min-h-8`;
 
     return (
-      <div className={stacked ? "flex flex-wrap gap-2" : "flex flex-wrap justify-end gap-2"}>
+      <div
+        className={
+          stacked ? "flex flex-wrap gap-2" : "flex flex-nowrap items-center justify-end gap-1.5"
+        }
+      >
         <Link href={`/cotizaciones/${row.id}`} className={actionBtnClass}>
           Ver detalle
         </Link>
@@ -270,13 +274,13 @@ export default function CotizacionesPage() {
         <table className="w-full table-fixed text-left text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className={`${TABLE_HEAD_CELL} w-[16%]`}>Folio</th>
-              <th className={`${TABLE_HEAD_CELL} w-[18%]`}>Cliente</th>
-              <th className={`${TABLE_HEAD_CELL} w-[20%]`}>Obra</th>
-              <th className={`${TABLE_HEAD_CELL} w-[12%]`}>Sucursal</th>
-              <th className={`${TABLE_HEAD_CELL} w-[10%]`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} w-[10%] whitespace-normal text-center`}>Venta cerrada</th>
-              <th className={`${TABLE_HEAD_CELL} w-[14%] text-right`}>Acciones</th>
+              <th className={`${TABLE_HEAD_CELL} w-[14%]`}>Folio</th>
+              <th className={`${TABLE_HEAD_CELL} w-[17%]`}>Cliente</th>
+              <th className={`${TABLE_HEAD_CELL} w-[18%]`}>Obra</th>
+              <th className={`${TABLE_HEAD_CELL} w-[11%]`}>Sucursal</th>
+              <th className={`${TABLE_HEAD_CELL} w-[9%]`}>Total</th>
+              <th className={`${TABLE_HEAD_CELL} w-[9%] whitespace-normal text-center`}>Venta cerrada</th>
+              <th className={`${TABLE_HEAD_CELL} w-[22%] text-right`}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -310,7 +314,7 @@ export default function CotizacionesPage() {
                     />
                   </div>
                 </td>
-                <td className="px-3 py-3 text-right align-top">
+                <td className="px-2 py-3 text-right align-middle">
                   {renderRowActions(row)}
                 </td>
               </tr>
