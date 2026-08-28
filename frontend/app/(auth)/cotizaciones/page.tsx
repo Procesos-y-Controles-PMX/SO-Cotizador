@@ -274,13 +274,21 @@ export default function CotizacionesPage() {
         <table className="w-full table-fixed text-left text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className={`${TABLE_HEAD_CELL} w-[14%]`}>Folio</th>
-              <th className={`${TABLE_HEAD_CELL} w-[17%]`}>Cliente</th>
-              <th className={`${TABLE_HEAD_CELL} w-[18%]`}>Obra</th>
-              <th className={`${TABLE_HEAD_CELL} w-[11%]`}>Sucursal</th>
-              <th className={`${TABLE_HEAD_CELL} w-[9%]`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} w-[9%] whitespace-normal text-center`}>Venta cerrada</th>
-              <th className={`${TABLE_HEAD_CELL} w-[22%] text-right`}>Acciones</th>
+              <th className={`${TABLE_HEAD_CELL} w-[24%] px-2`}>Folio</th>
+              <th className={`${TABLE_HEAD_CELL} w-[13%] px-2`}>Cliente</th>
+              <th className={`${TABLE_HEAD_CELL} w-[14%] px-2`}>Obra</th>
+              <th className={`${TABLE_HEAD_CELL} w-[9%] px-2`}>Sucursal</th>
+              <th className={`${TABLE_HEAD_CELL} w-[8%] px-2`}>Total</th>
+              <th
+                className={`${TABLE_HEAD_CELL} w-[4%] px-1 text-center`}
+                title="Venta cerrada"
+              >
+                <span className="block text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
+                  Venta
+                  <span className="block">cerrada</span>
+                </span>
+              </th>
+              <th className={`${TABLE_HEAD_CELL} w-[28%] px-2 text-right`}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -299,12 +307,23 @@ export default function CotizacionesPage() {
             ) : (
               rows.map((row) => (
               <tr key={row.id} className={TABLE_BODY_ROW}>
-                <td className="overflow-hidden break-words px-3 py-3 align-top font-medium">{row.folio}</td>
-                <td className="overflow-hidden break-words px-3 py-3 align-top">{row.ctz_clientes?.nombre_cliente ?? "-"}</td>
-                <td className="overflow-hidden break-words px-3 py-3 align-top">{obraNombreCotizacion(row)}</td>
-                <td className="overflow-hidden break-words px-3 py-3 align-top">{row.ctz_sucursales?.nombre ?? "-"}</td>
-                <td className="px-3 py-3 align-top">{money(row.total)}</td>
-                <td className="px-3 py-3 text-center align-top">
+                <td
+                  className="overflow-hidden px-2 py-3 align-top text-xs font-medium whitespace-nowrap"
+                  title={row.folio}
+                >
+                  {row.folio}
+                </td>
+                <td className="overflow-hidden truncate px-2 py-3 align-top" title={row.ctz_clientes?.nombre_cliente ?? "-"}>
+                  {row.ctz_clientes?.nombre_cliente ?? "-"}
+                </td>
+                <td className="overflow-hidden truncate px-2 py-3 align-top" title={obraNombreCotizacion(row)}>
+                  {obraNombreCotizacion(row)}
+                </td>
+                <td className="overflow-hidden truncate px-2 py-3 align-top" title={row.ctz_sucursales?.nombre ?? "-"}>
+                  {row.ctz_sucursales?.nombre ?? "-"}
+                </td>
+                <td className="whitespace-nowrap px-2 py-3 align-top text-xs tabular-nums">{money(row.total)}</td>
+                <td className="px-1 py-3 text-center align-middle">
                   <div className="flex justify-center">
                     <Checkbox
                       checked={row.venta_cerrada}
