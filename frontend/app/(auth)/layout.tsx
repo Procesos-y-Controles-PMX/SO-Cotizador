@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { logout, useAuth } from "@/lib/auth";
-import { isOwnerAdminEmail } from "@/lib/owner-admin";
+import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import {
   AmbientGridProvider,
@@ -59,7 +59,7 @@ function AmbientCanvas() {
       data-ambient-grid-clip
     >
       <InteractiveGridPattern
-        cellSize={40}
+        cellSize={64}
         skewY={6}
         wave={!spinner}
         waveDuration={5}
@@ -69,8 +69,8 @@ function AmbientCanvas() {
         spinnerRadius={3.5}
         trailMs={750}
         spinnerOrigin={origin}
-        className="absolute inset-0 [mask-image:radial-gradient(ellipse_90%_80%_at_50%_40%,white,transparent)]"
-        squaresClassName="stroke-slate-300/80"
+        className="absolute inset-0"
+        squaresClassName="stroke-[var(--grid-line)]"
       />
     </div>
   );
@@ -210,77 +210,78 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     router.replace("/login");
   }
 
+  const roleLabel = displayRol(user.rol, user.email);
+
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
-      <nav className="sidebar-scroll flex-1 overflow-x-hidden overflow-y-auto px-3 py-4">
+      <nav className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
         {filteredGroups.map((group) => (
-          <div key={group.title} className="mb-5">
+          <div key={group.title} className="mb-3">
             {!collapsed && (
-              <div className="mb-2 flex items-center gap-2 px-3">
+              <div className="mb-2.5 flex items-center gap-2 px-5">
                 <span className="h-3.5 w-0.5 shrink-0 rounded-full bg-brand" aria-hidden />
                 <p className={SIDEBAR_SECTION_LABEL}>{group.title}</p>
               </div>
             )}
-            <div className={collapsed ? SIDEBAR_NAV_LIST_COLLAPSED : SIDEBAR_NAV_LIST}>
+            <ul className={collapsed ? SIDEBAR_NAV_LIST_COLLAPSED : SIDEBAR_NAV_LIST}>
               {group.items.map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={item.label}
-                    onClick={onNavigate}
-                    className={cn(
-                      "relative flex items-center gap-3 rounded-sm text-[13px] font-medium transition-all duration-200",
-                      collapsed ? "justify-center px-3 py-2.5" : "px-3 py-2.5",
-                      active ? SIDEBAR_NAV_ACTIVE : SIDEBAR_NAV_IDLE
-                    )}
-                  >
-                    <span className="shrink-0">{item.icon}</span>
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                    {active && !collapsed ? (
-                      <span className="animate-rail-glow pointer-events-none absolute bottom-2 left-0 top-2 w-[3px] rounded-full bg-card/70" />
-                    ) : null}
-                  </Link>
+                  <li key={item.href} className={cn(collapsed && "flex justify-center")}>
+                    <Link
+                      href={item.href}
+                      title={item.label}
+                      onClick={onNavigate}
+                      className={cn(
+                        "relative flex items-center rounded-sm text-sm font-medium",
+                        collapsed ? "h-11 w-11 justify-center" : "gap-3 px-3 py-2.5",
+                        active ? SIDEBAR_NAV_ACTIVE : SIDEBAR_NAV_IDLE,
+                      )}
+                    >
+                      <span className={cn("relative shrink-0", active ? "text-white" : "text-fg-subtle")}>
+                        {item.icon}
+                      </span>
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
-      <div className={cn("shrink-0 space-y-2 border-t border-white/10 px-3 py-3", SIDEBAR_USER_CARD)}>
-        {collapsed ? (
-          <div className="flex justify-center">
+      <div className="shrink-0 px-2 pb-4 pt-2">
+        <div className={cn(SIDEBAR_USER_CARD, "flex flex-col gap-2", collapsed && "items-center")}>
+          {collapsed ? (
             <GridThemeToggle compact />
-          </div>
-        ) : (
-          <GridThemeToggle />
-        )}
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white shadow-sm">
-            {initials}
-          </div>
-          {!collapsed && (
-            <>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Usuario</p>
-                <p className="truncate text-xs font-semibold text-fg-faint">{user.nombre_completo ?? user.email}</p>
-                <p className="text-[10px] text-fg-subtle">{user.rol}</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-sm p-1.5 text-fg-subtle transition-colors hover:bg-white/10 hover:text-fg-faint"
-                title="Cerrar sesión"
-                aria-label="Cerrar sesión"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </>
+          ) : (
+            <GridThemeToggle />
           )}
+          <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
+              {initials}
+            </div>
+            {!collapsed && (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                  <span className="truncate text-xs font-semibold text-fg-strong">
+                    {user.nombre_completo ?? user.email}
+                  </span>
+                  <span className="truncate text-xs text-fg-subtle">{roleLabel}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="neu-button rounded-full p-1.5 text-fg-subtle hover:text-fg"
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
+                >
+                  <LogoutIcon className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>
@@ -291,33 +292,38 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen app-canvas">
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 hidden shadow-lg transition-all duration-300 ease-in-out lg:flex lg:flex-col",
+          "fixed left-0 top-0 z-40 hidden transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:flex lg:flex-col",
           SIDEBAR_SHELL,
-          sidebarCollapsed ? "w-[72px]" : "w-[250px]"
+          sidebarCollapsed ? "w-20" : "w-64",
         )}
       >
-        <div className="relative flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
-          <Link href="/cotizaciones" className="flex items-center gap-2.5 overflow-hidden">
+        <div
+          className={cn(
+            "relative flex shrink-0 items-center pb-3 pt-5",
+            sidebarCollapsed ? "justify-center px-2" : "gap-3 px-5",
+          )}
+        >
+          <Link href="/cotizaciones" className="neu-raised-sm relative block h-9 w-9 shrink-0 overflow-hidden rounded-full">
             <Image
               src="/circulo-promexma.png"
               alt="Promexma"
-              width={30}
-              height={30}
-              className="shrink-0 rounded-full"
+              fill
+              sizes="36px"
+              className="rounded-full object-contain"
             />
-            {!sidebarCollapsed && (
-              <div className="min-w-0">
-                <p className="text-sm font-bold leading-none text-white">Promexma</p>
-                <p className="mt-0.5 text-[10px] font-medium text-fg-subtle">SO Cotizador</p>
-              </div>
-            )}
           </Link>
-
+          {!sidebarCollapsed && (
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="whitespace-nowrap text-sm font-bold leading-tight text-white">Promexma</p>
+              <p className="mt-0.5 whitespace-nowrap text-xs leading-tight text-slate-500">SO Cotizador</p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setSidebarCollapsed((prev) => !prev)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-fg-faint transition-all hover:border-slate-500 hover:bg-slate-800 hover:text-fg-faint"
-            aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+            className="neu-button absolute right-0 top-6 z-[60] flex h-7 w-7 translate-x-1/2 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
+            aria-label={sidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
+            aria-expanded={!sidebarCollapsed}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -338,13 +344,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className={cn("relative min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
         <AmbientCanvas />
 
-        <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-transparent py-3 lg:py-4">
+        <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-canvas pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:hidden">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-fg lg:text-xl">
-              Cotizador Promexma
+            <h1 className="truncate font-display text-base font-semibold tracking-tight text-fg sm:text-lg">
+              Cotizador
             </h1>
-            <p className="truncate text-xs text-fg-subtle lg:text-sm">
-              {user.nombre_completo ?? user.email} · {user.rol}
+            <p className="truncate text-xs text-fg-subtle">
+              {(user.nombre_completo ?? user.email).split(/\s+/)[0]} · {roleLabel}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -352,7 +358,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-fg-subtle hover:bg-muted hover:text-fg-strong lg:hidden"
+              className="neu-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg-strong lg:hidden"
               aria-label="Cerrar sesión"
             >
               <LogoutIcon className="h-5 w-5" />

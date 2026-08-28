@@ -78,18 +78,17 @@ export default function LoginShell({
   return (
     <MagazineDots interactive className="min-h-dvh !items-stretch !justify-start">
       <main className="relative z-10 grid min-h-dvh w-full lg:grid-cols-2">
-        <div className="absolute left-0 right-0 top-[env(safe-area-inset-top,0px)] z-20 h-0.5 bg-brand" />
+        <div className="absolute left-0 right-0 top-[env(safe-area-inset-top,0px)] z-20 h-px bg-brand/40" />
 
         {/* Desktop — branding column */}
         <section className="hidden lg:flex flex-col justify-center px-12 xl:px-16 py-10">
           <div className="max-w-xl">
-            <div className="mb-10">
+            <div className="mb-16">
               <PromexmaLogotipo productLabel={productLabel} variant="dark" />
             </div>
 
-            <div className="space-y-6">
-              <div className="w-10 h-0.5 bg-brand" />
-              <h1 className="font-display text-5xl xl:text-6xl font-semibold text-white leading-[0.92] tracking-tight uppercase">
+            <div className="space-y-5">
+              <h1 className="font-display text-4xl xl:text-5xl font-semibold text-white leading-[1.08] tracking-tight">
                 {heroLine1}
                 <br />
                 <span className="text-white/90">{heroLine2}</span>
@@ -112,9 +111,8 @@ export default function LoginShell({
               variant="dark"
               align="center"
             />
-            <div className="mt-5 space-y-3">
-              <div className="mx-auto w-8 h-0.5 bg-brand" />
-              <h1 className="font-display text-[1.65rem] leading-[1.05] sm:text-3xl font-semibold text-white tracking-tight uppercase">
+            <div className="mt-6 space-y-3">
+              <h1 className="font-display text-[1.65rem] leading-[1.15] sm:text-3xl font-semibold text-white tracking-tight">
                 {heroLine1}
                 <br />
                 <span className="text-white/90">{heroLine2}</span>
