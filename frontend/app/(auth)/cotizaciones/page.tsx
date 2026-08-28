@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Copy, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
@@ -141,31 +142,61 @@ export default function CotizacionesPage() {
   const emptyColSpan = 7;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
-    const actionBtnClass = stacked
+    const textBtnClass = stacked
       ? `${BTN_GHOST} min-h-10 flex-1 justify-center border border-line text-sm font-semibold`
       : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-line px-2 py-1 text-xs min-h-8`;
 
-    const deleteBtnClass = stacked
+    const iconBtnClass =
+      `${BTN_GHOST} inline-flex h-8 w-8 shrink-0 items-center justify-center border border-line`;
+
+    const deleteTextBtnClass = stacked
       ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
-      : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 min-h-8`;
+      : `${iconBtnClass} border-red-200 text-red-700 hover:bg-red-50`;
+
+    if (stacked) {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/cotizaciones/${row.id}`} className={textBtnClass}>
+            Ver detalle
+          </Link>
+          {user && canDuplicateCotizacion(user, row) ? (
+            <Link href={`/cotizaciones/nueva?copiar=${row.id}`} className={textBtnClass}>
+              Duplicar
+            </Link>
+          ) : null}
+          {isAdmin ? (
+            <button type="button" className={deleteTextBtnClass} onClick={() => setDeleteTarget(row)}>
+              Borrar
+            </button>
+          ) : null}
+        </div>
+      );
+    }
 
     return (
-      <div
-        className={
-          stacked ? "flex flex-wrap gap-2" : "flex flex-nowrap items-center justify-end gap-1.5"
-        }
-      >
-        <Link href={`/cotizaciones/${row.id}`} className={actionBtnClass}>
+      <div className="flex flex-nowrap items-center justify-end gap-1">
+        <Link href={`/cotizaciones/${row.id}`} className={textBtnClass}>
           Ver detalle
         </Link>
         {user && canDuplicateCotizacion(user, row) ? (
-          <Link href={`/cotizaciones/nueva?copiar=${row.id}`} className={actionBtnClass}>
-            Duplicar
+          <Link
+            href={`/cotizaciones/nueva?copiar=${row.id}`}
+            className={iconBtnClass}
+            title="Duplicar cotización"
+            aria-label="Duplicar cotización"
+          >
+            <Copy size={14} aria-hidden />
           </Link>
         ) : null}
         {isAdmin ? (
-          <button type="button" className={deleteBtnClass} onClick={() => setDeleteTarget(row)}>
-            Borrar
+          <button
+            type="button"
+            className={deleteTextBtnClass}
+            onClick={() => setDeleteTarget(row)}
+            title="Borrar cotización"
+            aria-label="Borrar cotización"
+          >
+            <Trash2 size={14} aria-hidden />
           </button>
         ) : null}
       </div>
@@ -273,13 +304,13 @@ export default function CotizacionesPage() {
       <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-hidden md:block")}>
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
-            <col style={{ width: "19%" }} />
-            <col style={{ width: "16%" }} />
+            <col style={{ width: "23%" }} />
             <col style={{ width: "17%" }} />
-            <col style={{ width: "10%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "11%" }} />
             <col style={{ width: "9%" }} />
-            <col style={{ width: "2.75rem" }} />
-            <col style={{ width: "29%" }} />
+            <col style={{ width: "4.5rem" }} />
+            <col style={{ width: "15%" }} />
           </colgroup>
           <thead className="bg-muted">
             <tr>
@@ -288,8 +319,11 @@ export default function CotizacionesPage() {
               <th className={`${TABLE_HEAD_CELL} px-2`}>Obra</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} px-0 text-center`} title="Venta cerrada">
-                <span className="sr-only">Venta cerrada</span>
+              <th className={`${TABLE_HEAD_CELL} px-1 text-center`}>
+                <span className="block text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
+                  Venta
+                  <span className="block">cerrada</span>
+                </span>
               </th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Acciones</th>
             </tr>
@@ -326,7 +360,7 @@ export default function CotizacionesPage() {
                   {row.ctz_sucursales?.nombre ?? "-"}
                 </td>
                 <td className="whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">{money(row.total)}</td>
-                <td className="px-0 py-3 text-center align-middle">
+                <td className="px-1 py-3 text-center align-middle">
                   <div className="flex justify-center">
                     <Checkbox
                       checked={row.venta_cerrada}
