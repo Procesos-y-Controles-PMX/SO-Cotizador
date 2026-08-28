@@ -5,9 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ConfirmDeleteCotizacionModal from "@/components/cotizacion/ConfirmDeleteCotizacionModal";
 import DownloadCotizacionesZipModal from "@/components/cotizacion/DownloadCotizacionesZipModal";
+import Checkbox from "@/components/ui/Checkbox";
 import PageHeader from "@/components/ui/PageHeader";
 import TablePagination from "@/components/ui/TablePagination";
 import {
+  BTN_GHOST,
   BTN_PRIMARY,
   BTN_SECONDARY,
   EMPTY_STATE,
@@ -139,30 +141,26 @@ export default function CotizacionesPage() {
   const emptyColSpan = 7;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
-    const linkClass = stacked
-      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-line bg-muted px-3 text-sm font-semibold text-brand"
-      : "text-xs font-semibold text-brand hover:text-brand-hover";
+    const actionBtnClass = stacked
+      ? `${BTN_GHOST} min-h-10 flex-1 justify-center border border-line text-sm font-semibold`
+      : `${BTN_GHOST} border border-line px-2 py-1 text-xs`;
+
+    const deleteBtnClass = stacked
+      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
+      : `${BTN_GHOST} border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50`;
 
     return (
-      <div className={stacked ? "flex flex-wrap gap-2" : "flex flex-col items-end gap-0.5"}>
-        <Link href={`/cotizaciones/${row.id}`} className={linkClass}>
+      <div className={stacked ? "flex flex-wrap gap-2" : "flex flex-wrap justify-end gap-2"}>
+        <Link href={`/cotizaciones/${row.id}`} className={actionBtnClass}>
           Ver detalle
         </Link>
         {user && canDuplicateCotizacion(user, row) ? (
-          <Link href={`/cotizaciones/nueva?copiar=${row.id}`} className={linkClass}>
+          <Link href={`/cotizaciones/nueva?copiar=${row.id}`} className={actionBtnClass}>
             Duplicar
           </Link>
         ) : null}
         {isAdmin ? (
-          <button
-            type="button"
-            className={
-              stacked
-                ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
-                : "text-xs font-semibold text-red-600 hover:text-red-500"
-            }
-            onClick={() => setDeleteTarget(row)}
-          >
+          <button type="button" className={deleteBtnClass} onClick={() => setDeleteTarget(row)}>
             Borrar
           </button>
         ) : null}
@@ -254,15 +252,12 @@ export default function CotizacionesPage() {
               </dl>
 
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-line-subtle pt-3">
-                <label className="flex items-center gap-2 text-sm text-fg-muted">
-                  <input
-                    type="checkbox"
-                    checked={row.venta_cerrada}
-                    disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
-                    onChange={(event) => void handleVentaCerradaToggle(row, event.target.checked)}
-                  />
-                  Venta cerrada
-                </label>
+                <Checkbox
+                  checked={row.venta_cerrada}
+                  disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
+                  label="Venta cerrada"
+                  onChange={(next) => void handleVentaCerradaToggle(row, next)}
+                />
               </div>
 
               <div className="mt-3">{renderRowActions(row, true)}</div>
@@ -306,12 +301,14 @@ export default function CotizacionesPage() {
                 <td className="overflow-hidden break-words px-3 py-3 align-top">{row.ctz_sucursales?.nombre ?? "-"}</td>
                 <td className="px-3 py-3 align-top">{money(row.total)}</td>
                 <td className="px-3 py-3 text-center align-top">
-                  <input
-                    type="checkbox"
-                    checked={row.venta_cerrada}
-                    disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
-                    onChange={(event) => void handleVentaCerradaToggle(row, event.target.checked)}
-                  />
+                  <div className="flex justify-center">
+                    <Checkbox
+                      checked={row.venta_cerrada}
+                      disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
+                      title="Venta cerrada"
+                      onChange={(next) => void handleVentaCerradaToggle(row, next)}
+                    />
+                  </div>
                 </td>
                 <td className="px-3 py-3 text-right align-top">
                   {renderRowActions(row)}
