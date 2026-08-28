@@ -147,7 +147,7 @@ export default function CotizacionesPage() {
       : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-line px-2 py-1 text-xs min-h-8`;
 
     const iconBtnClass =
-      `${BTN_GHOST} inline-flex h-8 w-8 shrink-0 items-center justify-center border border-line`;
+      `${BTN_GHOST} inline-flex h-9 w-9 shrink-0 items-center justify-center border border-line text-fg-strong`;
 
     const deleteTextBtnClass = stacked
       ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
@@ -185,7 +185,7 @@ export default function CotizacionesPage() {
             title="Duplicar cotización"
             aria-label="Duplicar cotización"
           >
-            <Copy size={14} aria-hidden />
+            <Copy size={16} strokeWidth={2.25} aria-hidden />
           </Link>
         ) : null}
         {isAdmin ? (
@@ -196,7 +196,7 @@ export default function CotizacionesPage() {
             title="Borrar cotización"
             aria-label="Borrar cotización"
           >
-            <Trash2 size={14} aria-hidden />
+            <Trash2 size={16} strokeWidth={2.25} aria-hidden />
           </button>
         ) : null}
       </div>
@@ -319,10 +319,10 @@ export default function CotizacionesPage() {
               <th className={`${TABLE_HEAD_CELL} px-2`}>Obra</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} px-1 text-center`}>
-                <span className="block text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
-                  Venta
-                  <span className="block">cerrada</span>
+              <th className={`${TABLE_HEAD_CELL} px-1 text-center align-middle`}>
+                <span className="mx-auto flex w-fit flex-col items-center text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
+                  <span>Venta</span>
+                  <span>cerrada</span>
                 </span>
               </th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Acciones</th>
