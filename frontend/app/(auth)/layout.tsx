@@ -4,6 +4,7 @@
 import { GridLoadingScreen, GridThemeToggle, InteractiveGridPattern, NoiseField, ThemeToggle } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { logout, useAuth } from "@/lib/auth";
@@ -51,6 +52,10 @@ function AmbientCanvas() {
   const ambient = useAmbientGrid();
   const spinner = Boolean(ambient?.spinner);
   const origin = ambient?.spinnerOrigin ?? [0.5, 0.55];
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = resolvedTheme !== "light";
 
   return (
     <div
@@ -72,7 +77,12 @@ function AmbientCanvas() {
           squaresClassName="stroke-[var(--grid-line)]"
         />
       ) : (
-        <NoiseField className="absolute inset-0" />
+        <NoiseField
+          key={mounted ? resolvedTheme : "light"}
+          className="absolute inset-0"
+          color={isDark ? [255, 255, 255] : [52, 80, 122]}
+          maxOpacity={isDark ? 0.5 : 0.32}
+        />
       )}
     </div>
   );
