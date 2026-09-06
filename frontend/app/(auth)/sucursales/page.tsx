@@ -7,6 +7,7 @@ import ConfirmDeleteSucursalModal from "@/components/sucursales/ConfirmDeleteSuc
 import SucursalEditModal from "@/components/sucursales/SucursalEditModal";
 import {
   ALERT_WARNING,
+  BTN_DANGER,
   BTN_GHOST,
   FIELD_INPUT,
   MOBILE_LIST_CARD,
@@ -166,7 +167,7 @@ export default function SucursalesPage() {
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(row)}
-                    className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
+                    className={`${BTN_DANGER} flex-1`}
                   >
                     Borrar
                   </button>
@@ -219,7 +220,7 @@ export default function SucursalesPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(row)}
-                          className={`${BTN_GHOST} border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50`}
+                          className={`${BTN_DANGER} min-h-8 px-2 py-1 text-xs`}
                         >
                           Borrar
                         </button>

@@ -10,6 +10,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import PageHeader from "@/components/ui/PageHeader";
 import TablePagination from "@/components/ui/TablePagination";
 import {
+  BTN_DANGER,
   BTN_GHOST,
   BTN_PRIMARY,
   BTN_SECONDARY,
@@ -150,8 +151,8 @@ export default function CotizacionesPage() {
       `${BTN_GHOST} inline-flex h-9 w-9 shrink-0 items-center justify-center border border-line text-fg-strong`;
 
     const deleteTextBtnClass = stacked
-      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg bg-brand px-3 text-sm font-semibold text-white hover:bg-brand-hover"
-      : "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-hover";
+      ? `${BTN_DANGER} min-h-10 flex-1`
+      : `${BTN_DANGER} h-9 w-9 min-h-0 shrink-0 px-0 py-0`;
 
     if (stacked) {
       return (

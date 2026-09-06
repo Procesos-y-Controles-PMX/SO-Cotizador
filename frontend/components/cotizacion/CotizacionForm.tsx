@@ -21,6 +21,7 @@ import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/Searc
 import FilterSelect from "@/components/common/FilterSelect";
 import {
   ALERT_INFO,
+  BTN_DANGER,
   BTN_GHOST,
   BTN_PRIMARY,
   BTN_SECONDARY,
@@ -1323,7 +1324,7 @@ export default function CotizacionForm({
         {mode === "edit" && canDelete && onDelete && (
           <button
             type="button"
-            className={`${BTN_PRIMARY} bg-brand hover:bg-brand-hover`}
+            className={BTN_DANGER}
             onClick={() => setConfirmDeleteOpen(true)}
           >
             Borrar cotización
