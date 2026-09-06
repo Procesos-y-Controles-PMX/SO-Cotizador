@@ -1,13 +1,10 @@
 "use client";
 
-import { InteractiveGridPattern } from "@promexma/ui";
+import { NoiseField } from "@promexma/ui";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import {
-  useAmbientGrid,
-  useAmbientGridSpinner,
-  type SpinnerOrigin,
-} from "@/contexts/AmbientGridContext";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useAmbientGrid } from "@/contexts/AmbientGridContext";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 const RING_SIZE = {
   xs: "h-4 w-4",
@@ -17,23 +14,11 @@ const RING_SIZE = {
   xl: "h-12 w-12",
 } as const;
 
-const INSET_BOX = {
-  md: "h-28 w-28",
-  lg: "h-36 w-36",
-  xl: "h-44 w-44",
-} as const;
-
-const INSET_RADIUS = {
-  md: 2.2,
-  lg: 2.8,
-  xl: 3.2,
-} as const;
-
 export type BrandLoaderSize = keyof typeof RING_SIZE;
 
 /**
- * - ambient: drives the page canvas mesh spinner (label only when mesh is ready)
- * - inset: compact mesh badge inside a card/panel
+ * - ambient: caption over the shell NoiseField (no separate spinner graphic)
+ * - inset: small brand pulse for in-card / nested loads
  * - ring: tiny CSS arc (buttons / dense UI)
  */
 export type BrandLoaderVariant = "ambient" | "inset" | "ring";
@@ -61,35 +46,31 @@ function CssRing({ size, className }: { size: BrandLoaderSize; className?: strin
   );
 }
 
-/** Compact mesh orbit for in-card empty / nested states. */
-function InsetOrbit({ size }: { size: "md" | "lg" | "xl" }) {
+function BrandPulse() {
   return (
-    <div
-      className={cn("relative overflow-hidden", INSET_BOX[size])}
-      role="status"
-      aria-label="Cargando"
-    >
-      <InteractiveGridPattern
-        cellSize={18}
-        skewY={6}
-        spinner
-        spinnerMs={1300}
-        spinnerRadius={INSET_RADIUS[size]}
-        trailMs={650}
-        spinnerOrigin={[0.5, 0.5]}
-        className="absolute inset-0"
-        squaresClassName="stroke-slate-300/70"
-      />
-    </div>
+    <>
+      <div className="flex items-center gap-1.5" aria-hidden>
+        <span className="nf-loader-bar h-1 w-7 rounded-full bg-brand" />
+        <span className="nf-loader-bar nf-loader-bar-delay-1 h-1 w-3 rounded-full bg-brand/70" />
+        <span className="nf-loader-bar nf-loader-bar-delay-2 h-1 w-2 rounded-full bg-brand/45" />
+      </div>
+      <style>{`
+        @keyframes nf-loader-breathe {
+          0%, 100% { opacity: 0.35; transform: scaleX(0.85); }
+          50% { opacity: 1; transform: scaleX(1); }
+        }
+        .nf-loader-bar {
+          transform-origin: left center;
+          animation: nf-loader-breathe 1.6s ease-in-out infinite;
+        }
+        .nf-loader-bar-delay-1 { animation-delay: 0.18s; }
+        .nf-loader-bar-delay-2 { animation-delay: 0.36s; }
+        @media (prefers-reduced-motion: reduce) {
+          .nf-loader-bar { animation: none; opacity: 0.85; transform: none; }
+        }
+      `}</style>
+    </>
   );
-}
-
-function clamp01(n: number, lo = 0.08, hi = 0.92) {
-  return Math.min(hi, Math.max(lo, n));
-}
-
-function quantize(n: number, step = 0.02) {
-  return Math.round(n / step) * step;
 }
 
 /** Visible strip from the loader top to the bottom of the viewport. */
@@ -98,14 +79,11 @@ function measureLandingHeight(slot: HTMLElement): number {
   return Math.max(160, Math.floor(window.innerHeight - top));
 }
 
-function originsClose(a: SpinnerOrigin, b: SpinnerOrigin, eps = 0.02) {
-  return Math.abs(a[0] - b[0]) < eps && Math.abs(a[1] - b[1]) < eps;
-}
-
 /**
- * Fallback when the shell ambient mesh isn't mounted (mobile / bare routes).
+ * Fallback when the shell ambient field isn't mounted (mobile / bare routes).
+ * Shows NoiseField locally — same language as the app canvas.
  */
-function LocalAmbientMesh({
+function LocalAmbientField({
   label,
   className,
   children,
@@ -116,6 +94,10 @@ function LocalAmbientMesh({
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const [landingH, setLandingH] = useState<number | undefined>(undefined);
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = resolvedTheme !== "light";
 
   useLayoutEffect(() => {
     const slot = slotRef.current;
@@ -146,17 +128,14 @@ function LocalAmbientMesh({
       aria-busy="true"
       aria-label={label ?? "Cargando"}
     >
-      <InteractiveGridPattern
-        cellSize={40}
-        skewY={6}
-        spinner
-        spinnerMs={1400}
-        spinnerRadius={3.5}
-        trailMs={700}
-        spinnerOrigin={[0.5, 0.5]}
-        className="absolute inset-0 [mask-image:radial-gradient(ellipse_85%_75%_at_50%_50%,white,transparent)]"
-        squaresClassName="stroke-slate-300/80"
-      />
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <NoiseField
+          key={mounted ? resolvedTheme : "light"}
+          className="absolute inset-0"
+          color={isDark ? [255, 255, 255] : [52, 80, 122]}
+          maxOpacity={isDark ? 0.5 : 0.7}
+        />
+      </div>
       <div className="relative z-10 flex flex-col items-center gap-4 px-6">
         {label ? (
           <p className="text-center text-sm font-medium text-fg-subtle">{label}</p>
@@ -168,8 +147,7 @@ function LocalAmbientMesh({
 }
 
 /**
- * Page-canvas loader: drives the shell mesh spinner and paints the caption.
- * Slot height = remaining visible landing under chrome.
+ * Page-canvas loader: keep the shell NoiseField running and paint the caption.
  */
 function AmbientOnCanvas({
   label,
@@ -182,7 +160,6 @@ function AmbientOnCanvas({
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const ambient = useAmbientGrid();
-  const [origin, setOrigin] = useState<SpinnerOrigin | undefined>(undefined);
   const [landingH, setLandingH] = useState<number | undefined>(undefined);
 
   useLayoutEffect(() => {
@@ -193,23 +170,6 @@ function AmbientOnCanvas({
     const measure = () => {
       const h = measureLandingHeight(slot);
       setLandingH((prev) => (prev === h ? prev : h));
-
-      const clip = document.querySelector("[data-ambient-grid-clip]");
-      const c = clip?.getBoundingClientRect();
-      if (!c || c.width < 8 || c.height < 8) return;
-
-      const top = slot.getBoundingClientRect().top;
-      const midY = top + h / 2;
-      const cluster = slot.firstElementChild?.getBoundingClientRect();
-      const midX = cluster
-        ? cluster.left + cluster.width / 2
-        : c.left + c.width / 2;
-
-      const next: SpinnerOrigin = [
-        quantize(clamp01((midX - c.left) / c.width)),
-        quantize(clamp01((midY - c.top) / c.height)),
-      ];
-      setOrigin((prev) => (prev && originsClose(prev, next) ? prev : next));
     };
 
     measure();
@@ -221,13 +181,11 @@ function AmbientOnCanvas({
     };
   }, [ambient?.meshReady, label, children]);
 
-  useAmbientGridSpinner(Boolean(ambient?.meshReady), origin);
-
   if (!ambient?.meshReady) {
     return (
-      <LocalAmbientMesh label={label} className={className}>
+      <LocalAmbientField label={label} className={className}>
         {children}
-      </LocalAmbientMesh>
+      </LocalAmbientField>
     );
   }
 
@@ -281,7 +239,6 @@ export default function BrandLoader({
   children,
 }: BrandLoaderProps) {
   const mode = resolveVariant(variant, size, center);
-  const gridSize = size === "xs" || size === "sm" ? "md" : size;
 
   if (mode === "ambient") {
     return (
@@ -311,7 +268,7 @@ export default function BrandLoader({
     );
   }
 
-  const inset = <InsetOrbit size={gridSize} />;
+  const inset = <BrandPulse />;
   if (center) {
     return (
       <div className={cn("flex flex-col items-center justify-center", paddingClass, className)}>
@@ -323,9 +280,9 @@ export default function BrandLoader({
   }
 
   return (
-    <div className={cn(label || children ? "flex flex-col items-center" : undefined, className)}>
+    <div className={cn(label || children ? "flex flex-col items-center gap-3" : undefined, className)}>
       {inset}
-      {label ? <p className="mt-3 text-sm font-medium text-fg-subtle">{label}</p> : null}
+      {label ? <p className="text-sm font-medium text-fg-subtle">{label}</p> : null}
       {children}
     </div>
   );

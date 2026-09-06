@@ -1,7 +1,7 @@
 "use client";
 
 
-import { GridLoadingScreen, GridThemeToggle, InteractiveGridPattern, NoiseField, ThemeToggle } from "@promexma/ui";
+import { GridLoadingScreen, GridThemeToggle, NoiseField, ThemeToggle } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -12,7 +12,6 @@ import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import {
   AmbientGridProvider,
-  useAmbientGrid,
 } from "@/contexts/AmbientGridContext";
 import {
   SIDEBAR_NAV_ACTIVE,
@@ -49,9 +48,6 @@ function LogoutIcon({ className }: { className?: string }) {
 }
 
 function AmbientCanvas() {
-  const ambient = useAmbientGrid();
-  const spinner = Boolean(ambient?.spinner);
-  const origin = ambient?.spinnerOrigin ?? [0.5, 0.55];
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -63,27 +59,12 @@ function AmbientCanvas() {
       aria-hidden
       data-ambient-grid-clip
     >
-      {spinner ? (
-        <InteractiveGridPattern
-          cellSize={64}
-          skewY={6}
-          wave={false}
-          spinner
-          spinnerMs={1400}
-          spinnerRadius={3.5}
-          trailMs={750}
-          spinnerOrigin={origin}
-          className="absolute inset-0"
-          squaresClassName="stroke-[var(--grid-line)]"
-        />
-      ) : (
-        <NoiseField
-          key={mounted ? resolvedTheme : "light"}
-          className="absolute inset-0"
-          color={isDark ? [255, 255, 255] : [52, 80, 122]}
-          maxOpacity={isDark ? 0.5 : 0.7}
-        />
-      )}
+      <NoiseField
+        key={mounted ? resolvedTheme : "light"}
+        className="absolute inset-0"
+        color={isDark ? [255, 255, 255] : [52, 80, 122]}
+        maxOpacity={isDark ? 0.5 : 0.7}
+      />
     </div>
   );
 }
