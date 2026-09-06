@@ -81,7 +81,7 @@ function AmbientCanvas() {
           key={mounted ? resolvedTheme : "light"}
           className="absolute inset-0"
           color={isDark ? [255, 255, 255] : [52, 80, 122]}
-          maxOpacity={isDark ? 0.5 : 0.32}
+          maxOpacity={isDark ? 0.5 : 0.7}
         />
       )}
     </div>
