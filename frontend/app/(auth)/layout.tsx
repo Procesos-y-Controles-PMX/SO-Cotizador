@@ -1,7 +1,7 @@
 "use client";
 
 
-import { GridLoadingScreen, InteractiveGridPattern, GridThemeToggle, ThemeToggle } from "@promexma/ui";
+import { GridLoadingScreen, GridThemeToggle, InteractiveGridPattern, NoiseField, ThemeToggle } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -58,20 +58,22 @@ function AmbientCanvas() {
       aria-hidden
       data-ambient-grid-clip
     >
-      <InteractiveGridPattern
-        cellSize={64}
-        skewY={6}
-        wave={!spinner}
-        waveDuration={5}
-        waveGap={4}
-        spinner={spinner}
-        spinnerMs={1400}
-        spinnerRadius={3.5}
-        trailMs={750}
-        spinnerOrigin={origin}
-        className="absolute inset-0"
-        squaresClassName="stroke-[var(--grid-line)]"
-      />
+      {spinner ? (
+        <InteractiveGridPattern
+          cellSize={64}
+          skewY={6}
+          wave={false}
+          spinner
+          spinnerMs={1400}
+          spinnerRadius={3.5}
+          trailMs={750}
+          spinnerOrigin={origin}
+          className="absolute inset-0"
+          squaresClassName="stroke-[var(--grid-line)]"
+        />
+      ) : (
+        <NoiseField className="absolute inset-0" />
+      )}
     </div>
   );
 }
