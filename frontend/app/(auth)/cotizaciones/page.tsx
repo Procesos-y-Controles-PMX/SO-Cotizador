@@ -150,8 +150,8 @@ export default function CotizacionesPage() {
       `${BTN_GHOST} inline-flex h-9 w-9 shrink-0 items-center justify-center border border-line text-fg-strong`;
 
     const deleteTextBtnClass = stacked
-      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700"
-      : `${iconBtnClass} border-red-200 text-red-700 hover:bg-red-50`;
+      ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-lg bg-brand px-3 text-sm font-semibold text-white hover:bg-brand-hover"
+      : "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-hover";
 
     if (stacked) {
       return (
