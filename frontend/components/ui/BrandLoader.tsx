@@ -81,7 +81,10 @@ function measureLandingHeight(slot: HTMLElement): number {
 
 /**
  * Fallback when the shell ambient field isn't mounted (mobile / bare routes).
- * Shows NoiseField locally — same language as the app canvas.
+ * Shows NoiseField locally — same language as the app canvas — unless the
+ * ambient animation is gated off for this user, in which case it matches the
+ * flat canvas instead. Without that check the fallback would hand the
+ * animation back to exactly the users the gate exists to spare.
  */
 function LocalAmbientField({
   label,
@@ -98,6 +101,9 @@ function LocalAmbientField({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme !== "light";
+  /* No provider at all (login, bare routes) means no gate — keep the field. */
+  const ambient = useAmbientGrid();
+  const animated = ambient?.animated !== false;
 
   useLayoutEffect(() => {
     const slot = slotRef.current;
@@ -128,14 +134,21 @@ function LocalAmbientField({
       aria-busy="true"
       aria-label={label ?? "Cargando"}
     >
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <NoiseField
-          key={mounted ? resolvedTheme : "light"}
-          className="absolute inset-0"
-          color={isDark ? [255, 255, 255] : [52, 80, 122]}
-          maxOpacity={isDark ? 0.5 : 0.7}
+      {animated ? (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <NoiseField
+            key={mounted ? resolvedTheme : "light"}
+            className="absolute inset-0"
+            color={isDark ? [255, 255, 255] : [52, 80, 122]}
+            maxOpacity={isDark ? 0.5 : 0.7}
+          />
+        </div>
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0 bg-[var(--ambient-flat)]"
+          aria-hidden
         />
-      </div>
+      )}
       <div className="relative z-10 flex flex-col items-center gap-4 px-6">
         {label ? (
           <p className="text-center text-sm font-medium text-fg-subtle">{label}</p>

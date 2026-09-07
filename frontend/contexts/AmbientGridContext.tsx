@@ -22,6 +22,12 @@ function originsClose(a: SpinnerOrigin, b: SpinnerOrigin, eps = 0.02) {
 type AmbientGridContextValue = {
   /** True while at least one loader requested the canvas spinner. */
   spinner: boolean;
+  /**
+   * Whether this user gets the animated ambient field at all. Off for
+   * everyone but the Administrador general, and loaders honor it so a
+   * local fallback field does not smuggle the animation back in.
+   */
+  animated: boolean;
   /** Shell ambient mesh is mounted and can host the spinner. */
   meshReady: boolean;
   /** Orbit center as fractions of the ambient clip box. */
@@ -38,9 +44,11 @@ const AmbientGridContext = createContext<AmbientGridContextValue | null>(null);
 
 export function AmbientGridProvider({
   meshReady,
+  animated = true,
   children,
 }: {
   meshReady: boolean;
+  animated?: boolean;
   children: ReactNode;
 }) {
   const [count, setCount] = useState(0);
@@ -67,12 +75,13 @@ export function AmbientGridProvider({
   const value = useMemo(
     () => ({
       spinner: count > 0,
-      meshReady,
+      meshReady: meshReady && animated,
+      animated,
       spinnerOrigin,
       acquireSpinner,
       setSpinnerOrigin,
     }),
-    [count, meshReady, spinnerOrigin, acquireSpinner, setSpinnerOrigin],
+    [count, meshReady, animated, spinnerOrigin, acquireSpinner, setSpinnerOrigin],
   );
 
   return (

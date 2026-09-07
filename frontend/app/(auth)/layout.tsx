@@ -47,11 +47,21 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
-function AmbientCanvas() {
+function AmbientCanvas({ animated }: { animated: boolean }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme !== "light";
+
+  /* Everyone but the Administrador general gets a flat canvas instead. */
+  if (!animated) {
+    return (
+      <div
+        className="pointer-events-none absolute inset-0 z-0 bg-[var(--ambient-flat)]"
+        aria-hidden
+      />
+    );
+  }
 
   return (
     <div
@@ -205,6 +215,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
   const roleLabel = displayRol(user.rol, user.email);
 
+  /** Only the Administrador general gets the animated field; the rest get flat. */
+  const ambientAnimated = isOwnerAdminEmail(user.email);
+
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
       <nav className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
@@ -281,7 +294,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AmbientGridProvider meshReady={meshReady}>
+    <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated}>
     <div className="min-h-screen app-canvas">
       <aside
         className={cn(
@@ -335,7 +348,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className={cn("relative min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
-        <AmbientCanvas />
+        <AmbientCanvas animated={ambientAnimated} />
 
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-canvas pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:hidden">
           <div className="min-w-0 flex-1">
