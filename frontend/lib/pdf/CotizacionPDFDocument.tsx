@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerLogo: {
-    width: 360,
-    height: 58,
+    width: 380,
+    height: 48,
     objectFit: "contain",
   },
   headerDivider: {
