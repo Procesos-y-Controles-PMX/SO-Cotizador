@@ -1,4 +1,4 @@
-import type { CotizacionWithRelations, ProductoInput } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations, ProductoInput } from "@/lib/queries/cotizaciones.shared";
 import type { CtzCotizacion, CtzUsuario } from "@/lib/types/db";
 
 export type CotizacionFormInitial = {

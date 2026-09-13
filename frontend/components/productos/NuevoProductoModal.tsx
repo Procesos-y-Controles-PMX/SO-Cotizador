@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Modal from "@/components/ui/Modal";
 import { BTN_PRIMARY, BTN_SECONDARY, FIELD_INPUT, FIELD_LABEL } from "@/components/ui/contentStyles";
-import { createProducto } from "@/lib/queries/productos";
+import { createProducto } from "@/lib/api/productos";
 import type { CtzProducto } from "@/lib/types/db";
 
 type Props = {

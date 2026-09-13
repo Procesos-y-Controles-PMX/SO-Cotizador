@@ -1,38 +1,17 @@
-import type { SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import "server-only";
+
 import { matchesSearch, SEARCH_RESULT_LIMIT } from "../search";
-import { supabase } from "../supabase";
+import { createSupabaseServerClient } from "../supabase-server";
 import type { CtzObra } from "../types/db";
+import type { CreateObraResult } from "./obras.shared";
+
+export type { CreateObraResult };
+export { obraLabelCotizacion, obraNombreCotizacion, obraToOption } from "./obras.shared";
 
 const OBRAS_FETCH_CAP = 5000;
 
-export type CreateObraResult =
-  | { ok: true; obra: CtzObra }
-  | { ok: false; error: "duplicate" | "unknown" };
-
-export function obraToOption(obra: CtzObra): SearchComboboxOption {
-  const num = obra.num_obra?.trim();
-  const label = `${num || "-"} ${obra.nombre_obra}`;
-  return { id: obra.id, label, sublabel: obra.referencia_pago ?? undefined };
-}
-
-export function obraNombreCotizacion(cotizacion: {
-  nombre_obra: string | null;
-  ctz_obras?: { nombre_obra: string } | null;
-}): string {
-  return cotizacion.ctz_obras?.nombre_obra ?? cotizacion.nombre_obra ?? "-";
-}
-
-export function obraLabelCotizacion(cotizacion: {
-  nombre_obra: string | null;
-  ctz_obras?: { nombre_obra: string; num_obra: string | null } | null;
-}): string {
-  const nombre = cotizacion.ctz_obras?.nombre_obra ?? cotizacion.nombre_obra;
-  if (!nombre) return "-";
-  const num = cotizacion.ctz_obras?.num_obra?.trim();
-  return `${num || "-"} ${nombre}`;
-}
-
 export async function listObras(search: string, idCliente: string): Promise<CtzObra[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !idCliente) return [];
   const { data } = await supabase
     .from("ctz_obras")
@@ -57,6 +36,7 @@ export async function listObras(search: string, idCliente: string): Promise<CtzO
 }
 
 export async function getObraById(id: string): Promise<CtzObra | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const { data, error } = await supabase.from("ctz_obras").select("*").eq("id", id).maybeSingle();
   if (error) return null;
@@ -69,6 +49,7 @@ export async function createObra(payload: {
   num_obra?: string;
   referencia_pago?: string;
 }): Promise<CreateObraResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !payload.id_cliente) return { ok: false, error: "unknown" };
   const { data, error } = await supabase
     .from("ctz_obras")

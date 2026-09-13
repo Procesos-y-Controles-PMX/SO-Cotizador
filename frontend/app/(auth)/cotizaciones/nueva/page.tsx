@@ -12,7 +12,7 @@ import {
   cotizacionToFormInitial,
   type CotizacionFormInitial,
 } from "@/lib/cotizacion/cotizacionToFormInitial";
-import { getCotizacionById } from "@/lib/queries/cotizaciones";
+import { getCotizacionById } from "@/lib/api/cotizaciones";
 
 type CopyLoadState =
   | { status: "idle" }

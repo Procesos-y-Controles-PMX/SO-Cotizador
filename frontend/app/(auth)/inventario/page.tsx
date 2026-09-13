@@ -31,7 +31,7 @@ import {
   listAllProductos,
   listInventarioProductos,
   updateProducto,
-} from "@/lib/queries/productos";
+} from "@/lib/api/productos";
 import type { CtzProducto } from "@/lib/types/db";
 
 const SEARCH_DEBOUNCE_MS = 350;

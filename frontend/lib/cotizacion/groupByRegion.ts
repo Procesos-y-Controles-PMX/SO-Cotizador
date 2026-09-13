@@ -1,4 +1,4 @@
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 
 export const CHIAPAS_VER_TAB_LABEL = "Chiapas - Ver - Tab";
 

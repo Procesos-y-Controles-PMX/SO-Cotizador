@@ -1,24 +1,18 @@
-import { supabase } from "../supabase";
+import "server-only";
+
+import { createSupabaseServerClient } from "../supabase-server";
+import type { DashboardCotizacionRow } from "./dashboardStats.shared";
+
+export type { DashboardCotizacionRow };
 
 const PAGE_SIZE = 1000;
-
-/** Fila mínima de cotización para métricas del dashboard. */
-export type DashboardCotizacionRow = {
-  id: string;
-  created_at: string;
-  id_sucursal: string;
-  id_usuario: string;
-  total: number;
-  venta_cerrada: boolean;
-  ctz_sucursales: { nombre: string; region: string | null } | null;
-  ctz_usuarios: { email: string; nombre_completo: string | null } | null;
-};
 
 const DASHBOARD_SELECT =
   "id,created_at,id_sucursal,id_usuario,total,venta_cerrada,ctz_sucursales(nombre,region),ctz_usuarios(email,nombre_completo)";
 
 /** Todas las cotizaciones (paginado) con sucursal y usuario, para el dashboard admin. */
 export async function listCotizacionesForDashboard(): Promise<DashboardCotizacionRow[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const all: DashboardCotizacionRow[] = [];
   let from = 0;

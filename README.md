@@ -27,9 +27,9 @@ En `frontend/.env` (local) o en Vercel → Project Settings → Environment Vari
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` — **requerida** para `/api/auth/login` en deploy (no usar prefijo `NEXT_PUBLIC_`)
+- `SUPABASE_SERVICE_ROLE_KEY` — **requerida** para login y para todas las APIs de `ctz_*` (no usar prefijo `NEXT_PUBLIC_`)
 
-Sin `SUPABASE_SERVICE_ROLE_KEY` en Vercel, el login en producción fallará aunque funcione en local.
+Sin `SUPABASE_SERVICE_ROLE_KEY` en Vercel, login y lecturas/escrituras de cotizaciones, usuarios, sucursales y productos fallarán. El frontend ya no consulta `ctz_*` con la anon key.
 
 ## Flujo principal
 

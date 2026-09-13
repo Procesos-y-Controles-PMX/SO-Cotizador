@@ -21,8 +21,8 @@ import { displayRegionLabel, sortRegionKeys } from "@/lib/cotizacion/groupByRegi
 import {
   listCotizacionesForDashboard,
   type DashboardCotizacionRow,
-} from "@/lib/queries/dashboardStats";
-import { listSucursales } from "@/lib/queries/sucursales";
+} from "@/lib/api/dashboard";
+import { listSucursales } from "@/lib/api/sucursales";
 import type { CtzSucursal } from "@/lib/types/db";
 import { cn } from "@/lib/utils";
 

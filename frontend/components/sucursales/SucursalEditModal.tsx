@@ -10,7 +10,7 @@ import {
   FIELD_LABEL,
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
-import { updateSucursal } from "@/lib/queries/sucursales";
+import { updateSucursal } from "@/lib/api/sucursales";
 import type { CtzSucursal } from "@/lib/types/db";
 
 type Props = {

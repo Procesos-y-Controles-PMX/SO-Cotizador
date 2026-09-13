@@ -1,7 +1,7 @@
 import { regionLabel, sortRegionKeys, sucursalLabel } from "@/lib/cotizacion/groupByRegion";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
-import { obraNombreCotizacion } from "@/lib/queries/obras";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
+import { obraNombreCotizacion } from "@/lib/queries/obras.shared";
 
 export const HISTORIAL_COTIZACIONES_XLSX_FILENAME = "historial-cotizaciones.xlsx";
 

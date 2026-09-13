@@ -1,6 +1,12 @@
+import "server-only";
+
 import { ilikePattern, SEARCH_MIN_CHARS, SEARCH_RESULT_LIMIT, stripAccents } from "../search";
-import { supabase } from "../supabase";
+import { createSupabaseServerClient } from "../supabase-server";
 import type { CtzProducto } from "../types/db";
+import { INVENTARIO_SEARCH_MIN_CHARS, type ProductoBulkInsertRow } from "./productos.shared";
+
+export { INVENTARIO_SEARCH_MIN_CHARS };
+export type { ProductoBulkInsertRow };
 
 const PAGE_SIZE = 1000;
 
@@ -16,6 +22,7 @@ function descripcionPareceTexto(descripcion: string): boolean {
 }
 
 async function listInventarioProductosIniciales(): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("ctz_productos")
@@ -28,8 +35,6 @@ async function listInventarioProductosIniciales(): Promise<CtzProducto[]> {
   const conTexto = rows.filter((p) => descripcionPareceTexto(p.descripcion));
   return conTexto.slice(0, INVENTARIO_INITIAL_LIMIT);
 }
-/** Mínimo de caracteres para disparar búsqueda (reduce escaneos con términos de 1 letra). */
-export const INVENTARIO_SEARCH_MIN_CHARS = SEARCH_MIN_CHARS;
 
 const INVENTARIO_SELECT = "id,sku,descripcion,unidad_medida,precio_unitario_base,activo,created_at";
 
@@ -43,6 +48,7 @@ function inventarioIlikePattern(raw: string): string | null {
  * y coincidencia exacta de precio base si el término es solo numérico.
  */
 export async function listInventarioProductos(q: string): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const trimmed = q.trim();
   if (!trimmed) {
@@ -86,6 +92,7 @@ const COTIZACION_PRODUCTO_SELECT =
   "id,sku,descripcion,unidad_medida,precio_unitario_base,activo,created_at";
 
 async function searchProductosActivos(field: "sku" | "descripcion", q: string): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const trimmed = q.trim();
   if (trimmed.length < SEARCH_MIN_CHARS) return [];
@@ -113,6 +120,7 @@ export function searchProductosActivosPorDescripcion(q: string): Promise<CtzProd
 }
 
 export async function getProductoById(id: string): Promise<CtzProducto | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const { data, error } = await supabase.from("ctz_productos").select("*").eq("id", id).maybeSingle();
   if (error) return null;
@@ -120,6 +128,7 @@ export async function getProductoById(id: string): Promise<CtzProducto | null> {
 }
 
 export async function getProductosByIds(ids: string[]): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !ids.length) return [];
   const unique = [...new Set(ids)];
   const all: CtzProducto[] = [];
@@ -136,6 +145,7 @@ export async function getProductosByIds(ids: string[]): Promise<CtzProducto[]> {
 
 /** Todos los productos activos (paginado). Para cotizador e import Excel por SKU. */
 export async function listAllProductosActivos(): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const all: CtzProducto[] = [];
   let from = 0;
@@ -158,6 +168,7 @@ export async function listAllProductosActivos(): Promise<CtzProducto[]> {
 
 /** Todos los productos (activos e inactivos, paginado). Para export Excel del listado de SKUs. */
 export async function listAllProductos(): Promise<CtzProducto[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const all: CtzProducto[] = [];
   let from = 0;
@@ -179,6 +190,7 @@ export async function listAllProductos(): Promise<CtzProducto[]> {
 
 /** SKUs existentes en minúsculas, para omitir duplicados en el import masivo. */
 export async function getExistingProductoSkus(): Promise<Set<string>> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return new Set();
   const skus = new Set<string>();
   let from = 0;
@@ -201,18 +213,12 @@ export async function getExistingProductoSkus(): Promise<Set<string>> {
   return skus;
 }
 
-export type ProductoBulkInsertRow = {
-  sku: string | null;
-  descripcion: string;
-  unidad_medida: string | null;
-  precio_unitario_base: number;
-};
-
 const BULK_CHUNK_SIZE = 100;
 
 export async function createProductosBulk(
   rows: ProductoBulkInsertRow[]
 ): Promise<{ inserted: number; failed: number }> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !rows.length) return { inserted: 0, failed: 0 };
 
   let inserted = 0;
@@ -255,6 +261,7 @@ export async function createProducto(payload: {
   /** Siempre 0 en alta; el precio se define en cada cotización. */
   precio_unitario_base?: number;
 }): Promise<CtzProducto | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("ctz_productos")
@@ -274,6 +281,7 @@ export async function updateProducto(
   id: string,
   payload: Partial<Pick<CtzProducto, "sku" | "descripcion" | "unidad_medida" | "precio_unitario_base" | "activo">>
 ): Promise<boolean> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return false;
   const { error } = await supabase.from("ctz_productos").update(payload).eq("id", id);
   return !error;
