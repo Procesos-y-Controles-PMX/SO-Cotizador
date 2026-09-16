@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { logout, useAuth } from "@/lib/auth";
-import { useCustomAmbientNoise, type AmbientNoiseTune } from "@/lib/ambient-noise";
+import { useAmbientBrand, useCustomAmbientNoise, type AmbientNoiseTune } from "@/lib/ambient-noise";
 import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import {
@@ -93,6 +93,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [meshReady, setMeshReady] = useState(false);
   const customField = useCustomAmbientNoise(user?.email);
+  useAmbientBrand(customField?.color);
   const ambientAnimated = isOwnerAdminEmail(user?.email) || Boolean(customField);
 
   useEffect(() => {
@@ -394,4 +395,3 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     </AmbientGridProvider>
   );
 }
-
