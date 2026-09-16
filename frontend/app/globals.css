@@ -104,6 +104,10 @@ body {
   --brand-tint: color-mix(in srgb, var(--brand) 14%, transparent);
 }
 
-.bg-brand-tint {
-  background-color: var(--brand-tint) !important;
+/*
+ * Production FilterMultiSelect still paints selected rows with this
+ * hardcoded triple (no neu-option / aria-selected / bg-brand-tint).
+ */
+.bg-red-50.font-medium.text-brand {
+  background-color: color-mix(in srgb, var(--brand) 14%, transparent) !important;
 }
