@@ -65,14 +65,27 @@ async function buildCotizacionesSearchOr(search: string): Promise<string | null>
   return parts.join(",");
 }
 
-const COTIZACIONES_SELECT = `
+const COTIZACIONES_LIST_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
       ctz_obras(nombre_obra,num_obra,referencia_pago),
       ctz_sucursales(nombre,region,prefijo_folio),
-      ctz_usuarios(email,nombre_completo,rol),
+      ctz_usuarios(email,nombre_completo,rol)
+    `;
+
+const COTIZACIONES_SELECT = `
+      ${COTIZACIONES_LIST_SELECT.trim()},
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `;
+
+function withItems(
+  rows: CotizacionWithRelations[] | null | undefined,
+): CotizacionWithRelations[] {
+  return (rows ?? []).map((row) => ({
+    ...row,
+    ctz_cotizacion_items: row.ctz_cotizacion_items ?? [],
+  }));
+}
 
 export async function listCotizaciones(
   user: CtzUsuario,
@@ -94,9 +107,10 @@ export async function listCotizaciones(
     return { rows: [], total: 0 };
   }
 
+  const select = options?.unlimited ? COTIZACIONES_SELECT : COTIZACIONES_LIST_SELECT;
   let query = supabase
     .from("ctz_cotizaciones")
-    .select(COTIZACIONES_SELECT, { count: options?.unlimited ? undefined : "exact" })
+    .select(select, { count: options?.unlimited ? undefined : "exact" })
     .order("created_at", { ascending: false });
 
   if (user.rol === "tienda") {
@@ -109,16 +123,18 @@ export async function listCotizaciones(
   }
 
   if (options?.unlimited) {
-    const { data } = await query;
-    return (data as CotizacionWithRelations[] | null) ?? [];
+    const { data, error } = await query;
+    if (error) throw error;
+    return withItems(data as CotizacionWithRelations[] | null);
   }
 
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? PAGE_SIZE;
   const { from, to } = pageRange(page, pageSize);
-  const { data, count } = await query.range(from, to);
+  const { data, count, error } = await query.range(from, to);
+  if (error) throw error;
   return {
-    rows: (data as CotizacionWithRelations[] | null) ?? [],
+    rows: withItems(data as CotizacionWithRelations[] | null),
     total: count ?? 0,
   };
 }

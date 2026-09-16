@@ -59,11 +59,17 @@ export default function CotizacionesPage() {
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
     setLoading(true);
-    const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
-    if (signal?.cancelled) return;
-    setRows(result.rows);
-    setTotal(result.total);
-    setLoading(false);
+    try {
+      const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
+      if (signal?.cancelled) return;
+      setRows(result.rows);
+      setTotal(result.total);
+    } catch {
+      if (signal?.cancelled) return;
+      toast.error("No se pudieron cargar las cotizaciones.");
+    } finally {
+      if (!signal?.cancelled) setLoading(false);
+    }
   }, [search, user, page]);
 
   useEffect(() => {

@@ -1,8 +1,8 @@
 "use client";
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import type { NoiseFieldProps } from "@promexma/ui";
+import { supabase } from "./supabase";
 
 /**
  * Per-user in-app NoiseField knobs. Runtime catalog is Shared/CP table
@@ -84,13 +84,6 @@ function parseAmbientTune(value: unknown): AmbientNoiseTune | null {
   return value as AmbientNoiseTune;
 }
 
-function ambientClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
-}
-
 /** DB row wins when present; local map is fallback if the table is missing. */
 export function useCustomAmbientNoise(
   email: string | null | undefined,
@@ -105,10 +98,9 @@ export function useCustomAmbientNoise(
       return;
     }
     setTune(customAmbientNoise(key));
-    const sb = ambientClient();
-    if (!sb) return;
+    if (!supabase) return;
     let cancelled = false;
-    void sb
+    void supabase
       .from("so_ambient_noise")
       .select("props")
       .eq("email", key)
