@@ -1,0 +1,37 @@
+name: Bump SO-UI pin
+
+on:
+  push:
+    branches: [pin-ui-highlighted]
+    paths:
+      - ".github/workflows/bump-ui-pin.yml"
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pin-ui-highlighted
+      - name: Point @promexma/ui at SELECT_OPTION_HIGHLIGHTED
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          pkg = Path("frontend/package.json")
+          pkg.write_text(pkg.read_text().replace("#88754538", "#1242bf2c"))
+          lock = Path("frontend/package-lock.json")
+          s = lock.read_text()
+          s = s.replace("#88754538", "#1242bf2c")
+          s = s.replace(
+              "88754538a00003d2c008c8362b385b3f9feacd68",
+              "1242bf2c35bdbe98b558e73f568dca9437b260ed",
+          )
+          lock.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/package-lock.json
+          git diff --cached --quiet || git commit -m "Pin @promexma/ui to SELECT_OPTION_HIGHLIGHTED export."
+          git push
