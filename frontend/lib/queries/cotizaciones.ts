@@ -65,27 +65,14 @@ async function buildCotizacionesSearchOr(search: string): Promise<string | null>
   return parts.join(",");
 }
 
-const COTIZACIONES_LIST_SELECT = `
+const COTIZACIONES_SELECT = `
       *,
       ctz_clientes(nombre_cliente),
       ctz_obras(nombre_obra,num_obra,referencia_pago),
       ctz_sucursales(nombre,region,prefijo_folio),
-      ctz_usuarios(email,nombre_completo,rol)
-    `;
-
-const COTIZACIONES_SELECT = `
-      ${COTIZACIONES_LIST_SELECT.trim()},
+      ctz_usuarios(email,nombre_completo,rol),
       ctz_cotizacion_items(*,ctz_productos(sku,descripcion))
     `;
-
-function withItems(
-  rows: CotizacionWithRelations[] | null | undefined,
-): CotizacionWithRelations[] {
-  return (rows ?? []).map((row) => ({
-    ...row,
-    ctz_cotizacion_items: row.ctz_cotizacion_items ?? [],
-  }));
-}
 
 export async function listCotizaciones(
   user: CtzUsuario,
@@ -107,10 +94,9 @@ export async function listCotizaciones(
     return { rows: [], total: 0 };
   }
 
-  const select = options?.unlimited ? COTIZACIONES_SELECT : COTIZACIONES_LIST_SELECT;
   let query = supabase
     .from("ctz_cotizaciones")
-    .select(select, { count: options?.unlimited ? undefined : "exact" })
+    .select(COTIZACIONES_SELECT, { count: options?.unlimited ? undefined : "exact" })
     .order("created_at", { ascending: false });
 
   if (user.rol === "tienda") {
@@ -125,7 +111,7 @@ export async function listCotizaciones(
   if (options?.unlimited) {
     const { data, error } = await query;
     if (error) throw error;
-    return withItems(data as unknown as CotizacionWithRelations[] | null);
+    return (data as CotizacionWithRelations[] | null) ?? [];
   }
 
   const page = options?.page ?? 1;
@@ -134,7 +120,7 @@ export async function listCotizaciones(
   const { data, count, error } = await query.range(from, to);
   if (error) throw error;
   return {
-    rows: withItems(data as unknown as CotizacionWithRelations[] | null),
+    rows: (data as CotizacionWithRelations[] | null) ?? [],
     total: count ?? 0,
   };
 }
@@ -229,7 +215,10 @@ export async function createCotizacion(payload: {
     return { ok: false, error: "productos", message: insertProductosError.message };
   }
 
-  return { ok: true; id: inserted.id };
+  return {
+    ok: true,
+    id: inserted.id,
+  };
 }
 
 export async function updateCotizacion(
