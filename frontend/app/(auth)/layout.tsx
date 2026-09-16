@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { logout, useAuth } from "@/lib/auth";
+import { useCustomAmbientNoise, type AmbientNoiseTune } from "@/lib/ambient-noise";
 import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import {
@@ -47,13 +48,18 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
-function AmbientCanvas({ animated }: { animated: boolean }) {
+function AmbientCanvas({
+  animated,
+  field,
+}: {
+  animated: boolean;
+  field?: AmbientNoiseTune | null;
+}) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = resolvedTheme !== "light";
 
-  /* Everyone but the Administrador general gets a flat canvas instead. */
   if (!animated) {
     return (
       <div
@@ -70,10 +76,11 @@ function AmbientCanvas({ animated }: { animated: boolean }) {
       data-ambient-grid-clip
     >
       <NoiseField
-        key={mounted ? resolvedTheme : "light"}
+        key={mounted ? `${resolvedTheme}-${field ? "custom" : "default"}` : "light"}
         className="absolute inset-0"
         color={isDark ? [255, 255, 255] : [52, 80, 122]}
         maxOpacity={isDark ? 0.5 : 0.7}
+        {...field}
       />
     </div>
   );
@@ -85,6 +92,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [meshReady, setMeshReady] = useState(false);
+  const customField = useCustomAmbientNoise(user?.email);
+  const ambientAnimated = isOwnerAdminEmail(user?.email) || Boolean(customField);
 
   useEffect(() => {
     setMeshReady(true);
@@ -215,9 +224,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
   const roleLabel = displayRol(user.rol, user.email);
 
-  /** Only the Administrador general gets the animated field; the rest get flat. */
-  const ambientAnimated = isOwnerAdminEmail(user.email);
-
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
       <nav className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
@@ -294,7 +300,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated}>
+    <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated} fieldProps={customField}>
     <div className="min-h-screen app-canvas">
       <aside
         className={cn(
@@ -348,7 +354,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className={cn("relative min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
-        <AmbientCanvas animated={ambientAnimated} />
+        <AmbientCanvas animated={ambientAnimated} field={customField} />
 
         <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-canvas pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:hidden">
           <div className="min-w-0 flex-1">
