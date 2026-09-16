@@ -125,7 +125,7 @@ export async function listCotizaciones(
   if (options?.unlimited) {
     const { data, error } = await query;
     if (error) throw error;
-    return withItems(data as CotizacionWithRelations[] | null);
+    return withItems(data as unknown as CotizacionWithRelations[] | null);
   }
 
   const page = options?.page ?? 1;
@@ -134,7 +134,7 @@ export async function listCotizaciones(
   const { data, count, error } = await query.range(from, to);
   if (error) throw error;
   return {
-    rows: withItems(data as CotizacionWithRelations[] | null),
+    rows: withItems(data as unknown as CotizacionWithRelations[] | null),
     total: count ?? 0,
   };
 }
@@ -229,7 +229,7 @@ export async function createCotizacion(payload: {
     return { ok: false, error: "productos", message: insertProductosError.message };
   }
 
-  return { ok: true, id: inserted.id };
+  return { ok: true; id: inserted.id };
 }
 
 export async function updateCotizacion(
