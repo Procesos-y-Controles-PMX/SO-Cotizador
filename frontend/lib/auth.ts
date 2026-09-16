@@ -8,8 +8,7 @@ import {
   useSessionTimeout,
   type SessionTimestamps,
 } from "./session-timeout";
-
-const SESSION_KEY = "ctz_session";
+import { SESSION_STORAGE_KEY as SESSION_KEY } from "./session-actor";
 
 type StoredSession = {
   user: CtzUsuario;

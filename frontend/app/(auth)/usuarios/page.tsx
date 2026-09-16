@@ -37,7 +37,7 @@ import {
   updateUsuario,
   usuarioMutationErrorMessage,
   validateUsuarioMutation,
-} from "@/lib/queries/usuarios";
+} from "@/lib/api/usuarios";
 import type { CtzUsuario, UserRole } from "@/lib/types/db";
 
 const SEARCH_DEBOUNCE_MS = 350;

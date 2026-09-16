@@ -13,7 +13,7 @@ import {
   FIELD_SELECT,
 } from "@/components/ui/contentStyles";
 import { MIN_USUARIO_PASSWORD_LENGTH } from "@/lib/usuarioPassword";
-import { createUsuario, updateUsuario, usuarioMutationErrorMessage } from "@/lib/queries/usuarios";
+import { createUsuario, updateUsuario, usuarioMutationErrorMessage } from "@/lib/api/usuarios";
 import type { CtzUsuario, UserRole } from "@/lib/types/db";
 
 type Props = {

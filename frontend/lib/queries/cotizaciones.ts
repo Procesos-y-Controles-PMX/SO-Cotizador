@@ -1,51 +1,32 @@
+import "server-only";
+
 import { toDbTipoPago } from "../cotizacion/tipoPago";
 import { PAGE_SIZE, pageRange, type PaginatedResult } from "../pagination";
 import { ilikePattern } from "../search";
-import { supabase } from "../supabase";
-import type { CtzCotizacion, CtzCotizacionItem, CtzUsuario } from "../types/db";
+import { createSupabaseServerClient } from "../supabase-server";
+import type { CtzCotizacion, CtzUsuario } from "../types/db";
+import {
+  toProductoInput,
+  type CotizacionWithRelations,
+  type CreateCotizacionError,
+  type CreateCotizacionResult,
+  type ProductoInput,
+  type UpdateVentaCerradaResult,
+} from "./cotizaciones.shared";
 
-export type ProductoInput = {
-  id_producto: string | null;
-  descripcion_registro: string;
-  cantidad: number;
-  unidad_medida: string | null;
-  precio_unitario: number;
-  iva_porcentaje: number;
-  subtotal_item: number;
-  total_item: number;
+export type {
+  CotizacionWithRelations,
+  CreateCotizacionError,
+  CreateCotizacionResult,
+  ProductoInput,
+  UpdateVentaCerradaResult,
 };
-
-/** Solo columnas de ctz_cotizacion_items (evita enviar campos UI a PostgREST). */
-export function toProductoInput(producto: ProductoInput): ProductoInput {
-  return {
-    id_producto: producto.id_producto,
-    descripcion_registro: producto.descripcion_registro,
-    cantidad: producto.cantidad,
-    unidad_medida: producto.unidad_medida,
-    precio_unitario: producto.precio_unitario,
-    iva_porcentaje: producto.iva_porcentaje,
-    subtotal_item: producto.subtotal_item,
-    total_item: producto.total_item,
-  };
-}
-
-export type CotizacionWithRelations = CtzCotizacion & {
-  ctz_clientes: { nombre_cliente: string } | null;
-  ctz_obras: { nombre_obra: string; num_obra: string | null; referencia_pago: string | null } | null;
-  ctz_sucursales: {
-    nombre: string;
-    region: string | null;
-    prefijo_folio: string;
-  } | null;
-  ctz_usuarios: { email: string; nombre_completo: string | null; rol: string } | null;
-  ctz_cotizacion_items: (CtzCotizacionItem & {
-    ctz_productos: { sku: string | null; descripcion: string } | null;
-  })[];
-};
+export { toProductoInput };
 
 const SEARCH_RELATED_ID_CAP = 200;
 
 async function buildCotizacionesSearchOr(search: string): Promise<string | null> {
+  const supabase = createSupabaseServerClient();
   const pattern = ilikePattern(search);
   if (!pattern || !supabase) return null;
 
@@ -89,6 +70,7 @@ export async function listCotizaciones(
   search = "",
   options?: { unlimited?: boolean; page?: number; pageSize?: number }
 ): Promise<CotizacionWithRelations[] | PaginatedResult<CotizacionWithRelations>> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) {
     if (options?.unlimited) return [];
     return { rows: [], total: 0 };
@@ -126,6 +108,7 @@ export async function listCotizaciones(
 }
 
 export async function getCotizacionById(id: string): Promise<CotizacionWithRelations | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const { data } = await supabase
     .from("ctz_cotizaciones")
@@ -144,22 +127,10 @@ export async function getCotizacionById(id: string): Promise<CotizacionWithRelat
   return (data as CotizacionWithRelations | null) ?? null;
 }
 
-export type CreateCotizacionError =
-  | "duplicate_folio"
-  | "invalid_reference"
-  | "cliente_sucursal"
-  | "productos"
-  | "tipo_pago_invalido"
-  | "unknown";
-
 function normalizeCotizacionTipoPago<T extends { tipo_pago?: string | null }>(cotizacion: T): T {
   if (cotizacion.tipo_pago === undefined) return cotizacion;
   return { ...cotizacion, tipo_pago: toDbTipoPago(cotizacion.tipo_pago) };
 }
-
-export type CreateCotizacionResult =
-  | { ok: true; id: string }
-  | { ok: false; error: CreateCotizacionError; message?: string };
 
 function mapCotizacionInsertError(error: { code?: string; message?: string }): CreateCotizacionResult {
   const message = error.message ?? "";
@@ -189,6 +160,7 @@ export async function createCotizacion(payload: {
   cotizacion: Omit<CtzCotizacion, "id" | "created_at" | "updated_at">;
   productos: ProductoInput[];
 }): Promise<CreateCotizacionResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return { ok: false, error: "unknown" };
 
   const cotizacionRow = normalizeCotizacionTipoPago(payload.cotizacion);
@@ -226,6 +198,7 @@ export async function updateCotizacion(
   payload: Partial<CtzCotizacion>,
   productos: ProductoInput[]
 ): Promise<boolean> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return false;
   const headerPayload = normalizeCotizacionTipoPago(payload);
   const { error: headerError } = await supabase.from("ctz_cotizaciones").update(headerPayload).eq("id", id);
@@ -244,6 +217,7 @@ export async function updateCotizacion(
 }
 
 export async function deleteCotizacion(id: string): Promise<boolean> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return false;
 
   const { error: productosError } = await supabase.from("ctz_cotizacion_items").delete().eq("id_cotizacion", id);
@@ -253,15 +227,12 @@ export async function deleteCotizacion(id: string): Promise<boolean> {
   return !cotizacionError;
 }
 
-export type UpdateVentaCerradaResult =
-  | { ok: true }
-  | { ok: false; error: "forbidden" | "unknown"; message?: string };
-
 export async function updateVentaCerradaCotizacion(
   user: CtzUsuario,
   id: string,
   ventaCerrada: boolean
 ): Promise<UpdateVentaCerradaResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return { ok: false, error: "unknown" };
 
   let query = supabase.from("ctz_cotizaciones").update({ venta_cerrada: ventaCerrada }).eq("id", id);

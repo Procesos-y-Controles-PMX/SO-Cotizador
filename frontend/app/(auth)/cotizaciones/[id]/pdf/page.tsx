@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CotizacionPDFPreview } from "@/components/cotizacion/CotizacionPDF";
-import { getCotizacionById, type CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import { getCotizacionById, type CotizacionWithRelations } from "@/lib/api/cotizaciones";
 
 export default function CotizacionPdfPage() {
   const params = useParams<{ id: string }>();

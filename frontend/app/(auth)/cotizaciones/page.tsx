@@ -34,9 +34,9 @@ import {
   listCotizaciones,
   updateVentaCerradaCotizacion,
   type CotizacionWithRelations,
-} from "@/lib/queries/cotizaciones";
+} from "@/lib/api/cotizaciones";
 import { canDuplicateCotizacion } from "@/lib/cotizacion/cotizacionToFormInitial";
-import { obraNombreCotizacion } from "@/lib/queries/obras";
+import { obraNombreCotizacion } from "@/lib/queries/obras.shared";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { cn, money } from "@/lib/utils";
 

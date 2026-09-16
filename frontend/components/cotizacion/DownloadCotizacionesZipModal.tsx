@@ -8,7 +8,7 @@ import Modal from "@/components/ui/Modal";
 import { BTN_PRIMARY, BTN_SECONDARY, CHEVRON_SELECT, FIELD_SELECT } from "@/components/ui/contentStyles";
 import { uniqueRegionsFromRows, uniqueSucursalesFromRows } from "@/lib/cotizacion/groupByRegion";
 import type { BulkPdfScope } from "@/lib/pdf/exportCotizacionesZip";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 
 export type DownloadZipScopeMode = BulkPdfScope["mode"];
 

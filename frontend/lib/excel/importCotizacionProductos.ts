@@ -1,5 +1,5 @@
 import { calcLineAmounts, normalizeIvaPct } from "@/lib/cotizacion/calcImportes";
-import type { ProductoInput } from "@/lib/queries/cotizaciones";
+import type { ProductoInput } from "@/lib/queries/cotizaciones.shared";
 import type { CtzProducto } from "@/lib/types/db";
 import { parseDecimalInput, roundQuantity } from "@/lib/utils";
 

@@ -21,7 +21,7 @@ import {
   listSucursales,
   setSucursalActivo,
   sucursalMutationErrorMessage,
-} from "@/lib/queries/sucursales";
+} from "@/lib/api/sucursales";
 import type { CtzSucursal } from "@/lib/types/db";
 
 const SEARCH_DEBOUNCE_MS = 350;

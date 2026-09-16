@@ -12,7 +12,7 @@ import {
   cotizacionToFormInitial,
   type CotizacionFormInitial,
 } from "@/lib/cotizacion/cotizacionToFormInitial";
-import { deleteCotizacion, getCotizacionById } from "@/lib/queries/cotizaciones";
+import { deleteCotizacion, getCotizacionById } from "@/lib/api/cotizaciones";
 
 export default function CotizacionDetallePage() {
   const params = useParams<{ id: string }>();

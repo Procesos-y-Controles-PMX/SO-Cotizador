@@ -1,7 +1,33 @@
+import "server-only";
+
 import { generateSimplePassword, isValidUsuarioPassword } from "../usuarioPassword";
 import { matchesSearch } from "../search";
-import { supabase } from "../supabase";
+import { createSupabaseServerClient } from "../supabase-server";
 import type { CtzUsuario, UserRole } from "../types/db";
+import {
+  canDeactivateOrDemoteAdmin,
+  wouldRemoveLastAdmin,
+  type CreateUsuarioResult,
+  type CreateUsuariosBulkResult,
+  type DeleteUsuarioResult,
+  type UpdateUsuarioResult,
+  type UsuarioBulkInsertRow,
+  type UsuarioMutationError,
+} from "./usuarios.shared";
+
+export type {
+  CreateUsuarioResult,
+  CreateUsuariosBulkResult,
+  DeleteUsuarioResult,
+  UpdateUsuarioResult,
+  UsuarioBulkInsertRow,
+  UsuarioMutationError,
+};
+export {
+  canDeactivateOrDemoteAdmin,
+  usuarioMutationErrorMessage,
+  wouldRemoveLastAdmin,
+} from "./usuarios.shared";
 
 export const USUARIO_SESSION_SELECT =
   "id, email, nombre_completo, rol, activo, created_at";
@@ -13,31 +39,12 @@ function stripPassword(row: UsuarioRow): CtzUsuario {
   return rest;
 }
 
-export type CreateUsuarioResult =
-  | { ok: true; usuario: CtzUsuario }
-  | { ok: false; error: "duplicate" | "invalid_password" | "unknown" };
-
-export type UpdateUsuarioResult =
-  | { ok: true; usuario: CtzUsuario }
-  | { ok: false; error: "duplicate" | "self_modify" | "last_admin" | "invalid_password" | "unknown" };
-
-export type DeleteUsuarioResult =
-  | { ok: true }
-  | { ok: false; error: "has_cotizaciones" | "unknown" };
-
-export type UsuarioMutationError =
-  | "duplicate"
-  | "has_cotizaciones"
-  | "self_modify"
-  | "last_admin"
-  | "invalid_password"
-  | "unknown";
-
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 export async function verifyUsuarioLogin(email: string, password: string): Promise<CtzUsuario | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const normalized = normalizeEmail(email);
   const pwd = password.trim();
@@ -59,6 +66,7 @@ export async function verifyUsuarioLogin(email: string, password: string): Promi
 
 /** @deprecated Usar verifyUsuarioLogin. Mantener solo si hace falta en otro flujo. */
 export async function getUsuarioByEmail(email: string): Promise<CtzUsuario | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const normalized = normalizeEmail(email);
   const { data, error } = await supabase
@@ -73,6 +81,7 @@ export async function getUsuarioByEmail(email: string): Promise<CtzUsuario | nul
 }
 
 export async function listUsuarios(search = ""): Promise<CtzUsuario[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("ctz_usuarios")
@@ -92,19 +101,10 @@ export async function listUsuarios(search = ""): Promise<CtzUsuario[]> {
   );
 }
 
-export type UsuarioBulkInsertRow = {
-  email: string;
-  nombre_completo: string | null;
-};
-
-export type CreateUsuariosBulkResult = {
-  inserted: number;
-  failed: number;
-};
-
 const BULK_CHUNK_SIZE = 50;
 
 export async function getExistingUsuarioEmails(): Promise<Set<string>> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return new Set();
   const { data, error } = await supabase.from("ctz_usuarios").select("email");
   if (error) return new Set();
@@ -113,6 +113,7 @@ export async function getExistingUsuarioEmails(): Promise<Set<string>> {
 }
 
 export async function createUsuariosBulk(rows: UsuarioBulkInsertRow[]): Promise<CreateUsuariosBulkResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !rows.length) return { inserted: 0, failed: 0 };
 
   let inserted = 0;
@@ -154,6 +155,7 @@ export async function createUsuario(payload: {
   rol: UserRole;
   password: string;
 }): Promise<CreateUsuarioResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return { ok: false, error: "unknown" };
   const pwd = payload.password.trim();
   if (!isValidUsuarioPassword(pwd)) return { ok: false, error: "invalid_password" };
@@ -185,6 +187,7 @@ export async function updateUsuario(
   },
   options?: { currentUserId: string; target: CtzUsuario }
 ): Promise<UpdateUsuarioResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return { ok: false, error: "unknown" };
 
   if (payload.password !== undefined && !isValidUsuarioPassword(payload.password)) {
@@ -229,6 +232,7 @@ export async function updateUsuario(
 }
 
 export async function deleteUsuario(id: string): Promise<DeleteUsuarioResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return { ok: false, error: "unknown" };
   const { error } = await supabase.from("ctz_usuarios").delete().eq("id", id);
   if (error) {
@@ -239,6 +243,7 @@ export async function deleteUsuario(id: string): Promise<DeleteUsuarioResult> {
 }
 
 export async function countActiveAdmins(excludeId?: string): Promise<number> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return 0;
   let query = supabase
     .from("ctz_usuarios")
@@ -252,6 +257,7 @@ export async function countActiveAdmins(excludeId?: string): Promise<number> {
 }
 
 export async function usuarioHasCotizaciones(id: string): Promise<boolean> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return false;
   const { data, error } = await supabase
     .from("ctz_cotizaciones")
@@ -261,32 +267,6 @@ export async function usuarioHasCotizaciones(id: string): Promise<boolean> {
     .maybeSingle();
   if (error) return false;
   return data != null;
-}
-
-/** Bloquea que un admin se desactive o se baje de rol. */
-export function canDeactivateOrDemoteAdmin(
-  targetId: string,
-  currentUserId: string,
-  nextRol?: UserRole,
-  nextActivo?: boolean
-): boolean {
-  if (targetId !== currentUserId) return true;
-  if (nextActivo === false) return false;
-  if (nextRol === "tienda") return false;
-  return true;
-}
-
-/** true si la operacion dejaria cero admins activos. */
-export function wouldRemoveLastAdmin(
-  target: Pick<CtzUsuario, "id" | "rol" | "activo">,
-  nextRol?: UserRole,
-  nextActivo?: boolean
-): boolean {
-  if (target.rol !== "admin" || !target.activo) return false;
-  const willStayAdmin =
-    (nextActivo === undefined ? target.activo : nextActivo) &&
-    (nextRol === undefined ? target.rol === "admin" : nextRol === "admin");
-  return !willStayAdmin;
 }
 
 export async function validateUsuarioMutation(
@@ -313,21 +293,4 @@ export async function validateUsuarioMutation(
     if (otherAdmins === 0) return "last_admin";
   }
   return null;
-}
-
-export function usuarioMutationErrorMessage(error: UsuarioMutationError): string {
-  switch (error) {
-    case "duplicate":
-      return "Ese correo ya está registrado.";
-    case "invalid_password":
-      return "La contraseña debe tener al menos 4 caracteres.";
-    case "has_cotizaciones":
-      return "No se puede borrar: el usuario tiene cotizaciones. Desactívalo en su lugar.";
-    case "self_modify":
-      return "No puedes modificar tu propio correo, nombre, contraseña ni acceso de administrador.";
-    case "last_admin":
-      return "Debe quedar al menos un administrador activo.";
-    default:
-      return "No se pudo completar la operación.";
-  }
 }

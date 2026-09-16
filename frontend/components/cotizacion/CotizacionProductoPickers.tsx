@@ -6,7 +6,7 @@ import {
   getProductoById,
   searchProductosActivosPorDescripcion,
   searchProductosActivosPorSku,
-} from "@/lib/queries/productos";
+} from "@/lib/api/productos";
 import type { CtzProducto } from "@/lib/types/db";
 
 type Props = {

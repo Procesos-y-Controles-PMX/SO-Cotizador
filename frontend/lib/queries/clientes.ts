@@ -1,15 +1,17 @@
+import "server-only";
+
 import { matchesSearch, SEARCH_RESULT_LIMIT } from "../search";
-import { supabase } from "../supabase";
+import { createSupabaseServerClient } from "../supabase-server";
 import type { CtzCliente } from "../types/db";
+import type { CreateClienteResult } from "./clientes.shared";
+
+export type { CreateClienteResult };
 
 /** Máximo de clientes por sucursal a traer para listado y filtro en memoria. */
 const CLIENTES_FETCH_CAP = 5000;
 
-export type CreateClienteResult =
-  | { ok: true; cliente: CtzCliente }
-  | { ok: false; error: "duplicate" | "unknown" };
-
 export async function listClientes(search: string, idSucursal: string): Promise<CtzCliente[]> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !idSucursal) return [];
   const query = supabase
     .from("ctz_clientes")
@@ -34,6 +36,7 @@ export async function listClientes(search: string, idSucursal: string): Promise<
 }
 
 export async function getClienteById(id: string): Promise<CtzCliente | null> {
+  const supabase = createSupabaseServerClient();
   if (!supabase) return null;
   const { data, error } = await supabase.from("ctz_clientes").select("*").eq("id", id).maybeSingle();
   if (error) return null;
@@ -48,6 +51,7 @@ export async function createCliente(payload: {
   telefono?: string;
   correo?: string;
 }): Promise<CreateClienteResult> {
+  const supabase = createSupabaseServerClient();
   if (!supabase || !payload.id_sucursal) return { ok: false, error: "unknown" };
   const { data, error } = await supabase
     .from("ctz_clientes")

@@ -1,6 +1,6 @@
 import { pdf, renderToBuffer } from "@react-pdf/renderer";
 import { CotizacionPDFDocument } from "@/lib/pdf/CotizacionPDFDocument";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 
 const PDF_LOGO_PATH = "/construrama_promexma.png";
 const PDF_CUENTAS_PATH = "/Cuentas.png";

@@ -8,8 +8,8 @@ import {
 } from "@react-pdf/renderer";
 import { normalizeIvaPct, type IvaPct } from "@/lib/cotizacion/calcImportes";
 import { formatTipoPago } from "@/lib/cotizacion/tipoPago";
-import { obraLabelCotizacion } from "@/lib/queries/obras";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import { obraLabelCotizacion } from "@/lib/queries/obras.shared";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 import { formatQuantity, money } from "@/lib/utils";
 
 function formatDate(value: string): string {

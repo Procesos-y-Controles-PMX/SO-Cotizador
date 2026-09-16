@@ -4,7 +4,7 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/auth";
-import { getUsuarioByEmail } from "@/lib/queries/usuarios";
+import { getUsuarioByEmail } from "@/lib/api/usuarios";
 import {
   buildSkuProductMap,
   downloadCotizacionProductosExcelTemplate,
@@ -32,17 +32,17 @@ import {
   PANEL_INSET,
 } from "@/components/ui/contentStyles";
 import { matchesSearch } from "@/lib/search";
-import { createCliente, getClienteById, listClientes } from "@/lib/queries/clientes";
-import { createObra, getObraById, listObras, obraToOption } from "@/lib/queries/obras";
+import { createCliente, getClienteById, listClientes } from "@/lib/api/clientes";
+import { createObra, getObraById, listObras, obraToOption } from "@/lib/api/obras";
 import {
   createCotizacion,
   toProductoInput,
   updateCotizacion,
   type CreateCotizacionError,
   type ProductoInput,
-} from "@/lib/queries/cotizaciones";
-import { getProductosByIds, listAllProductosActivos } from "@/lib/queries/productos";
-import { listSucursales } from "@/lib/queries/sucursales";
+} from "@/lib/api/cotizaciones";
+import { getProductosByIds, listAllProductosActivos } from "@/lib/api/productos";
+import { listSucursales } from "@/lib/api/sucursales";
 import {
   calcLineAmounts,
   normalizeIvaPct,

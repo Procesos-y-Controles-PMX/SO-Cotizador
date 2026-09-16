@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BTN_PRIMARY } from "@/components/ui/contentStyles";
 import { cotizacionPdfDocumentUrl, pdfFileNameFromFolio } from "@/lib/pdf/cotizacionPdf";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 
 export { CotizacionPDFDocument } from "@/lib/pdf/CotizacionPDFDocument";
 

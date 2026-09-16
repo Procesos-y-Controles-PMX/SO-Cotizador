@@ -5,7 +5,7 @@ import {
   pdfFileNameFromFolio,
   sanitizeZipPathSegment,
 } from "@/lib/pdf/cotizacionPdf";
-import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones.shared";
 
 export type BulkPdfScope =
   | { mode: "all" }
