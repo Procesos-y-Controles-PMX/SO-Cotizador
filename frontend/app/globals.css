@@ -98,8 +98,12 @@ body {
   .animate-fade-up { animation: none; }
 }
 
-/* FilterSelect still ships bg-red-50 on the selected row; retint to ambient brand. */
-.neu-option[aria-selected="true"],
-.neu-popover .bg-red-50 {
-  background-color: color-mix(in srgb, var(--brand) 12%, transparent) !important;
+/* Clay's --brand-tint stays CEMEX red even after --brand is retinted. */
+:root,
+.dark {
+  --brand-tint: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.bg-brand-tint {
+  background-color: var(--brand-tint) !important;
 }
