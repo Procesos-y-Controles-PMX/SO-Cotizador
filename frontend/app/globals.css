@@ -97,3 +97,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up { animation: none; }
 }
+
+/* FilterSelect still ships bg-red-50 on the selected row; retint to ambient brand. */
+.neu-option[aria-selected="true"],
+.neu-popover .bg-red-50 {
+  background-color: color-mix(in srgb, var(--brand) 12%, transparent) !important;
+}
