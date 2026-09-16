@@ -1,0 +1,26 @@
+name: Restore lockfile
+
+on:
+  push:
+    branches: [restore-lockfile-cache]
+    paths:
+      - ".github/workflows/restore-lockfile.yml"
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: restore-lockfile-cache
+      - name: Restore lockfile from last READY pin commit
+        run: |
+          git checkout f5307bfd1f9a00cab15016b5c535f73b32690e97 -- frontend/package-lock.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git diff --cached --quiet || git commit -m "Restore lockfile to the combination that built on Vercel."
+          git push
