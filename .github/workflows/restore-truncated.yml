@@ -1,0 +1,46 @@
+name: Restore truncated files
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [restore-accent-files]
+    paths:
+      - ".github/workflows/restore-truncated.yml"
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: restore-accent-files
+      - name: Restore files from last good commit
+        run: |
+          git checkout b26b5bfc6fa51d87d61cf738bba9bb97e3b39b36 -- \
+            frontend/components/cotizacion/CotizacionForm.tsx \
+            frontend/package-lock.json
+          python3 <<'PY'
+          from pathlib import Path
+          form = Path("frontend/components/cotizacion/CotizacionForm.tsx")
+          text = form.read_text()
+          form.write_text(text.replace("bg-[#DA291C]", "bg-brand"))
+          lock = Path("frontend/package-lock.json")
+          s = lock.read_text()
+          s = s.replace(
+              "github:Procesos-y-Controles-PMX/SO-UI#d679f4d",
+              "github:Procesos-y-Controles-PMX/SO-UI#88754538",
+          )
+          s = s.replace(
+              "d679f4dda3ee9eadb75e94d7948587ffe66de0f9",
+              "88754538a00003d2c008c8362b385b3f9feacd68",
+          )
+          lock.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/components/cotizacion/CotizacionForm.tsx frontend/package-lock.json
+          git diff --cached --quiet || git commit -m "Restore CotizacionForm and package-lock from last good commit."
+          git push
