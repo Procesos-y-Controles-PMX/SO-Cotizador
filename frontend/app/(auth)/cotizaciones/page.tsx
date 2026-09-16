@@ -12,6 +12,7 @@ import TablePagination from "@/components/ui/TablePagination";
 import {
   BTN_DANGER,
   BTN_GHOST,
+  BTN_ICON_DANGER,
   BTN_PRIMARY,
   BTN_SECONDARY,
   EMPTY_STATE,
@@ -148,11 +149,11 @@ export default function CotizacionesPage() {
       : `${BTN_GHOST} shrink-0 whitespace-nowrap border border-line px-2 py-1 text-xs min-h-8`;
 
     const iconBtnClass =
-      `${BTN_GHOST} inline-flex h-9 w-9 shrink-0 items-center justify-center border border-line text-fg-strong`;
+      `${BTN_GHOST} inline-flex h-9 w-9 min-h-0 shrink-0 items-center justify-center border border-line p-0 text-fg-strong`;
 
     const deleteTextBtnClass = stacked
       ? `${BTN_DANGER} min-h-10 flex-1`
-      : `${BTN_DANGER} h-9 w-9 min-h-0 shrink-0 px-0 py-0`;
+      : BTN_ICON_DANGER;
 
     if (stacked) {
       return (
@@ -186,7 +187,7 @@ export default function CotizacionesPage() {
             title="Duplicar cotización"
             aria-label="Duplicar cotización"
           >
-            <Copy size={16} strokeWidth={2.25} aria-hidden />
+            <Copy className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} aria-hidden />
           </Link>
         ) : null}
         {isAdmin ? (
@@ -197,7 +198,7 @@ export default function CotizacionesPage() {
             title="Borrar cotización"
             aria-label="Borrar cotización"
           >
-            <Trash2 size={16} strokeWidth={2.25} aria-hidden />
+            <Trash2 className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} aria-hidden />
           </button>
         ) : null}
       </div>
