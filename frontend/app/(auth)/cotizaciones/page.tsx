@@ -21,6 +21,7 @@ import {
   TABLE_HEAD_CELL,
   TABLE_WRAP,
 } from "@/components/ui/contentStyles";
+import { useDetalle } from "@/contexts/DetalleContext";
 import { getCurrentUser } from "@/lib/auth";
 import { downloadHistorialCotizacionesExcel } from "@/lib/excel/exportHistorialCotizaciones";
 import {
@@ -54,6 +55,8 @@ export default function CotizacionesPage() {
   const [zipProgress, setZipProgress] = useState<{ current: number; total: number } | null>(null);
   const user = useMemo(() => getCurrentUser(), []);
   const isAdmin = user?.rol === "admin";
+
+  const { abrir: abrirDetalle, seleccionadoKey } = useDetalle();
 
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
@@ -302,8 +305,8 @@ export default function CotizacionesPage() {
         )}
       </div>
 
-      <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-hidden md:block")}>
-        <table className="w-full table-fixed text-left text-sm">
+      <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-auto md:block")}>
+        <table className="w-full min-w-[58rem] table-fixed text-left text-sm">
           <colgroup>
             <col style={{ width: "23%" }} />
             <col style={{ width: "17%" }} />
@@ -344,7 +347,25 @@ export default function CotizacionesPage() {
               </tr>
             ) : (
               rows.map((row) => (
-              <tr key={row.id} className={TABLE_BODY_ROW}>
+              <tr
+                key={row.id}
+                className={cn(
+                  TABLE_BODY_ROW,
+                  "cursor-pointer",
+                  seleccionadoKey === `cotizacion:${row.id}` && "bg-brand-tint",
+                )}
+                aria-selected={seleccionadoKey === `cotizacion:${row.id}`}
+                onClick={() =>
+                  abrirDetalle({
+                    kind: "cotizacion",
+                    id: row.id,
+                    titulo: row.folio,
+                    subtitulo: row.ctz_clientes?.nombre_cliente ?? "Sin cliente",
+                    meta: money(row.total),
+                    cotizacion: row,
+                  })
+                }
+              >
                 <td
                   className="overflow-hidden truncate px-2 py-3 align-middle font-medium whitespace-nowrap"
                   title={row.folio}
@@ -361,7 +382,10 @@ export default function CotizacionesPage() {
                   {row.ctz_sucursales?.nombre ?? "-"}
                 </td>
                 <td className="whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">{money(row.total)}</td>
-                <td className="px-1 py-3 text-center align-middle">
+                <td
+                  className="px-1 py-3 text-center align-middle"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <div className="flex justify-center">
                     <Checkbox
                       checked={row.venta_cerrada}
@@ -371,7 +395,10 @@ export default function CotizacionesPage() {
                     />
                   </div>
                 </td>
-                <td className="px-2 py-3 text-right align-middle">
+                <td
+                  className="px-2 py-3 text-right align-middle"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   {renderRowActions(row)}
                 </td>
               </tr>

@@ -13,6 +13,7 @@ import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import { AmbientGridProvider } from "@/contexts/AmbientGridContext";
 import { BorradorProvider, useBorrador } from "@/contexts/BorradorContext";
+import { DetalleProvider } from "@/contexts/DetalleContext";
 import {
   globalSearch,
   GROUP_LABEL_SINGULAR,
@@ -546,7 +547,9 @@ function Shell({ children }: { children: ReactNode }) {
                   onSelect={seleccionar}
                 />
               ) : (
-                <ModuleTransition>{children}</ModuleTransition>
+                <DetalleProvider value={{ abrir: seleccionar, seleccionadoKey: selectedKey }}>
+                  <ModuleTransition>{children}</ModuleTransition>
+                </DetalleProvider>
               )}
             </div>
           </main>
