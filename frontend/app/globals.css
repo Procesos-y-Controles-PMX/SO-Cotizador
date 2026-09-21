@@ -43,6 +43,20 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ------------------------------------------------------------------
+   Superficies oscuras dentro del modo claro.
+
+   Clay ya redefine --fg* y las sombras dentro de .neu-dark-canvas, pero
+   no las superficies secundarias: sin esto, bg-muted y los bordes salen
+   con el valor del tema claro y se ven como parches claros encima del
+   panel oscuro. Los valores son los mismos del bloque .dark de clay.
+   ------------------------------------------------------------------ */
+.neu-dark-canvas {
+  --muted: #22282f;
+  --line: rgba(255, 255, 255, 0.06);
+  --line-subtle: rgba(255, 255, 255, 0.04);
+}
+
 .animate-fade-up {
   animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }

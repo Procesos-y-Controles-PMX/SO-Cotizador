@@ -69,7 +69,10 @@ export default function GlobalSearchBar({
         type="button"
         onClick={onHome}
         aria-label="Inicio"
-        className="neu-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
+        className={cn(
+          "neu-dark-canvas neu-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+          "text-fg-subtle hover:text-fg",
+        )}
       >
         <Home className="h-[18px] w-[18px]" />
       </button>

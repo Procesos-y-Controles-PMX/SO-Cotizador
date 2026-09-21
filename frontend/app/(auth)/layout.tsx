@@ -568,7 +568,8 @@ function Shell({ children }: { children: ReactNode }) {
           {/* Ancho animado con el contenido fijo adentro: el texto no se re-acomoda al abrir. */}
           <div
             className={cn(
-              "neu-raised hidden min-h-0 shrink-0 overflow-hidden rounded-lg lg:block",
+              "neu-dark-canvas hidden min-h-0 shrink-0 overflow-hidden rounded-lg lg:block",
+              "shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]",
               !detalle.arrastrando &&
                 "transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
             )}
@@ -598,7 +599,8 @@ function Shell({ children }: { children: ReactNode }) {
               title={selected?.titulo ?? "Panel de detalle"}
               aria-label={selected ? `Abrir detalle de ${selected.titulo}` : "Abrir panel de detalle"}
               className={cn(
-                "neu-raised hidden w-7 shrink-0 flex-col items-center justify-center gap-2 rounded-lg lg:flex",
+                "neu-dark-canvas hidden w-7 shrink-0 flex-col items-center justify-center gap-2 rounded-lg lg:flex",
+                "shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]",
                 "text-fg-faint transition-colors duration-200 hover:text-brand motion-reduce:transition-none",
               )}
             >
@@ -637,7 +639,7 @@ function Shell({ children }: { children: ReactNode }) {
               className="absolute inset-0 bg-black/60"
               onClick={() => setDetalleAbierto(false)}
             />
-            <div className="neu-raised absolute inset-2 top-10 overflow-hidden rounded-lg">
+            <div className="neu-dark-canvas absolute inset-2 top-10 overflow-hidden rounded-lg">
               <DetailPane hit={selected} onClose={() => setDetalleAbierto(false)} onSelectHit={seleccionar} />
             </div>
           </div>
