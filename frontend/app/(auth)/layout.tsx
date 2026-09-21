@@ -449,7 +449,8 @@ function Shell({ children }: { children: ReactNode }) {
 
   return (
     <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated}>
-      <div className="flex h-dvh flex-col overflow-hidden app-canvas p-2">
+      <div className="relative flex h-dvh flex-col overflow-hidden app-canvas p-2">
+        <AmbientCanvas animated={ambientAnimated} />
         <header className="app-safe-x flex shrink-0 items-center gap-3 pb-2 lg:hidden">
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-base font-semibold tracking-tight text-fg">Cotizador</h1>
@@ -535,9 +536,8 @@ function Shell({ children }: { children: ReactNode }) {
             />
           ) : null}
 
-          <main className="neu-raised relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg">
-            <AmbientCanvas animated={ambientAnimated} />
-            <div className="relative z-10 min-h-0 flex-1 overflow-y-auto app-main-pad app-safe-x py-4">
+          <main className="neu-raised flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg">
+            <div className="min-h-0 flex-1 overflow-y-auto app-main-pad app-safe-x py-4">
               {buscando ? (
                 <SearchResults
                   groups={groups}

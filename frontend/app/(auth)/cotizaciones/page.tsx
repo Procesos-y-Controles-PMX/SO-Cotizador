@@ -143,7 +143,7 @@ export default function CotizacionesPage() {
     }
   }
 
-  const emptyColSpan = 7;
+  const emptyColSpan = 6;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const textBtnClass = stacked
@@ -308,18 +308,16 @@ export default function CotizacionesPage() {
       <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-auto md:block")}>
         <table className="w-full min-w-[58rem] table-fixed text-left text-sm">
           <colgroup>
-            <col style={{ width: "23%" }} />
-            <col style={{ width: "17%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "11%" }} />
-            <col style={{ width: "9%" }} />
+            <col style={{ width: "32%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "12%" }} />
             <col style={{ width: "4.5rem" }} />
-            <col style={{ width: "15%" }} />
+            <col style={{ width: "14%" }} />
           </colgroup>
           <thead className="bg-muted">
             <tr>
-              <th className={`${TABLE_HEAD_CELL} px-2`}>Folio</th>
-              <th className={`${TABLE_HEAD_CELL} px-2`}>Cliente</th>
+              <th className={`${TABLE_HEAD_CELL} px-2`}>Folio / Cliente</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Obra</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Total</th>
@@ -366,14 +364,18 @@ export default function CotizacionesPage() {
                   })
                 }
               >
-                <td
-                  className="overflow-hidden truncate px-2 py-3 align-middle font-medium whitespace-nowrap"
-                  title={row.folio}
-                >
-                  {row.folio}
-                </td>
-                <td className="overflow-hidden truncate px-2 py-3 align-middle" title={row.ctz_clientes?.nombre_cliente ?? "-"}>
-                  {row.ctz_clientes?.nombre_cliente ?? "-"}
+                <td className="overflow-hidden px-2 py-2.5 align-middle" title={row.folio}>
+                  <span
+                    className={cn(
+                      "block truncate font-medium",
+                      seleccionadoKey === `cotizacion:${row.id}` && "text-brand",
+                    )}
+                  >
+                    {row.folio}
+                  </span>
+                  <span className="block truncate text-xs text-fg-subtle">
+                    {row.ctz_clientes?.nombre_cliente ?? "-"}
+                  </span>
                 </td>
                 <td className="overflow-hidden truncate px-2 py-3 align-middle" title={obraNombreCotizacion(row)}>
                   {obraNombreCotizacion(row)}
