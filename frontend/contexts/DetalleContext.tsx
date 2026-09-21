@@ -17,11 +17,14 @@ type DetalleContextValue = {
   abrir: (hit: SearchHit) => void;
   /** `${kind}:${id}` de lo seleccionado, para resaltar la fila. */
   seleccionadoKey: string | null;
+  /** El panel ocupa ancho: las tablas pueden apretarse en vez de desbordarse. */
+  abierto: boolean;
 };
 
 const SIN_SHELL: DetalleContextValue = {
   abrir: () => {},
   seleccionadoKey: null,
+  abierto: false,
 };
 
 const DetalleContext = createContext<DetalleContextValue>(SIN_SHELL);

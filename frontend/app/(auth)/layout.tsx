@@ -86,7 +86,7 @@ function AmbientCanvas({ animated }: { animated: boolean }) {
   if (!animated) {
     return (
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[var(--ambient-flat)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[var(--ambient-flat)]"
         aria-hidden
       />
     );
@@ -94,7 +94,7 @@ function AmbientCanvas({ animated }: { animated: boolean }) {
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       aria-hidden
       data-ambient-grid-clip
     >
@@ -449,7 +449,7 @@ function Shell({ children }: { children: ReactNode }) {
 
   return (
     <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated}>
-      <div className="relative flex h-dvh flex-col overflow-hidden app-canvas p-2">
+      <div className="relative isolate flex h-dvh flex-col overflow-hidden app-canvas p-2">
         <AmbientCanvas animated={ambientAnimated} />
         <header className="app-safe-x flex shrink-0 items-center gap-3 pb-2 lg:hidden">
           <div className="min-w-0 flex-1">
@@ -547,7 +547,9 @@ function Shell({ children }: { children: ReactNode }) {
                   onSelect={seleccionar}
                 />
               ) : (
-                <DetalleProvider value={{ abrir: seleccionar, seleccionadoKey: selectedKey }}>
+                <DetalleProvider
+                  value={{ abrir: seleccionar, seleccionadoKey: selectedKey, abierto: detalleAbierto }}
+                >
                   <ModuleTransition>{children}</ModuleTransition>
                 </DetalleProvider>
               )}

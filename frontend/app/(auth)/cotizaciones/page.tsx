@@ -56,7 +56,7 @@ export default function CotizacionesPage() {
   const user = useMemo(() => getCurrentUser(), []);
   const isAdmin = user?.rol === "admin";
 
-  const { abrir: abrirDetalle, seleccionadoKey } = useDetalle();
+  const { abrir: abrirDetalle, seleccionadoKey, abierto: detalleAbierto } = useDetalle();
 
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
@@ -143,7 +143,7 @@ export default function CotizacionesPage() {
     }
   }
 
-  const emptyColSpan = 6;
+  const emptyColSpan = 5;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const textBtnClass = stacked
@@ -306,14 +306,18 @@ export default function CotizacionesPage() {
       </div>
 
       <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-auto md:block")}>
-        <table className="w-full min-w-[58rem] table-fixed text-left text-sm">
+        <table
+          className={cn(
+            "w-full table-fixed text-left text-sm",
+            !detalleAbierto && "min-w-[52rem]",
+          )}
+        >
           <colgroup>
-            <col style={{ width: "32%" }} />
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "13%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "4.5rem" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: detalleAbierto ? "28%" : "34%" }} />
+            <col style={{ width: "24%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: detalleAbierto ? "18%" : "12%" }} />
           </colgroup>
           <thead className="bg-muted">
             <tr>
@@ -321,12 +325,6 @@ export default function CotizacionesPage() {
               <th className={`${TABLE_HEAD_CELL} px-2`}>Obra</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} px-1 text-center align-middle`}>
-                <span className="mx-auto flex w-fit flex-col items-center text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
-                  <span>Venta</span>
-                  <span>cerrada</span>
-                </span>
-              </th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Acciones</th>
             </tr>
           </thead>
@@ -384,19 +382,6 @@ export default function CotizacionesPage() {
                   {row.ctz_sucursales?.nombre ?? "-"}
                 </td>
                 <td className="whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">{money(row.total)}</td>
-                <td
-                  className="px-1 py-3 text-center align-middle"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={row.venta_cerrada}
-                      disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
-                      title="Venta cerrada"
-                      onChange={(next) => void handleVentaCerradaToggle(row, next)}
-                    />
-                  </div>
-                </td>
                 <td
                   className="px-2 py-3 text-right align-middle"
                   onClick={(event) => event.stopPropagation()}
