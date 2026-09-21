@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, PanelLeftClose } from "lucide-react";
+import { ChevronLeft, PanelLeftClose, Search, X } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { logout, useAuth } from "@/lib/auth";
@@ -124,6 +124,30 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <BorradorProvider>
       <Shell>{children}</Shell>
     </BorradorProvider>
+  );
+}
+
+function DetalleVacio({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
+        <p className="truncate text-[11px] font-bold uppercase tracking-wider text-fg-faint">Detalle</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar detalle"
+          className="neu-button flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <Search className="h-6 w-6 text-fg-faint" aria-hidden />
+        <p className="text-sm text-fg-subtle">
+          Busca arriba y elige un resultado: su detalle aparece aquí.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -527,7 +551,7 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
           </main>
 
-          {selected && detalleAbierto ? (
+          {detalleAbierto ? (
             <ResizeHandle
               etiqueta="Ancho del detalle"
               ancho={detalle.ancho}
@@ -545,7 +569,7 @@ function Shell({ children }: { children: ReactNode }) {
               !detalle.arrastrando &&
                 "transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
             )}
-            style={{ width: detalleAbierto && selected ? detalle.ancho : 0 }}
+            style={{ width: detalleAbierto ? detalle.ancho : 0 }}
             aria-hidden={!detalleAbierto}
           >
             <div className="h-full" style={{ width: detalle.ancho }}>
@@ -555,17 +579,21 @@ function Shell({ children }: { children: ReactNode }) {
                   onClose={() => setDetalleAbierto(false)}
                   onSelectHit={seleccionar}
                 />
-              ) : null}
+              ) : (
+                <DetalleVacio onClose={() => setDetalleAbierto(false)} />
+              )}
             </div>
           </div>
 
-          {/* Columna de altura completa, no un botón flotante: es el panel cerrado. */}
-          {selected && !detalleAbierto ? (
+          {/* Columna de altura completa, no un botón flotante: es el panel cerrado.
+              Siempre presente, con o sin selección: si desaparece cuando no hay
+              nada abierto, nadie descubre que el panel existe. */}
+          {!detalleAbierto ? (
             <button
               type="button"
               onClick={() => setDetalleAbierto(true)}
-              title={selected.titulo}
-              aria-label={`Abrir detalle de ${selected.titulo}`}
+              title={selected?.titulo ?? "Panel de detalle"}
+              aria-label={selected ? `Abrir detalle de ${selected.titulo}` : "Abrir panel de detalle"}
               className={cn(
                 "neu-raised hidden w-7 shrink-0 flex-col items-center justify-center gap-2 rounded-lg lg:flex",
                 "text-fg-faint transition-colors duration-200 hover:text-brand motion-reduce:transition-none",
@@ -573,7 +601,7 @@ function Shell({ children }: { children: ReactNode }) {
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="max-h-[40%] overflow-hidden text-[10px] font-semibold uppercase tracking-[0.18em] [writing-mode:vertical-rl]">
-                {GROUP_LABEL_SINGULAR[selected.kind]}
+                {selected ? GROUP_LABEL_SINGULAR[selected.kind] : "Detalle"}
               </span>
             </button>
           ) : null}

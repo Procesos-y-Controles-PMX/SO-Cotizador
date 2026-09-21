@@ -1,10 +1,22 @@
 "use client";
 
-import { Building2, ChevronDown, MapPin, Search, Trash2, UserRound } from "lucide-react";
+import { useRef, useState } from "react";
+import { Building2, ChevronDown, MapPin, Package, Trash2, UserRound } from "lucide-react";
+import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import { listClientes } from "@/lib/queries/clientes";
+import { listObras } from "@/lib/queries/obras";
+import { searchProductosActivosPorDescripcion, searchProductosActivosPorSku } from "@/lib/queries/productos";
+import { listSucursales } from "@/lib/queries/sucursales";
+import { matchesSearch } from "@/lib/search";
+import type { CtzCliente, CtzObra, CtzProducto, CtzSucursal } from "@/lib/types/db";
 import { cn, money } from "@/lib/utils";
 import {
   actualizarPartida,
+  agregarProducto,
   faltanteBorrador,
+  fijarCliente,
+  fijarObra,
+  fijarSucursal,
   importes,
   listaParaGuardar,
   quitarPartida,
@@ -71,10 +83,54 @@ export default function BorradorSheet({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        {/* Catálogos encadenados como la BD los exige: los clientes cuelgan de
+            una sucursal y las obras de un cliente. Elegir aquí hace imposible
+            la combinación que el insert rechazaría. */}
         <div className="grid gap-2 sm:grid-cols-3">
-          <Chip icono={<Building2 className="h-4 w-4" />} label="Sucursal" valor={borrador.sucursal?.nombre ?? null} />
-          <Chip icono={<UserRound className="h-4 w-4" />} label="Cliente" valor={borrador.cliente?.nombre ?? null} />
-          <Chip icono={<MapPin className="h-4 w-4" />} label="Obra" valor={borrador.obra?.nombre ?? null} />
+          <Catalogo
+            icono={<Building2 className="h-4 w-4" />}
+            label="Sucursal"
+            placeholder="Busca una sucursal"
+            valor={borrador.sucursal ? { id: borrador.sucursal.id, label: borrador.sucursal.nombre } : null}
+            buscar={async (q) => {
+              const todas = await listSucursales();
+              return q ? todas.filter((item) => matchesSearch(item.nombre, q)) : todas;
+            }}
+            aOpcion={(item: CtzSucursal) => ({
+              id: item.id,
+              label: item.nombre,
+              sublabel: item.region ?? undefined,
+            })}
+            onElegir={(item) => onCambio(fijarSucursal(borrador, item))}
+          />
+
+          <Catalogo
+            icono={<UserRound className="h-4 w-4" />}
+            label="Cliente"
+            placeholder={borrador.sucursal ? "Busca un cliente" : "Elige la sucursal primero"}
+            disabled={!borrador.sucursal}
+            valor={borrador.cliente ? { id: borrador.cliente.id, label: borrador.cliente.nombre } : null}
+            buscar={(q) => listClientes(q, borrador.sucursal!.id)}
+            aOpcion={(item: CtzCliente) => ({ id: item.id, label: item.nombre_cliente })}
+            onElegir={(item) =>
+              onCambio(fijarCliente(borrador, { id: item.id, nombre: item.nombre_cliente }))
+            }
+          />
+
+          <Catalogo
+            icono={<MapPin className="h-4 w-4" />}
+            label="Obra"
+            placeholder={borrador.cliente ? "Busca una obra (opcional)" : "Elige el cliente primero"}
+            disabled={!borrador.cliente}
+            valor={borrador.obra?.id ? { id: borrador.obra.id, label: borrador.obra.nombre } : null}
+            buscar={(q) => listObras(q, borrador.cliente!.id)}
+            aOpcion={(item: CtzObra) => ({
+              id: item.id,
+              label: item.nombre_obra,
+              sublabel: item.num_obra ?? undefined,
+            })}
+            onElegir={(item) => onCambio(fijarObra(borrador, { id: item.id, nombre: item.nombre_obra }))}
+          />
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -103,12 +159,33 @@ export default function BorradorSheet({
         </div>
 
         <section className="mt-4">
-          <h3 className="text-sm font-semibold text-fg">Partidas ({borrador.partidas.length})</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-fg">Partidas ({borrador.partidas.length})</h3>
+            <div className="w-full sm:w-80">
+              {/* Se limpia tras cada alta (`key`) para poder encadenar productos. */}
+              <Catalogo
+                key={`sku-${borrador.partidas.length}`}
+                icono={<Package className="h-4 w-4" />}
+                label="Agregar producto"
+                placeholder="Busca por SKU o descripción"
+                compacto
+                minChars={2}
+                valor={null}
+                buscar={buscarProductos}
+                aOpcion={(item: CtzProducto) => ({
+                  id: item.id,
+                  label: item.sku ?? item.descripcion,
+                  sublabel: item.descripcion,
+                })}
+                onElegir={(item) => onCambio(agregarProducto(borrador, item))}
+              />
+            </div>
+          </div>
 
           {borrador.partidas.length === 0 ? (
             <p className="mt-2 flex items-center gap-2 rounded-sm bg-muted px-3 py-5 text-sm text-fg-subtle">
-              <Search className="h-4 w-4 shrink-0" />
-              Busca un SKU arriba y agrégalo desde el panel de detalle.
+              <Package className="h-4 w-4 shrink-0" />
+              Agrega productos del catálogo aquí, o desde el panel de detalle al buscar un SKU arriba.
             </p>
           ) : (
             <>
@@ -213,16 +290,77 @@ export default function BorradorSheet({
   );
 }
 
-function Chip({ icono, label, valor }: { icono: React.ReactNode; label: string; valor: string | null }) {
+/** SKU y descripción son dos consultas distintas; el catálogo busca en ambas. */
+async function buscarProductos(q: string): Promise<CtzProducto[]> {
+  const [porSku, porDescripcion] = await Promise.all([
+    searchProductosActivosPorSku(q),
+    searchProductosActivosPorDescripcion(q),
+  ]);
+  const vistos = new Set<string>();
+  return [...porSku, ...porDescripcion].filter((item) =>
+    vistos.has(item.id) ? false : (vistos.add(item.id), true),
+  );
+}
+
+/**
+ * Selector de catálogo.
+ *
+ * `SearchCombobox` habla en opciones `{id,label}`, pero el borrador necesita la
+ * entidad completa (la sucursal arrastra prefijo de folio, IVA y términos). Por
+ * eso se guarda lo que devolvió la última búsqueda y se resuelve por id al
+ * elegir, en vez de volver a consultar.
+ */
+function Catalogo<T>({
+  icono,
+  label,
+  placeholder,
+  valor,
+  disabled,
+  compacto,
+  minChars = 0,
+  buscar,
+  aOpcion,
+  onElegir,
+}: {
+  icono: React.ReactNode;
+  label: string;
+  placeholder: string;
+  valor: SearchComboboxOption | null;
+  disabled?: boolean;
+  compacto?: boolean;
+  /** 0 abre el catálogo completo al enfocar; el de productos exige escribir. */
+  minChars?: number;
+  buscar: (query: string) => Promise<T[]>;
+  aOpcion: (item: T) => SearchComboboxOption;
+  onElegir: (item: T) => void;
+}) {
+  const cache = useRef(new Map<string, T>());
+  const [seleccion, setSeleccion] = useState<SearchComboboxOption | null>(valor);
+
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-sm bg-muted px-3 py-2">
-      <span className={cn("shrink-0", valor ? "text-brand" : "text-fg-faint")}>{icono}</span>
-      <span className="min-w-0">
-        <span className="block text-[10px] font-bold uppercase tracking-wider text-fg-faint">{label}</span>
-        <span className={cn("block truncate text-sm", valor ? "text-fg" : "text-fg-subtle")}>
-          {valor ?? "Elígela desde la búsqueda"}
-        </span>
+    <div className={cn("min-w-0 rounded-sm bg-muted px-3 py-2", disabled && "opacity-60")}>
+      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-faint">
+        <span className={cn("shrink-0", valor ? "text-brand" : "text-fg-faint")}>{icono}</span>
+        {label}
       </span>
+      <SearchCombobox
+        value={compacto ? null : (valor ?? seleccion)}
+        disabled={disabled}
+        placeholder={placeholder}
+        minChars={minChars}
+        inputClassName="h-7 w-full bg-transparent px-0 text-sm text-fg outline-none placeholder:text-fg-subtle"
+        onSearch={async (query) => {
+          const items = await buscar(query);
+          cache.current = new Map(items.map((item) => [aOpcion(item).id, item]));
+          return items.map(aOpcion);
+        }}
+        onChange={(option) => {
+          setSeleccion(option);
+          if (!option) return;
+          const item = cache.current.get(option.id);
+          if (item) onElegir(item);
+        }}
+      />
     </div>
   );
 }
