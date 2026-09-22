@@ -25,8 +25,14 @@ import {
 } from "@/lib/borrador/model";
 
 const COLS = "grid-cols-[minmax(0,1fr)_5rem_7rem_7rem_2.25rem]";
+/**
+ * `neu-field` es la superficie hundida de clay — la misma de los campos del
+ * formulario. Antes decía `neu-inset`, que no existe en clay, así que los
+ * valores editables se veían como texto plano y no se distinguían del importe,
+ * que sí es calculado.
+ */
 const INPUT =
-  "neu-inset h-9 w-full rounded-sm px-2 text-right text-sm tabular-nums text-fg outline-none focus:ring-1 focus:ring-brand";
+  "neu-field h-9 w-full rounded-sm px-2 text-right text-sm tabular-nums text-fg outline-none focus:ring-2 focus:ring-brand-tint";
 
 /**
  * La barra expandida: todo el proceso de la cotización sin salir de la pantalla.
