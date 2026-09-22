@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import PageHeader from "@/components/ui/PageHeader";
 import Modal from "@/components/ui/Modal";
+import Link from "next/link";
 import {
   ALERT_WARNING,
   EMPTY_STATE,
@@ -14,6 +15,8 @@ import {
   FIELD_SELECT_TRIGGER,
   PANEL_CARD,
   PANEL_INSET,
+  TABLE_BODY_ROW,
+  TABLE_HEAD_CELL,
 } from "@/components/ui/contentStyles";
 import FilterMultiSelect, { matchesMultiFilter } from "@/components/common/FilterMultiSelect";
 
@@ -192,6 +195,7 @@ export default function DashboardPage() {
   const [breakdownOpen, setBreakdownOpen] = useState<BreakdownKind | null>(null);
   const [items, setItems] = useState<DashboardItemRow[]>([]);
   const [skuOrden, setSkuOrden] = useState<"importe" | "cantidad">("importe");
+  const [skuAuditado, setSkuAuditado] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.rol !== "admin") return;
@@ -473,6 +477,39 @@ export default function DashboardPage() {
     };
   }, [filtered, items, skuOrden]);
 
+  /**
+   * Partidas detrás de un SKU, para auditar de dónde sale su importe. Un solo
+   * renglón desproporcionado casi siempre es captura, no venta.
+   */
+  const skuDetalle = useMemo(() => {
+    if (!skuAuditado) return null;
+    const porId = new Map(filtered.map((row) => [row.id, row]));
+    const agregado = skuStats.top.find((sku) => sku.clave === skuAuditado);
+
+    const partidas = items
+      .filter((item) => {
+        const clave = item.id_producto ?? `desc:${item.descripcion_registro.trim().toUpperCase()}`;
+        return clave === skuAuditado && porId.has(item.id_cotizacion);
+      })
+      .map((item) => {
+        const cot = porId.get(item.id_cotizacion)!;
+        return {
+          id: cot.id,
+          folio: cot.folio,
+          fecha: new Date(cot.created_at),
+          sucursal: cot.ctz_sucursales?.nombre ?? "—",
+          usuario: cot.ctz_usuarios?.nombre_completo ?? cot.ctz_usuarios?.email ?? "—",
+          cantidad: Number(item.cantidad) || 0,
+          unidad: item.unidad_medida,
+          precioUnitario: Number(item.precio_unitario) || 0,
+          importe: Number(item.total_item) || 0,
+        };
+      })
+      .sort((a, b) => b.importe - a.importe);
+
+    return { titulo: agregado?.descripcion ?? "SKU", sku: agregado?.sku ?? "—", partidas };
+  }, [skuAuditado, skuStats.top, items, filtered]);
+
   if (user?.rol !== "admin") {
     return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
   }
@@ -657,9 +694,12 @@ export default function DashboardPage() {
                 {skuStats.top.map((sku) => {
                   const valor = skuOrden === "importe" ? sku.importe : sku.cantidad;
                   return (
-                    <div
+                    <button
                       key={sku.clave}
-                      className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_auto] sm:gap-3"
+                      type="button"
+                      onClick={() => setSkuAuditado(sku.clave)}
+                      title="Ver las cotizaciones detrás de este importe"
+                      className="grid w-full grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-2 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_auto] sm:gap-3"
                     >
                       <span className="min-w-0" title={sku.descripcion}>
                         <span className="block truncate text-xs font-medium text-fg-muted">
@@ -682,7 +722,7 @@ export default function DashboardPage() {
                           ? money(sku.importe)
                           : `${sku.cantidad.toLocaleString("es-MX")} ${sku.unidad ?? ""}`.trim()}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -690,6 +730,83 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+
+      <Modal
+        open={skuDetalle !== null}
+        onClose={() => setSkuAuditado(null)}
+        title={skuDetalle ? `${skuDetalle.titulo} · ${skuDetalle.sku}` : ""}
+        wide
+      >
+        {skuDetalle === null || skuDetalle.partidas.length === 0 ? (
+          <p className="py-6 text-center text-sm text-fg-subtle">Sin partidas para mostrar.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-fg-subtle">
+              {skuDetalle.partidas.length === 1
+                ? "1 partida"
+                : `${skuDetalle.partidas.length} partidas`}{" "}
+              en las cotizaciones que pasan los filtros, de mayor a menor importe.
+            </p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[44rem] table-fixed text-left text-sm">
+                <colgroup>
+                  <col style={{ width: "26%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                </colgroup>
+                <thead className="bg-muted">
+                  <tr>
+                    <th className={`${TABLE_HEAD_CELL} px-2`}>Folio</th>
+                    <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
+                    <th className={`${TABLE_HEAD_CELL} px-2`}>Fecha</th>
+                    <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Cantidad</th>
+                    <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>P. unitario</th>
+                    <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Importe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {skuDetalle.partidas.map((partida, index) => (
+                    <tr key={`${partida.id}-${index}`} className={TABLE_BODY_ROW}>
+                      <td className="overflow-hidden truncate px-2 py-2.5 align-middle">
+                        <Link
+                          href={`/cotizaciones/${partida.id}`}
+                          className="font-medium text-brand hover:underline"
+                          title={partida.folio}
+                        >
+                          {partida.folio}
+                        </Link>
+                      </td>
+                      <td className="overflow-hidden truncate px-2 py-2.5 align-middle text-fg-muted">
+                        {partida.sucursal}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-2.5 align-middle text-fg-muted">
+                        {partida.fecha.toLocaleDateString("es-MX", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="overflow-hidden truncate px-2 py-2.5 text-right align-middle tabular-nums text-fg-muted">
+                        {partida.cantidad.toLocaleString("es-MX")} {partida.unidad ?? ""}
+                      </td>
+                      <td className="overflow-hidden truncate px-2 py-2.5 text-right align-middle tabular-nums text-fg-muted">
+                        {money(partida.precioUnitario)}
+                      </td>
+                      <td className="overflow-hidden truncate px-2 py-2.5 text-right align-middle font-semibold tabular-nums text-fg-strong">
+                        {money(partida.importe)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={breakdownOpen !== null}

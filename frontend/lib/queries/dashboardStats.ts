@@ -5,6 +5,7 @@ const PAGE_SIZE = 1000;
 /** Fila mínima de cotización para métricas del dashboard. */
 export type DashboardCotizacionRow = {
   id: string;
+  folio: string;
   created_at: string;
   id_sucursal: string;
   id_usuario: string;
@@ -15,7 +16,7 @@ export type DashboardCotizacionRow = {
 };
 
 const DASHBOARD_SELECT =
-  "id,created_at,id_sucursal,id_usuario,total,venta_cerrada,ctz_sucursales(nombre,region),ctz_usuarios(email,nombre_completo)";
+  "id,folio,created_at,id_sucursal,id_usuario,total,venta_cerrada,ctz_sucursales(nombre,region),ctz_usuarios(email,nombre_completo)";
 
 /** Partida de cotización con su SKU, para las métricas por material. */
 export type DashboardItemRow = {
@@ -24,12 +25,13 @@ export type DashboardItemRow = {
   descripcion_registro: string;
   cantidad: number;
   unidad_medida: string | null;
+  precio_unitario: number;
   total_item: number;
   ctz_productos: { sku: string | null } | null;
 };
 
 const DASHBOARD_ITEMS_SELECT =
-  "id_cotizacion,id_producto,descripcion_registro,cantidad,unidad_medida,total_item,ctz_productos(sku)";
+  "id_cotizacion,id_producto,descripcion_registro,cantidad,unidad_medida,precio_unitario,total_item,ctz_productos(sku)";
 
 /**
  * Todas las partidas (paginado). El dashboard ya agrega en cliente sobre el
