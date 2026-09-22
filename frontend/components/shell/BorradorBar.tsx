@@ -39,13 +39,13 @@ export default function BorradorBar({
     );
   }
 
-  const { total } = importes(borrador);
+  const { subtotal, iva, total } = importes(borrador);
   const partidas = borrador.partidas.length;
   const pasos = pasosListos(borrador);
   const ultima = borrador.partidas[partidas - 1];
 
   return (
-    <div className={cn("neu-dark-canvas shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]", "mt-2 flex h-16 shrink-0 items-center gap-4 rounded-lg px-3")}>
+    <div className={cn("neu-dark-canvas shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]", "relative mt-2 flex h-16 shrink-0 items-center gap-4 rounded-lg px-3")}>
       {/* Izquierda: qué es. Ocupa el lugar de la carátula del álbum y, como
           ella, es lo que abre la vista completa. */}
       <button
@@ -73,29 +73,52 @@ export default function BorradorBar({
         <ChevronUp className="h-4 w-4 shrink-0 text-fg-faint group-hover:text-brand" />
       </button>
 
-      {/* Centro: qué falta. Es la barra de progreso del reproductor. */}
-      <div className="hidden min-w-0 flex-1 flex-col items-center gap-1.5 md:flex">
-        <div className="flex items-center gap-3 text-xs">
-          <Paso icono={<Building2 className="h-3.5 w-3.5" />} listo={Boolean(borrador.sucursal)}>
-            Sucursal
-          </Paso>
-          <Paso icono={<UserRound className="h-3.5 w-3.5" />} listo={Boolean(borrador.cliente)}>
-            Cliente
-          </Paso>
-          <Paso icono={<Package className="h-3.5 w-3.5" />} listo={partidas > 0}>
-            {partidas === 1 ? "1 partida" : `${partidas} partidas`}
-          </Paso>
-        </div>
-        <div className="h-1 w-full max-w-56 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-brand transition-[width] duration-300 motion-reduce:transition-none"
-            style={{ width: `${(pasos / PASOS_TOTALES) * 100}%` }}
-          />
-        </div>
+      {/* Centro: qué llevas dentro. Con partidas se ven las últimas; sin ellas,
+          qué falta para poder guardar. */}
+      <div className="hidden min-w-0 flex-[2] items-center justify-center gap-2 md:flex">
+        {partidas > 0 ? (
+          <>
+            {borrador.partidas.slice(-4).map((partida) => (
+              <span
+                key={partida.idProducto}
+                title={partida.descripcion}
+                className="flex min-w-0 max-w-40 items-center gap-1.5 rounded-sm bg-muted px-2 py-1 text-xs"
+              >
+                <span className="truncate font-medium text-fg">{partida.sku}</span>
+                <span className="shrink-0 tabular-nums text-fg-faint">×{partida.cantidad}</span>
+              </span>
+            ))}
+            {partidas > 4 ? (
+              <span className="shrink-0 text-xs text-fg-faint">+{partidas - 4}</span>
+            ) : null}
+          </>
+        ) : (
+          <div className="flex items-center gap-3 text-xs">
+            <Paso icono={<Building2 className="h-3.5 w-3.5" />} listo={Boolean(borrador.sucursal)}>
+              Sucursal
+            </Paso>
+            <Paso icono={<UserRound className="h-3.5 w-3.5" />} listo={Boolean(borrador.cliente)}>
+              Cliente
+            </Paso>
+            <Paso icono={<Package className="h-3.5 w-3.5" />} listo={false}>
+              Sin partidas
+            </Paso>
+          </div>
+        )}
       </div>
 
       {/* Derecha: cuánto va y a dónde sigue. */}
       <div className="flex shrink-0 items-center gap-3">
+        <div className="hidden text-right lg:block">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-fg-faint">Subtotal</p>
+          <p className="text-xs tabular-nums text-fg-muted">{money(subtotal)}</p>
+        </div>
+        <div className="hidden text-right lg:block">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-fg-faint">
+            IVA {borrador.ivaPct}%
+          </p>
+          <p className="text-xs tabular-nums text-fg-muted">{money(iva)}</p>
+        </div>
         <div className="text-right">
           <p className="text-[10px] font-bold uppercase tracking-wider text-fg-faint">Total</p>
           <p className="font-display text-base font-semibold tabular-nums text-fg">{money(total)}</p>
@@ -117,6 +140,16 @@ export default function BorradorBar({
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+
+      <div
+        className="absolute inset-x-3 bottom-0 h-0.5 overflow-hidden rounded-full bg-muted"
+        aria-hidden
+      >
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-300 motion-reduce:transition-none"
+          style={{ width: `${(pasos / PASOS_TOTALES) * 100}%` }}
+        />
       </div>
     </div>
   );
