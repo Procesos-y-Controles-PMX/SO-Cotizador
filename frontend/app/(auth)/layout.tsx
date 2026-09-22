@@ -467,8 +467,12 @@ function Shell({ children }: { children: ReactNode }) {
           >
             <div
               className={cn(
-                "flex h-16 shrink-0 items-center gap-3",
-                sidebarCollapsed ? "justify-center px-3" : "px-4",
+                "flex shrink-0",
+                // Contraído el menú mide 84px: el logo y el botón no caben en
+                // la misma fila sin tocarse, así que se apilan.
+                sidebarCollapsed
+                  ? "flex-col items-center gap-2 px-2 py-3"
+                  : "h-16 items-center gap-3 px-4",
               )}
             >
               <Link href="/cotizaciones" className="neu-raised-sm relative block h-9 w-9 shrink-0 overflow-hidden rounded-full">
