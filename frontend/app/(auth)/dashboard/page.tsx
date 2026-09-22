@@ -20,11 +20,13 @@ import FilterMultiSelect, { matchesMultiFilter } from "@/components/common/Filte
 import { displayRegionLabel, sortRegionKeys } from "@/lib/cotizacion/groupByRegion";
 import {
   listCotizacionesForDashboard,
+  listItemsForDashboard,
   type DashboardCotizacionRow,
+  type DashboardItemRow,
 } from "@/lib/queries/dashboardStats";
 import { listSucursales } from "@/lib/queries/sucursales";
 import type { CtzSucursal } from "@/lib/types/db";
-import { cn } from "@/lib/utils";
+import { cn, money } from "@/lib/utils";
 
 const MESES = [
   "Enero",
@@ -188,19 +190,24 @@ export default function DashboardPage() {
   const [filterTiendas, setFilterTiendas] = useState<string[] | null>(null);
   const [filterUsuarios, setFilterUsuarios] = useState<string[] | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState<BreakdownKind | null>(null);
+  const [items, setItems] = useState<DashboardItemRow[]>([]);
+  const [skuOrden, setSkuOrden] = useState<"importe" | "cantidad">("importe");
 
   useEffect(() => {
     if (user?.rol !== "admin") return;
     let cancelled = false;
     setLoading(true);
-    void Promise.all([listCotizacionesForDashboard(), listSucursales()]).then(
-      ([cotizaciones, sucs]) => {
-        if (cancelled) return;
-        setRows(cotizaciones);
-        setSucursales(sucs);
-        setLoading(false);
-      }
-    );
+    void Promise.all([
+      listCotizacionesForDashboard(),
+      listSucursales(),
+      listItemsForDashboard(),
+    ]).then(([cotizaciones, sucs, partidas]) => {
+      if (cancelled) return;
+      setRows(cotizaciones);
+      setSucursales(sucs);
+      setItems(partidas);
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
@@ -411,6 +418,61 @@ export default function DashboardPage() {
     };
   }, [filtered, sucursales, filterZonas, filterTiendas, zonaOptions, tiendaOptionValues]);
 
+  /**
+   * Métricas por material. Las partidas no traen sucursal ni fecha propias, así
+   * que se cruzan por `id_cotizacion` contra las cotizaciones ya filtradas: los
+   * cinco filtros de arriba aplican sin consultar de nuevo.
+   */
+  const skuStats = useMemo(() => {
+    const visibles = new Set(filtered.map((row) => row.id));
+
+    type Agregado = {
+      clave: string;
+      sku: string;
+      descripcion: string;
+      unidad: string | null;
+      cantidad: number;
+      importe: number;
+      cotizaciones: Set<string>;
+    };
+    const porSku = new Map<string, Agregado>();
+
+    for (const item of items) {
+      if (!visibles.has(item.id_cotizacion)) continue;
+      // Sin `id_producto` (partida capturada a mano) agrupa por descripción.
+      const clave = item.id_producto ?? `desc:${item.descripcion_registro.trim().toUpperCase()}`;
+      const actual = porSku.get(clave) ?? {
+        clave,
+        sku: item.ctz_productos?.sku ?? "—",
+        descripcion: item.descripcion_registro,
+        unidad: item.unidad_medida,
+        cantidad: 0,
+        importe: 0,
+        cotizaciones: new Set<string>(),
+      };
+      actual.cantidad += Number(item.cantidad) || 0;
+      actual.importe += Number(item.total_item) || 0;
+      actual.cotizaciones.add(item.id_cotizacion);
+      porSku.set(clave, actual);
+    }
+
+    const todos = [...porSku.values()].map((agg) => ({
+      ...agg,
+      cotizaciones: agg.cotizaciones.size,
+    }));
+
+    const ordenados = [...todos].sort((a, b) =>
+      skuOrden === "importe" ? b.importe - a.importe : b.cantidad - a.cantidad,
+    );
+
+    return {
+      distintos: todos.length,
+      importeTotal: todos.reduce((acc, agg) => acc + agg.importe, 0),
+      top: ordenados.slice(0, 8),
+      maximo: skuOrden === "importe" ? (ordenados[0]?.importe ?? 0) : (ordenados[0]?.cantidad ?? 0),
+    };
+  }, [filtered, items, skuOrden]);
+
   if (user?.rol !== "admin") {
     return <p className={ALERT_WARNING}>Esta sección es solo para administradores.</p>;
   }
@@ -556,6 +618,73 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className={`${PANEL_CARD} p-4`}>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-fg">Materiales más cotizados</h2>
+                <p className="mt-0.5 text-xs text-fg-subtle">
+                  {skuStats.distintos} SKUs distintos · {money(skuStats.importeTotal)} cotizado
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                {(["importe", "cantidad"] as const).map((modo) => (
+                  <button
+                    key={modo}
+                    type="button"
+                    onClick={() => setSkuOrden(modo)}
+                    aria-pressed={skuOrden === modo}
+                    className={cn(
+                      "h-8 rounded-sm px-3 text-xs font-semibold transition-colors",
+                      skuOrden === modo ? "bg-brand-tint text-brand" : "text-fg-subtle hover:bg-muted",
+                    )}
+                  >
+                    {modo === "importe" ? "Por importe" : "Por cantidad"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {skuStats.top.length === 0 ? (
+              <p className="py-6 text-center text-sm text-fg-subtle">
+                No hay partidas con los filtros aplicados.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {skuStats.top.map((sku) => {
+                  const valor = skuOrden === "importe" ? sku.importe : sku.cantidad;
+                  return (
+                    <div
+                      key={sku.clave}
+                      className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_auto] sm:gap-3"
+                    >
+                      <span className="min-w-0" title={sku.descripcion}>
+                        <span className="block truncate text-xs font-medium text-fg-muted">
+                          {sku.descripcion}
+                        </span>
+                        <span className="block truncate text-[10px] text-fg-faint">
+                          {sku.sku} · {sku.cotizaciones === 1 ? "1 cotización" : `${sku.cotizaciones} cotizaciones`}
+                        </span>
+                      </span>
+                      <div className="min-w-0 overflow-hidden rounded-sm bg-muted-strong">
+                        <div
+                          className="h-5 max-w-full rounded-sm bg-brand transition-all"
+                          style={{
+                            width: `${skuStats.maximo > 0 ? Math.max((valor / skuStats.maximo) * 100, 2) : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="shrink-0 text-right text-xs font-semibold tabular-nums text-fg-strong">
+                        {skuOrden === "importe"
+                          ? money(sku.importe)
+                          : `${sku.cantidad.toLocaleString("es-MX")} ${sku.unidad ?? ""}`.trim()}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
