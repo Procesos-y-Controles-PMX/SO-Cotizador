@@ -121,7 +121,7 @@ export default function SearchCombobox({
         value={inputText}
         placeholder={placeholder}
         className={cn(
-          "w-full rounded-md border border-line-strong px-2 py-1 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-muted",
+          "w-full rounded-md border border-line-strong px-2 py-1 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:bg-muted",
           inputClassName
         )}
         onFocus={() => setOpen(true)}
@@ -159,7 +159,7 @@ export default function SearchCombobox({
                   type="button"
                   className={cn(
                     "w-full px-3 py-2 text-left hover:bg-muted",
-                    index === highlightIndex && "bg-red-50"
+                    index === highlightIndex && "bg-brand-tint"
                   )}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => selectOption(opt)}

@@ -64,7 +64,10 @@ export default function GlobalSearchBar({
   const mostrarRecientes = open && !value.trim() && recientes.length > 0;
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-3 px-1">
+        // `pb-2` da su propia banda a la barra: sin ella la sombra del botón de
+    // inicio se montaba sobre la esquina del menú. `px-0` lo alinea con el
+    // borde de las columnas.
+    <div className="flex h-14 shrink-0 items-center gap-3 px-0 pb-2">
       <button
         type="button"
         onClick={onHome}
