@@ -1113,7 +1113,7 @@ export default function CotizacionForm({
                 aria-label={preciosIncluyenIva ? "Precios con IVA incluido" : "Precios sin IVA incluido"}
                 onClick={() => handlePreciosIncluyenIvaChange(!preciosIncluyenIva)}
                 className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  preciosIncluyenIva ? "bg-[#DA291C]" : "bg-slate-300"
+                  preciosIncluyenIva ? "bg-brand" : "bg-slate-300"
                 }`}
               >
                 <span
