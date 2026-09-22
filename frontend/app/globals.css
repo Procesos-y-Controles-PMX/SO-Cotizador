@@ -162,3 +162,17 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up { animation: none; }
 }
+
+/* Clay's --brand-tint stays CEMEX red even after --brand is retinted. */
+:root,
+.dark {
+  --brand-tint: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+/*
+ * Production FilterMultiSelect still paints selected rows with this
+ * hardcoded triple (no neu-option / aria-selected / bg-brand-tint).
+ */
+.bg-red-50.font-medium.text-brand {
+  background-color: color-mix(in srgb, var(--brand) 14%, transparent) !important;
+}

@@ -25,3 +25,7 @@ export {
   ALERT_ERROR,
   CHEVRON_SELECT,
 } from "@promexma/ui";
+
+/** Icon-only danger — skip BTN_DANGER padding or the glyph gets squeezed. */
+export const BTN_ICON_DANGER =
+  "btn-danger inline-flex h-9 w-9 min-h-0 shrink-0 items-center justify-center gap-0 rounded-sm p-0 disabled:cursor-not-allowed disabled:opacity-50";

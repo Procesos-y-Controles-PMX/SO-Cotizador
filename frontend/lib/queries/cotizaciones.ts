@@ -109,14 +109,16 @@ export async function listCotizaciones(
   }
 
   if (options?.unlimited) {
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) throw error;
     return (data as CotizacionWithRelations[] | null) ?? [];
   }
 
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? PAGE_SIZE;
   const { from, to } = pageRange(page, pageSize);
-  const { data, count } = await query.range(from, to);
+  const { data, count, error } = await query.range(from, to);
+  if (error) throw error;
   return {
     rows: (data as CotizacionWithRelations[] | null) ?? [],
     total: count ?? 0,
@@ -213,7 +215,10 @@ export async function createCotizacion(payload: {
     return { ok: false, error: "productos", message: insertProductosError.message };
   }
 
-  return { ok: true, id: inserted.id };
+  return {
+    ok: true,
+    id: inserted.id,
+  };
 }
 
 export async function updateCotizacion(

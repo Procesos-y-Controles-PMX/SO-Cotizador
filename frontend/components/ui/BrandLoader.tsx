@@ -137,10 +137,11 @@ function LocalAmbientField({
       {animated ? (
         <div className="pointer-events-none absolute inset-0" aria-hidden>
           <NoiseField
-            key={mounted ? resolvedTheme : "light"}
+            key={mounted ? `${resolvedTheme}-${ambient?.fieldProps ? "custom" : "default"}` : "light"}
             className="absolute inset-0"
             color={isDark ? [255, 255, 255] : [52, 80, 122]}
             maxOpacity={isDark ? 0.5 : 0.7}
+            {...ambient?.fieldProps}
           />
         </div>
       ) : (
