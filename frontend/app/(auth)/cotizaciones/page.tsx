@@ -22,6 +22,7 @@ import {
   TABLE_HEAD_CELL,
   TABLE_WRAP,
 } from "@/components/ui/contentStyles";
+import { useDetalle } from "@/contexts/DetalleContext";
 import { getCurrentUser } from "@/lib/auth";
 import { downloadHistorialCotizacionesExcel } from "@/lib/excel/exportHistorialCotizaciones";
 import {
@@ -41,7 +42,6 @@ import { PAGE_SIZE } from "@/lib/pagination";
 import { cn, money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
-  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<CotizacionWithRelations[]>([]);
@@ -56,11 +56,13 @@ export default function CotizacionesPage() {
   const user = useMemo(() => getCurrentUser(), []);
   const isAdmin = user?.rol === "admin";
 
+  const { abrir: abrirDetalle, seleccionadoKey, abierto: detalleAbierto } = useDetalle();
+
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
+      const result = await listCotizaciones(user, "", { page, pageSize: PAGE_SIZE });
       if (signal?.cancelled) return;
       setRows(result.rows);
       setTotal(result.total);
@@ -70,7 +72,7 @@ export default function CotizacionesPage() {
     } finally {
       if (!signal?.cancelled) setLoading(false);
     }
-  }, [search, user, page]);
+  }, [user, page]);
 
   useEffect(() => {
     const signal = { cancelled: false };
@@ -129,7 +131,7 @@ export default function CotizacionesPage() {
     setZipLoading(true);
     setZipProgress(null);
     try {
-      const exportRows = await listCotizaciones(user, search, { unlimited: true });
+      const exportRows = await listCotizaciones(user, "", { unlimited: true });
       await downloadCotizacionesPdfZip(exportRows, scope, (current, total) => {
         setZipProgress({ current, total });
       });
@@ -147,7 +149,7 @@ export default function CotizacionesPage() {
     }
   }
 
-  const emptyColSpan = 7;
+  const emptyColSpan = 5;
 
   function renderRowActions(row: CotizacionWithRelations, stacked = false) {
     const textBtnClass = stacked
@@ -182,7 +184,7 @@ export default function CotizacionesPage() {
     }
 
     return (
-      <div className="flex flex-nowrap items-center justify-end gap-1">
+      <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
         <Link href={`/cotizaciones/${row.id}`} className={textBtnClass}>
           Ver detalle
         </Link>
@@ -236,7 +238,7 @@ export default function CotizacionesPage() {
                 if (!user) return;
                 setExcelLoading(true);
                 try {
-                  const exportRows = await listCotizaciones(user, search, { unlimited: true });
+                  const exportRows = await listCotizaciones(user, "", { unlimited: true });
                   await downloadHistorialCotizacionesExcel(exportRows);
                 } catch {
                   toast.error("No se pudo generar el Excel del historial.");
@@ -252,16 +254,6 @@ export default function CotizacionesPage() {
             </Link>
           </>
         }
-      />
-
-      <input
-        className={FIELD_INPUT}
-        placeholder="Buscar por folio, obra, cliente o sucursal"
-        value={search}
-        onChange={(event) => {
-          setSearch(event.target.value);
-          setPage(1);
-        }}
       />
 
       {/* Mobile — card list */}
@@ -309,30 +301,26 @@ export default function CotizacionesPage() {
         )}
       </div>
 
-      <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-hidden md:block")}>
-        <table className="w-full table-fixed text-left text-sm">
+      <div className={cn(TABLE_WRAP, "hidden min-w-0 overflow-x-auto md:block")}>
+        <table
+          className={cn(
+            "w-full table-fixed text-left text-sm",
+            !detalleAbierto && "min-w-[52rem]",
+          )}
+        >
           <colgroup>
-            <col style={{ width: "23%" }} />
-            <col style={{ width: "17%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "11%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "4.5rem" }} />
-            <col style={{ width: "15%" }} />
+            <col style={{ width: detalleAbierto ? "26%" : "30%" }} />
+            <col style={{ width: detalleAbierto ? "18%" : "22%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13rem" }} />
           </colgroup>
           <thead className="bg-muted">
             <tr>
-              <th className={`${TABLE_HEAD_CELL} px-2`}>Folio</th>
-              <th className={`${TABLE_HEAD_CELL} px-2`}>Cliente</th>
+              <th className={`${TABLE_HEAD_CELL} px-2`}>Folio / Cliente</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Obra</th>
               <th className={`${TABLE_HEAD_CELL} px-2`}>Sucursal</th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Total</th>
-              <th className={`${TABLE_HEAD_CELL} px-1 text-center align-middle`}>
-                <span className="mx-auto flex w-fit flex-col items-center text-[9px] font-bold uppercase leading-tight tracking-wide text-fg-subtle">
-                  <span>Venta</span>
-                  <span>cerrada</span>
-                </span>
-              </th>
               <th className={`${TABLE_HEAD_CELL} px-2 text-right`}>Acciones</th>
             </tr>
           </thead>
@@ -351,15 +339,37 @@ export default function CotizacionesPage() {
               </tr>
             ) : (
               rows.map((row) => (
-              <tr key={row.id} className={TABLE_BODY_ROW}>
-                <td
-                  className="overflow-hidden truncate px-2 py-3 align-middle font-medium whitespace-nowrap"
-                  title={row.folio}
-                >
-                  {row.folio}
-                </td>
-                <td className="overflow-hidden truncate px-2 py-3 align-middle" title={row.ctz_clientes?.nombre_cliente ?? "-"}>
-                  {row.ctz_clientes?.nombre_cliente ?? "-"}
+              <tr
+                key={row.id}
+                className={cn(
+                  TABLE_BODY_ROW,
+                  "cursor-pointer",
+                  seleccionadoKey === `cotizacion:${row.id}` && "bg-brand-tint",
+                )}
+                aria-selected={seleccionadoKey === `cotizacion:${row.id}`}
+                onClick={() =>
+                  abrirDetalle({
+                    kind: "cotizacion",
+                    id: row.id,
+                    titulo: row.folio,
+                    subtitulo: row.ctz_clientes?.nombre_cliente ?? "Sin cliente",
+                    meta: money(row.total),
+                    cotizacion: row,
+                  })
+                }
+              >
+                <td className="overflow-hidden px-2 py-2.5 align-middle" title={row.folio}>
+                  <span
+                    className={cn(
+                      "block truncate font-medium",
+                      seleccionadoKey === `cotizacion:${row.id}` && "text-brand",
+                    )}
+                  >
+                    {row.folio}
+                  </span>
+                  <span className="block truncate text-xs text-fg-subtle">
+                    {row.ctz_clientes?.nombre_cliente ?? "-"}
+                  </span>
                 </td>
                 <td className="overflow-hidden truncate px-2 py-3 align-middle" title={obraNombreCotizacion(row)}>
                   {obraNombreCotizacion(row)}
@@ -367,18 +377,13 @@ export default function CotizacionesPage() {
                 <td className="overflow-hidden truncate px-2 py-3 align-middle" title={row.ctz_sucursales?.nombre ?? "-"}>
                   {row.ctz_sucursales?.nombre ?? "-"}
                 </td>
-                <td className="whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">{money(row.total)}</td>
-                <td className="px-1 py-3 text-center align-middle">
-                  <div className="flex justify-center">
-                    <Checkbox
-                      checked={row.venta_cerrada}
-                      disabled={Boolean(updatingVenta[row.id]) || (!isAdmin && row.id_usuario !== user?.id)}
-                      title="Venta cerrada"
-                      onChange={(next) => void handleVentaCerradaToggle(row, next)}
-                    />
-                  </div>
+                <td className="overflow-hidden truncate whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">
+                  {money(row.total)}
                 </td>
-                <td className="px-2 py-3 text-right align-middle">
+                <td
+                  className="px-2 py-3 text-right align-middle"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   {renderRowActions(row)}
                 </td>
               </tr>

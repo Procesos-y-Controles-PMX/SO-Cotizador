@@ -1,31 +1,48 @@
 "use client";
 
-
-import { GridLoadingScreen, GridThemeToggle, NoiseField, ThemeToggle } from "@promexma/ui";
+import { GridLoadingScreen, NoiseField } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ChevronLeft, PanelLeftClose, Search, X } from "lucide-react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { logout, useAuth } from "@/lib/auth";
 import { useAmbientBrand, useCustomAmbientNoise, type AmbientNoiseTune } from "@/lib/ambient-noise";
 import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
+import { AmbientGridProvider } from "@/contexts/AmbientGridContext";
+import { BorradorProvider, useBorrador } from "@/contexts/BorradorContext";
+import { DetalleProvider } from "@/contexts/DetalleContext";
 import {
-  AmbientGridProvider,
-} from "@/contexts/AmbientGridContext";
+  globalSearch,
+  GROUP_LABEL_SINGULAR,
+  type SearchGroup,
+  type SearchHit,
+} from "@/lib/queries/globalSearch";
+import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_CHARS } from "@/lib/search";
+import { useAnchoAjustable } from "@/lib/shell/useAnchoAjustable";
+import BorradorBar from "@/components/shell/BorradorBar";
+import BorradorSheet from "@/components/shell/BorradorSheet";
+import DetailPane from "@/components/shell/DetailPane";
+import GlobalSearchBar, { type RecentEntry } from "@/components/shell/GlobalSearchBar";
+import ResizeHandle from "@/components/shell/ResizeHandle";
+import SearchResults from "@/components/shell/SearchResults";
 import {
   SIDEBAR_NAV_ACTIVE,
   SIDEBAR_NAV_IDLE,
   SIDEBAR_NAV_LIST,
   SIDEBAR_NAV_LIST_COLLAPSED,
   SIDEBAR_SECTION_LABEL,
-  SIDEBAR_SHELL,
-  SIDEBAR_USER_CARD,
 } from "@/components/layout/shellStyles";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
-
 import ModuleTransition from "@/components/common/ModuleTransition";
+
+const RECIENTES_KEY = "so-cotizador-recientes";
+const RECIENTES_MAX = 6;
+const ANCHO_SIDEBAR_CONTRAIDO = 84;
 
 interface NavItemDef {
   label: string;
@@ -40,12 +57,17 @@ interface NavGroup {
   items: NavItemDef[];
 }
 
-function LogoutIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
-  );
+function hitKey(hit: { kind: string; id: string }) {
+  return `${hit.kind}:${hit.id}`;
+}
+
+function leerRecientes(): RecentEntry[] {
+  try {
+    const raw = window.localStorage.getItem(RECIENTES_KEY);
+    return raw ? (JSON.parse(raw) as RecentEntry[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 function AmbientCanvas({
@@ -63,7 +85,7 @@ function AmbientCanvas({
   if (!animated) {
     return (
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[var(--ambient-flat)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[var(--ambient-flat)]"
         aria-hidden
       />
     );
@@ -71,7 +93,7 @@ function AmbientCanvas({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       aria-hidden
       data-ambient-grid-clip
     >
@@ -87,18 +109,158 @@ function AmbientCanvas({
 }
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [loading, user, router]);
+
+  if (loading || !user) {
+    return <GridLoadingScreen message="Verificando sesión..." variant="dark" />;
+  }
+
+  // El provider queda dentro del guard: sin sesión no hay cotización que guardar.
+  return (
+    <BorradorProvider>
+      <Shell>{children}</Shell>
+    </BorradorProvider>
+  );
+}
+
+function DetalleVacio({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
+        <p className="truncate text-[11px] font-bold uppercase tracking-wider text-fg-faint">Detalle</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar detalle"
+          className="neu-button flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+        <Search className="h-6 w-6 text-fg-faint" aria-hidden />
+        <p className="text-sm text-fg-subtle">
+          Busca arriba y elige un resultado: su detalle aparece aquí.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const router = useRouter();
+  const { borrador, expandido, guardando, setExpandido, aplicar, empezar, descartar, guardar } =
+    useBorrador();
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [meshReady, setMeshReady] = useState(false);
   const customField = useCustomAmbientNoise(user?.email);
   useAmbientBrand(customField?.color);
   const ambientAnimated = isOwnerAdminEmail(user?.email) || Boolean(customField);
 
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [groups, setGroups] = useState<SearchGroup[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [recientes, setRecientes] = useState<RecentEntry[]>([]);
+
+  /** `selected` sobrevive al cierre del panel: la pestaña del borde lo reabre. */
+  const [selected, setSelected] = useState<SearchHit | null>(null);
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
+
+  const sidebar = useAnchoAjustable({
+    clave: "so-cotizador-ancho-sidebar",
+    inicial: 256,
+    min: 208,
+    max: 400,
+    lado: "izquierda",
+  });
+  const detalle = useAnchoAjustable({
+    clave: "so-cotizador-ancho-detalle",
+    inicial: 380,
+    min: 320,
+    max: 620,
+    lado: "derecha",
+  });
+
+  useEffect(() => setMeshReady(true), []);
+  useEffect(() => setRecientes(leerRecientes()), []);
+
   useEffect(() => {
-    setMeshReady(true);
+    const timer = window.setTimeout(() => setDebounced(query), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const buscando = debounced.trim().length >= SEARCH_MIN_CHARS;
+
+  useEffect(() => {
+    if (!user || !buscando) {
+      setGroups([]);
+      return;
+    }
+    const signal = { cancelled: false };
+    setSearching(true);
+    void globalSearch(user, debounced)
+      .then((result) => {
+        if (!signal.cancelled) setGroups(result);
+      })
+      .catch(() => {
+        if (!signal.cancelled) toast.error("Falló la búsqueda.");
+      })
+      .finally(() => {
+        if (!signal.cancelled) setSearching(false);
+      });
+    return () => {
+      signal.cancelled = true;
+    };
+  }, [user, debounced, buscando]);
+
+  const seleccionar = useCallback((hit: SearchHit) => {
+    setSelected(hit);
+    setDetalleAbierto(true);
+    setDropdownOpen(false);
+    setRecientes((prev) => {
+      const entry: RecentEntry = {
+        kind: hit.kind,
+        id: hit.id,
+        titulo: hit.titulo,
+        subtitulo: hit.subtitulo,
+      };
+      const next = [entry, ...prev.filter((item) => hitKey(item) !== hitKey(entry))].slice(0, RECIENTES_MAX);
+      try {
+        window.localStorage.setItem(RECIENTES_KEY, JSON.stringify(next));
+      } catch {
+        /* modo privado: los recientes son un lujo, no rompen nada */
+      }
+      return next;
+    });
   }, []);
+
+  /**
+   * Un reciente guarda sólo lo mínimo. Si sigue en los resultados se abre; si
+   * no, se rellena la búsqueda con su nombre en vez de inventar el registro.
+   */
+  const abrirReciente = useCallback(
+    (entry: RecentEntry) => {
+      const enResultados = groups.flatMap((group) => group.hits).find((hit) => hitKey(hit) === hitKey(entry));
+      if (enResultados) {
+        seleccionar(enResultados);
+        return;
+      }
+      setQuery(entry.titulo);
+      setDropdownOpen(true);
+    },
+    [groups, seleccionar],
+  );
 
   const navGroups: NavGroup[] = useMemo(
     () => [
@@ -177,16 +339,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         ],
       },
     ],
-    []
+    [],
   );
 
-  useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
-
-  if (loading || !user) {
-    return <GridLoadingScreen message="Verificando sesión..." variant="dark" />;
-  }
+  if (!user) return null;
 
   const filteredGroups = navGroups
     .map((group) => ({
@@ -209,21 +365,21 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     return pathname === href;
   };
 
-  const initials = user.nombre_completo
-    ? user.nombre_completo
-        .split(" ")
-        .map((word) => word[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "?";
+  const nombre = user.nombre_completo ?? user.email;
+  const iniciales =
+    nombre
+      .split(/\s+/)
+      .map((word) => word[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
+  const roleLabel = displayRol(user.rol, user.email);
+  const selectedKey = selected ? hitKey(selected) : null;
 
   function handleLogout() {
     logout();
     router.replace("/login");
   }
-
-  const roleLabel = displayRol(user.rol, user.email);
 
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
@@ -263,135 +419,224 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </div>
         ))}
       </nav>
-
-      <div className="shrink-0 px-2 pb-4 pt-2">
-        <div className={cn(SIDEBAR_USER_CARD, "flex flex-col gap-2", collapsed && "items-center")}>
-          {collapsed ? (
-            <GridThemeToggle compact />
-          ) : (
-            <GridThemeToggle />
-          )}
-          <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-              {initials}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                  <span className="truncate text-xs font-semibold text-fg-strong">
-                    {user.nombre_completo ?? user.email}
-                  </span>
-                  <span className="truncate text-xs text-fg-subtle">{roleLabel}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="neu-button rounded-full p-1.5 text-fg-subtle hover:text-fg"
-                  title="Cerrar sesión"
-                  aria-label="Cerrar sesión"
-                >
-                  <LogoutIcon className="h-4 w-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
     </>
   );
 
   return (
     <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated} fieldProps={customField}>
-    <div className="min-h-screen app-canvas">
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 hidden transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:flex lg:flex-col",
-          SIDEBAR_SHELL,
-          sidebarCollapsed ? "w-20" : "w-64",
-        )}
-      >
-        <div
-          className={cn(
-            "relative flex shrink-0 items-center pb-3 pt-5",
-            sidebarCollapsed ? "justify-center px-2" : "gap-3 px-5",
-          )}
-        >
-          <Link href="/cotizaciones" className="neu-raised-sm relative block h-9 w-9 shrink-0 overflow-hidden rounded-full">
-            <Image
-              src="/circulo-promexma.png"
-              alt="Promexma"
-              fill
-              sizes="36px"
-              className="rounded-full object-contain"
-            />
-          </Link>
-          {!sidebarCollapsed && (
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="whitespace-nowrap text-sm font-bold leading-tight text-white">Promexma</p>
-              <p className="mt-0.5 whitespace-nowrap text-xs leading-tight text-slate-500">SO Cotizador</p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setSidebarCollapsed((prev) => !prev)}
-            className="neu-button absolute right-0 top-6 z-[60] flex h-7 w-7 translate-x-1/2 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
-            aria-label={sidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
-            aria-expanded={!sidebarCollapsed}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={cn("h-3.5 w-3.5 transition-transform duration-300", sidebarCollapsed && "rotate-180")}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
-
-        {navContent(sidebarCollapsed)}
-      </aside>
-
-      <div className={cn("relative min-h-screen min-w-0 overflow-x-hidden transition-all duration-300 lg:ml-[250px]", sidebarCollapsed && "lg:ml-[72px]")}>
+      <div className="relative isolate flex h-dvh flex-col overflow-hidden app-canvas p-2">
         <AmbientCanvas animated={ambientAnimated} field={customField} />
-
-        <header className="app-safe-x sticky top-0 z-30 flex items-center gap-3 bg-canvas pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 lg:hidden">
+        <header className="app-safe-x flex shrink-0 items-center gap-3 pb-2 lg:hidden">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-base font-semibold tracking-tight text-fg sm:text-lg">
-              Cotizador
-            </h1>
+            <h1 className="truncate font-display text-base font-semibold tracking-tight text-fg">Cotizador</h1>
             <p className="truncate text-xs text-fg-subtle">
-              {(user.nombre_completo ?? user.email).split(/\s+/)[0]} · {roleLabel}
+              {nombre.split(/\s+/)[0]} · {roleLabel}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <ThemeToggle className="lg:hidden" />
+        </header>
+
+        <GlobalSearchBar
+          value={query}
+          onValue={setQuery}
+          open={dropdownOpen}
+          onOpen={setDropdownOpen}
+          recientes={recientes}
+          onPickReciente={abrirReciente}
+          onHome={() => {
+            setQuery("");
+            setSelected(null);
+            setDetalleAbierto(false);
+            router.push("/cotizaciones");
+          }}
+          iniciales={iniciales}
+          usuario={nombre}
+          rol={roleLabel}
+          onLogout={handleLogout}
+        />
+
+        <div className="flex min-h-0 flex-1 gap-2">
+          <aside
+            className={cn(
+              "neu-dark-canvas relative hidden min-h-0 shrink-0 flex-col overflow-hidden rounded-lg lg:flex",
+              "shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]",
+              // Sin transición mientras se arrastra: si no, el panel persigue al cursor.
+              !sidebar.arrastrando &&
+                "transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+            )}
+            style={{ width: sidebarCollapsed ? ANCHO_SIDEBAR_CONTRAIDO : sidebar.ancho }}
+          >
+            <div
+              className={cn(
+                "flex h-16 shrink-0 items-center gap-3",
+                sidebarCollapsed ? "justify-center px-3" : "px-4",
+              )}
+            >
+              <Link href="/cotizaciones" className="neu-raised-sm relative block h-9 w-9 shrink-0 overflow-hidden rounded-full">
+                <Image src="/circulo-promexma.png" alt="Promexma" fill sizes="36px" className="rounded-full object-contain" />
+              </Link>
+              {!sidebarCollapsed && (
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-bold leading-tight text-white">Promexma</p>
+                  <p className="truncate text-xs leading-tight text-slate-500">SO Cotizador</p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((prev) => !prev)}
+                className="neu-button flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg"
+                aria-label={sidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
+                aria-expanded={!sidebarCollapsed}
+              >
+                <PanelLeftClose className={cn("h-3.5 w-3.5 transition-transform duration-300", sidebarCollapsed && "rotate-180")} />
+              </button>
+            </div>
+
+            {navContent(sidebarCollapsed)}
+          </aside>
+
+          {!sidebarCollapsed ? (
+            <ResizeHandle
+              etiqueta="Ancho del menú"
+              ancho={sidebar.ancho}
+              min={sidebar.min}
+              max={sidebar.max}
+              arrastrando={sidebar.arrastrando}
+              {...sidebar.tiradorProps}
+            />
+          ) : null}
+
+          <main className="neu-raised flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg">
+            <div className="scroll-slim min-h-0 flex-1 overflow-y-auto app-main-pad app-safe-x py-4">
+              {buscando ? (
+                <SearchResults
+                  groups={groups}
+                  loading={searching}
+                  query={debounced.trim()}
+                  selectedKey={selectedKey}
+                  onSelect={seleccionar}
+                />
+              ) : (
+                <DetalleProvider
+                  value={{ abrir: seleccionar, seleccionadoKey: selectedKey, abierto: detalleAbierto }}
+                >
+                  <ModuleTransition>{children}</ModuleTransition>
+                </DetalleProvider>
+              )}
+            </div>
+          </main>
+
+          {detalleAbierto ? (
+            <ResizeHandle
+              etiqueta="Ancho del detalle"
+              ancho={detalle.ancho}
+              min={detalle.min}
+              max={detalle.max}
+              arrastrando={detalle.arrastrando}
+              {...detalle.tiradorProps}
+            />
+          ) : null}
+
+          {/* Ancho animado con el contenido fijo adentro: el texto no se re-acomoda al abrir. */}
+          <div
+            className={cn(
+              "neu-dark-canvas hidden min-h-0 shrink-0 overflow-hidden rounded-lg lg:block",
+              "shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]",
+              !detalle.arrastrando &&
+                "transition-[width] duration-[260ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+            )}
+            style={{ width: detalleAbierto ? detalle.ancho : 0 }}
+            aria-hidden={!detalleAbierto}
+          >
+            <div className="h-full" style={{ width: detalle.ancho }}>
+              {selected ? (
+                <DetailPane
+                  hit={selected}
+                  onClose={() => setDetalleAbierto(false)}
+                  onSelectHit={seleccionar}
+                />
+              ) : (
+                <DetalleVacio onClose={() => setDetalleAbierto(false)} />
+              )}
+            </div>
+          </div>
+
+          {/* Columna de altura completa, no un botón flotante: es el panel cerrado.
+              Siempre presente, con o sin selección: si desaparece cuando no hay
+              nada abierto, nadie descubre que el panel existe. */}
+          {!detalleAbierto ? (
             <button
               type="button"
-              onClick={handleLogout}
-              className="neu-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg-strong lg:hidden"
-              aria-label="Cerrar sesión"
+              onClick={() => setDetalleAbierto(true)}
+              title={selected?.titulo ?? "Panel de detalle"}
+              aria-label={selected ? `Abrir detalle de ${selected.titulo}` : "Abrir panel de detalle"}
+              className={cn(
+                "neu-dark-canvas hidden w-7 shrink-0 flex-col items-center justify-center gap-2 rounded-lg lg:flex",
+                "shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]",
+                "text-fg-faint transition-colors duration-200 hover:text-brand motion-reduce:transition-none",
+              )}
             >
-              <LogoutIcon className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
+              <span className="max-h-[40%] overflow-hidden text-[10px] font-semibold uppercase tracking-[0.18em] [writing-mode:vertical-rl]">
+                {selected ? GROUP_LABEL_SINGULAR[selected.kind] : "Detalle"}
+              </span>
             </button>
-          </div>
-        </header>
-        <main className="relative z-10 min-w-0 app-main-pad app-safe-x overflow-x-hidden py-3 lg:py-6">
-          <ModuleTransition>{children}</ModuleTransition>
-        </main>
-      </div>
+          ) : null}
+        </div>
 
-      <MobileBottomNav
-        items={flatNavItems.map((item) => ({
-          label: item.label,
-          href: item.href,
-          icon: item.icon,
-          active: isActive(item.href),
-        }))}
-      />
-    </div>
+        <div className="hidden lg:contents">
+          <BorradorBar
+            borrador={borrador}
+            onNuevo={empezar}
+            onDescartar={descartar}
+            onExpandir={() => setExpandido(true)}
+          />
+
+          <AnimatePresence>
+            {expandido && borrador ? (
+              <motion.div
+                key="borrador-sheet"
+                className="absolute inset-x-2 bottom-2 z-40"
+                initial={reduceMotion ? false : { y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={reduceMotion ? undefined : { y: "100%", opacity: 0 }}
+                // Misma curva y duración que el colapso de las columnas.
+                transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+              >
+                <BorradorSheet
+                  borrador={borrador}
+                  onCambio={aplicar}
+                  onColapsar={() => setExpandido(false)}
+                  onGuardar={guardar}
+                  guardando={guardando}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+
+        {selected && detalleAbierto ? (
+          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              aria-label="Cerrar detalle"
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setDetalleAbierto(false)}
+            />
+            <div className="neu-dark-canvas absolute inset-2 top-10 overflow-hidden rounded-lg">
+              <DetailPane hit={selected} onClose={() => setDetalleAbierto(false)} onSelectHit={seleccionar} />
+            </div>
+          </div>
+        ) : null}
+
+        <MobileBottomNav
+          items={flatNavItems.map((item) => ({
+            label: item.label,
+            href: item.href,
+            icon: item.icon,
+            active: isActive(item.href),
+          }))}
+        />
+      </div>
     </AmbientGridProvider>
   );
 }
