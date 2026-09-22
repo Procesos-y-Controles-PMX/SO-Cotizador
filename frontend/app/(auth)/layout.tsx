@@ -10,6 +10,7 @@ import { ChevronLeft, PanelLeftClose, Search, X } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { logout, useAuth } from "@/lib/auth";
+import { useAmbientBrand, useCustomAmbientNoise, type AmbientNoiseTune } from "@/lib/ambient-noise";
 import { displayRol, isOwnerAdminEmail } from "@/lib/owner-admin";
 import { cn } from "@/lib/utils";
 import { AmbientGridProvider } from "@/contexts/AmbientGridContext";
@@ -69,7 +70,13 @@ function leerRecientes(): RecentEntry[] {
   }
 }
 
-function AmbientCanvas({ animated }: { animated: boolean }) {
+function AmbientCanvas({
+  animated,
+  field,
+}: {
+  animated: boolean;
+  field?: AmbientNoiseTune | null;
+}) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -91,10 +98,11 @@ function AmbientCanvas({ animated }: { animated: boolean }) {
       data-ambient-grid-clip
     >
       <NoiseField
-        key={mounted ? resolvedTheme : "light"}
+        key={mounted ? `${resolvedTheme}-${field ? "custom" : "default"}` : "light"}
         className="absolute inset-0"
         color={isDark ? [255, 255, 255] : [52, 80, 122]}
         maxOpacity={isDark ? 0.5 : 0.7}
+        {...field}
       />
     </div>
   );
@@ -154,7 +162,9 @@ function Shell({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const reduceMotion = useReducedMotion();
   const [meshReady, setMeshReady] = useState(false);
-  const ambientAnimated = isOwnerAdminEmail(user?.email);
+  const customField = useCustomAmbientNoise(user?.email);
+  useAmbientBrand(customField?.color);
+  const ambientAnimated = isOwnerAdminEmail(user?.email) || Boolean(customField);
 
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -413,9 +423,9 @@ function Shell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated}>
+    <AmbientGridProvider meshReady={meshReady} animated={ambientAnimated} fieldProps={customField}>
       <div className="relative isolate flex h-dvh flex-col overflow-hidden app-canvas p-2">
-        <AmbientCanvas animated={ambientAnimated} />
+        <AmbientCanvas animated={ambientAnimated} field={customField} />
         <header className="app-safe-x flex shrink-0 items-center gap-3 pb-2 lg:hidden">
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-base font-semibold tracking-tight text-fg">Cotizador</h1>
