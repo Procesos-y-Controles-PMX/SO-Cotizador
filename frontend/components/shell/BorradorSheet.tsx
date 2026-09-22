@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { Building2, ChevronDown, MapPin, Package, Trash2, UserRound } from "lucide-react";
+import { Building2, ChevronDown, FileText, MapPin, Package, Trash2, UserRound } from "lucide-react";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
 import { FIELD_INPUT, FIELD_LABEL } from "@/components/ui/contentStyles";
 import { listClientes } from "@/lib/queries/clientes";
@@ -277,6 +278,20 @@ export default function BorradorSheet({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6 gap-y-2 border-t border-line-subtle px-4 py-2.5">
+        {/*
+          La barra cubre el camino corto. Lo que no cubre —dar de alta un
+          cliente u obra, importar el Excel, referencia de pago o términos—
+          vive en el formulario, y el borrador se va con el usuario.
+        */}
+        <Link
+          href="/cotizaciones/nueva?desdeBorrador=1"
+          onClick={onColapsar}
+          className="mr-auto inline-flex items-center gap-1.5 text-xs text-fg-subtle underline-offset-4 transition-colors hover:text-brand hover:underline"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Abrir formulario completo
+        </Link>
+
         <Importe label="Subtotal" valor={subtotal} />
         <Importe label={`IVA ${borrador.ivaPct}%`} valor={iva} />
         <Importe label="Total" valor={total} fuerte />

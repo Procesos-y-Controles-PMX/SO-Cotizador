@@ -50,6 +50,8 @@ interface NavItemDef {
   icon: ReactNode;
   roles?: Array<"admin" | "tienda">;
   ownerOnly?: boolean;
+  /** Sólo en el cajón móvil: en escritorio esa tarea vive en la barra inferior. */
+  soloMovil?: boolean;
 }
 
 interface NavGroup {
@@ -299,6 +301,7 @@ function Shell({ children }: { children: ReactNode }) {
           {
             label: "Nueva cotización",
             href: "/cotizaciones/nueva",
+            soloMovil: true,
             icon: (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -367,8 +370,18 @@ function Shell({ children }: { children: ReactNode }) {
 
   const flatNavItems = filteredGroups.flatMap((group) => group.items);
 
+  /**
+   * En escritorio la cotización empieza en la barra de abajo, así que el menú
+   * ya no la ofrece. En móvil la barra no existe y el enlace sigue siendo la
+   * única entrada al formulario.
+   */
+  const escritorioGroups = filteredGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.soloMovil) }))
+    .filter((group) => group.items.length > 0);
+
   const isActive = (href: string) => {
     if (href === "/cotizaciones") {
+      // El cajón móvil conserva "Nueva cotización": no deben encenderse los dos.
       if (pathname === "/cotizaciones/nueva") return false;
       return pathname === "/cotizaciones" || pathname.startsWith("/cotizaciones/");
     }
@@ -394,7 +407,7 @@ function Shell({ children }: { children: ReactNode }) {
   const navContent = (collapsed: boolean, onNavigate?: () => void) => (
     <>
       <nav className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
-        {filteredGroups.map((group) => (
+        {escritorioGroups.map((group) => (
           <div key={group.title} className="mb-3">
             {!collapsed && (
               <div className="mb-2.5 flex items-center gap-2 px-5">
