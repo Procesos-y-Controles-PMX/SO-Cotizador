@@ -22,6 +22,7 @@ import {
   TABLE_HEAD_CELL,
   TABLE_WRAP,
 } from "@/components/ui/contentStyles";
+import { useBorrador } from "@/contexts/BorradorContext";
 import { useDetalle } from "@/contexts/DetalleContext";
 import { getCurrentUser } from "@/lib/auth";
 import { downloadHistorialCotizacionesExcel } from "@/lib/excel/exportHistorialCotizaciones";
@@ -57,6 +58,7 @@ export default function CotizacionesPage() {
   const isAdmin = user?.rol === "admin";
 
   const { abrir: abrirDetalle, seleccionadoKey, abierto: detalleAbierto } = useDetalle();
+  const { duplicar } = useBorrador();
 
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
@@ -189,14 +191,15 @@ export default function CotizacionesPage() {
           Ver detalle
         </Link>
         {user && canDuplicateCotizacion(user, row) ? (
-          <Link
-            href={`/cotizaciones/nueva?copiar=${row.id}`}
+          <button
+            type="button"
+            onClick={() => void duplicar(row)}
             className={iconBtnClass}
-            title="Duplicar cotización"
-            aria-label="Duplicar cotización"
+            title="Duplicar en la barra"
+            aria-label="Duplicar cotización en la barra"
           >
             <Copy className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} aria-hidden />
-          </Link>
+          </button>
         ) : null}
         {isAdmin ? (
           <button

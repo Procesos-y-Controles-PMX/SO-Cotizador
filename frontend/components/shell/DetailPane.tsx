@@ -117,7 +117,7 @@ export default function DetailPane({
   onSelectHit: (next: SearchHit) => void;
 }) {
   // Las acciones alimentan la cotización en curso, que vive en el layout.
-  const { agregarSku, usarCliente, usarObra, usarSucursal } = useBorrador();
+  const { agregarSku, duplicar, usarCliente, usarObra, usarSucursal } = useBorrador();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
@@ -152,14 +152,15 @@ export default function DetailPane({
             <FileText className="h-4 w-4" />
             Ver completa
           </Link>
-          <Link
-            href={`/cotizaciones/nueva?copiar=${hit.id}`}
-            title="Duplicar cotización"
-            aria-label="Duplicar cotización"
+          <button
+            type="button"
+            onClick={() => void duplicar(hit.cotizacion)}
+            title="Duplicar en la barra"
+            aria-label="Duplicar cotización en la barra"
             className="neu-button inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-fg-strong"
           >
             <Copy className="h-4 w-4" />
-          </Link>
+          </button>
         </div>
       ) : null}
 
