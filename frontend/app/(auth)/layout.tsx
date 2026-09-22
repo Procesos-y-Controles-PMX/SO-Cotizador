@@ -195,6 +195,16 @@ function Shell({ children }: { children: ReactNode }) {
   useEffect(() => setMeshReady(true), []);
   useEffect(() => setRecientes(leerRecientes()), []);
 
+  /**
+   * Mientras hay búsqueda activa, los resultados sustituyen el contenido de la
+   * ruta. Sin limpiarla al navegar, ir a otra página cambia la URL pero deja
+   * los resultados en pantalla: duplicar una cotización parecía no hacer nada.
+   */
+  useEffect(() => {
+    setQuery("");
+    setDropdownOpen(false);
+  }, [pathname]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(query), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
