@@ -72,6 +72,41 @@ body {
   color: var(--fg);
 }
 
+/* ------------------------------------------------------------------
+   Barras de desplazamiento del shell.
+
+   SO-UI sólo trae `.sidebar-scroll`, pensada para el menú, así que el
+   panel central, el de detalle y la hoja usaban la del navegador. Mismo
+   tratamiento con otro nombre: delgada, invisible en reposo y visible al
+   pasar el cursor. Si SO-UI expone una general, esto se borra.
+   ------------------------------------------------------------------ */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-slim:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.scroll-slim::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.scroll-slim:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+}
+
 .animate-fade-up {
   animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }

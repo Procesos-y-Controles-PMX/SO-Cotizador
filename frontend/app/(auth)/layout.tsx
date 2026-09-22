@@ -506,7 +506,7 @@ function Shell({ children }: { children: ReactNode }) {
           ) : null}
 
           <main className="neu-raised flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg">
-            <div className="min-h-0 flex-1 overflow-y-auto app-main-pad app-safe-x py-4">
+            <div className="scroll-slim min-h-0 flex-1 overflow-y-auto app-main-pad app-safe-x py-4">
               {buscando ? (
                 <SearchResults
                   groups={groups}

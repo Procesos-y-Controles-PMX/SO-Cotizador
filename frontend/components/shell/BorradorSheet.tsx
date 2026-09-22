@@ -83,7 +83,7 @@ export default function BorradorSheet({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+      <div className="scroll-slim min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {/* Catálogos encadenados como la BD los exige: los clientes cuelgan de
             una sucursal y las obras de un cliente. Elegir aquí hace imposible
             la combinación que el insert rechazaría. */}

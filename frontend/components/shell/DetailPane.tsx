@@ -134,7 +134,7 @@ export default function DetailPane({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="scroll-slim min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {hit.kind === "cotizacion" ? <CuerpoCotizacion row={hit.cotizacion} /> : null}
         {hit.kind === "cliente" || hit.kind === "obra" ? (
           <CuerpoAgrupado hit={hit} onSelectHit={onSelectHit} />
