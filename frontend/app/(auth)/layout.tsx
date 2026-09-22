@@ -409,34 +409,6 @@ function Shell({ children }: { children: ReactNode }) {
           </div>
         ))}
       </nav>
-
-      <div className="shrink-0 px-2 pb-4 pt-2">
-        <div className={cn(SIDEBAR_USER_CARD, "flex flex-col gap-2", collapsed && "items-center")}>
-          {collapsed ? <GridThemeToggle compact /> : <GridThemeToggle />}
-          <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-              {iniciales}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                  <span className="truncate text-xs font-semibold text-fg-strong">{nombre}</span>
-                  <span className="truncate text-xs text-fg-subtle">{roleLabel}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="neu-button rounded-full p-1.5 text-fg-subtle hover:text-fg"
-                  title="Cerrar sesión"
-                  aria-label="Cerrar sesión"
-                >
-                  <LogoutIcon className="h-4 w-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
     </>
   );
 
@@ -451,15 +423,6 @@ function Shell({ children }: { children: ReactNode }) {
               {nombre.split(/\s+/)[0]} · {roleLabel}
             </p>
           </div>
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="neu-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-subtle hover:text-fg-strong"
-            aria-label="Cerrar sesión"
-          >
-            <LogoutIcon className="h-5 w-5" />
-          </button>
         </header>
 
         <GlobalSearchBar
@@ -476,6 +439,9 @@ function Shell({ children }: { children: ReactNode }) {
             router.push("/cotizaciones");
           }}
           iniciales={iniciales}
+          usuario={nombre}
+          rol={roleLabel}
+          onLogout={handleLogout}
         />
 
         <div className="flex min-h-0 flex-1 gap-2">
