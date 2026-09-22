@@ -154,7 +154,9 @@ export default function CotizacionesPage() {
 
     const deleteTextBtnClass = stacked
       ? `${BTN_DANGER} min-h-10 flex-1`
-      : `${BTN_DANGER} h-9 w-9 min-h-0 shrink-0 px-0 py-0`;
+      // `BTN_DANGER` trae px-4; encadenarle px-0 no gana por orden de clases,
+      // así que el botón quedaba con 16px de relleno y el icono aplastado.
+      : "btn-danger inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-sm font-semibold";
 
     if (stacked) {
       return (
@@ -177,7 +179,7 @@ export default function CotizacionesPage() {
     }
 
     return (
-      <div className="flex flex-nowrap items-center justify-end gap-1">
+      <div className="flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
         <Link href={`/cotizaciones/${row.id}`} className={textBtnClass}>
           Ver detalle
         </Link>
@@ -302,11 +304,11 @@ export default function CotizacionesPage() {
           )}
         >
           <colgroup>
-            <col style={{ width: detalleAbierto ? "28%" : "34%" }} />
-            <col style={{ width: "24%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: detalleAbierto ? "18%" : "12%" }} />
+            <col style={{ width: detalleAbierto ? "26%" : "30%" }} />
+            <col style={{ width: detalleAbierto ? "18%" : "22%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13rem" }} />
           </colgroup>
           <thead className="bg-muted">
             <tr>
@@ -370,7 +372,9 @@ export default function CotizacionesPage() {
                 <td className="overflow-hidden truncate px-2 py-3 align-middle" title={row.ctz_sucursales?.nombre ?? "-"}>
                   {row.ctz_sucursales?.nombre ?? "-"}
                 </td>
-                <td className="whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">{money(row.total)}</td>
+                <td className="overflow-hidden truncate whitespace-nowrap px-2 py-3 text-right align-middle tabular-nums">
+                  {money(row.total)}
+                </td>
                 <td
                   className="px-2 py-3 text-right align-middle"
                   onClick={(event) => event.stopPropagation()}

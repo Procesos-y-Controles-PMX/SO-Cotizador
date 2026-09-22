@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Building2, ChevronDown, MapPin, Package, Trash2, UserRound } from "lucide-react";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
+import { FIELD_INPUT, FIELD_LABEL } from "@/components/ui/contentStyles";
 import { listClientes } from "@/lib/queries/clientes";
 import { listObras } from "@/lib/queries/obras";
 import { searchProductosActivosPorDescripcion, searchProductosActivosPorSku } from "@/lib/queries/productos";
@@ -338,8 +339,8 @@ function Catalogo<T>({
   const [seleccion, setSeleccion] = useState<SearchComboboxOption | null>(valor);
 
   return (
-    <div className={cn("min-w-0 rounded-sm bg-muted px-3 py-2", disabled && "opacity-60")}>
-      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-faint">
+    <div className={cn("min-w-0 space-y-1.5", disabled && "opacity-60")}>
+      <span className={cn(FIELD_LABEL, "flex items-center gap-1.5")}>
         <span className={cn("shrink-0", valor ? "text-brand" : "text-fg-faint")}>{icono}</span>
         {label}
       </span>
@@ -348,7 +349,7 @@ function Catalogo<T>({
         disabled={disabled}
         placeholder={placeholder}
         minChars={minChars}
-        inputClassName="h-7 w-full bg-transparent px-0 text-sm text-fg outline-none placeholder:text-fg-subtle"
+        inputClassName={FIELD_INPUT}
         onSearch={async (query) => {
           const items = await buscar(query);
           cache.current = new Map(items.map((item) => [aOpcion(item).id, item]));
