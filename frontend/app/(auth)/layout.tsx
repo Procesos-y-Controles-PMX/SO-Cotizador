@@ -1,6 +1,6 @@
 "use client";
 
-import { GridLoadingScreen, GridThemeToggle, NoiseField, ThemeToggle } from "@promexma/ui";
+import { GridLoadingScreen, NoiseField } from "@promexma/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -35,7 +35,6 @@ import {
   SIDEBAR_NAV_LIST,
   SIDEBAR_NAV_LIST_COLLAPSED,
   SIDEBAR_SECTION_LABEL,
-  SIDEBAR_USER_CARD,
 } from "@/components/layout/shellStyles";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import ModuleTransition from "@/components/common/ModuleTransition";
@@ -68,14 +67,6 @@ function leerRecientes(): RecentEntry[] {
   } catch {
     return [];
   }
-}
-
-function LogoutIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
-  );
 }
 
 function AmbientCanvas({ animated }: { animated: boolean }) {
