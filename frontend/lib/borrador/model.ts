@@ -1,6 +1,8 @@
 "use client";
 
 import { calcLineAmounts, normalizeIvaPct, type IvaPct } from "@/lib/cotizacion/calcImportes";
+import { normalizeTipoPago } from "@/lib/cotizacion/tipoPago";
+import type { CotizacionWithRelations } from "@/lib/queries/cotizaciones";
 import type { CtzProducto, CtzSucursal } from "@/lib/types/db";
 
 /**
@@ -167,6 +169,95 @@ export function fijarCliente(borrador: Borrador | null, cliente: { id: string; n
 
 export function fijarObra(borrador: Borrador | null, obra: { id: string | null; nombre: string }): Borrador {
   return { ...(borrador ?? crearBorrador()), obra };
+}
+
+/**
+ * Duplicar carga la cotización en la barra en vez de abrir el formulario: lo
+ * que se duplica casi siempre se ajusta —otra obra, otras cantidades— y la
+ * barra deja hacerlo sin salir de donde estás.
+ *
+ * La sucursal se pasa completa aparte porque la relación de la cotización sólo
+ * trae nombre y prefijo, y de la dirección y los términos depende el PDF.
+ */
+export function desdeCotizacion(
+  cot: CotizacionWithRelations,
+  sucursalCompleta?: CtzSucursal | null,
+): Borrador {
+  const base = crearBorrador();
+  const rel = cot.ctz_sucursales;
+
+  return {
+    ...base,
+    sucursal: cot.id_sucursal
+      ? {
+          id: cot.id_sucursal,
+          nombre: sucursalCompleta?.nombre ?? rel?.nombre ?? "—",
+          prefijoFolio: sucursalCompleta?.prefijo_folio ?? rel?.prefijo_folio ?? "",
+          direccion: sucursalCompleta?.direccion ?? null,
+          terminos: sucursalCompleta?.terminos_adicionales ?? null,
+        }
+      : null,
+    cliente: cot.id_cliente
+      ? { id: cot.id_cliente, nombre: cot.ctz_clientes?.nombre_cliente ?? "—" }
+      : null,
+    obra: cot.id_obra
+      ? { id: cot.id_obra, nombre: cot.ctz_obras?.nombre_obra ?? "—" }
+      : cot.nombre_obra
+        ? { id: null, nombre: cot.nombre_obra }
+        : null,
+    tipoPago: normalizeTipoPago(cot.tipo_pago) ?? "Contado",
+    ivaPct: normalizeIvaPct(cot.iva_porcentaje),
+    partidas: (cot.ctz_cotizacion_items ?? [])
+      .filter((item) => item.id_producto)
+      .map((item) => ({
+        idProducto: String(item.id_producto),
+        sku: item.ctz_productos?.sku ?? "—",
+        descripcion: item.descripcion_registro,
+        unidad: item.unidad_medida,
+        precioUnitario: Number(item.precio_unitario) || 0,
+        cantidad: Number(item.cantidad) || 0,
+      })),
+  };
+}
+
+/**
+ * Traspaso al formulario completo, para lo que la barra no cubre: crear
+ * cliente u obra al vuelo, importar partidas desde Excel, referencia de pago
+ * y términos del PDF.
+ *
+ * No guarda nada: sólo traduce el borrador a la forma que el formulario ya
+ * sabe recibir, la misma que usa al duplicar una cotización existente.
+ */
+export function aFormInitial(borrador: Borrador) {
+  return {
+    id_sucursal: borrador.sucursal?.id ?? "",
+    id_cliente: borrador.cliente?.id ?? null,
+    id_obra: borrador.obra?.id ?? null,
+    nombre_obra: borrador.obra?.id ? null : (borrador.obra?.nombre ?? null),
+    tipo_pago: borrador.tipoPago,
+    referencia_pago: null,
+    comentarios: null,
+    // La barra captura precios netos; el formulario decide si los muestra con IVA.
+    mostrar_con_iva: false,
+    iva_porcentaje: borrador.ivaPct,
+    terminos_adicionales: borrador.sucursal?.terminos ?? null,
+    direccion_sucursal: borrador.sucursal?.direccion ?? null,
+    productos: borrador.partidas
+      .filter((partida) => partida.cantidad > 0)
+      .map((partida) => {
+        const linea = calcLineAmounts(partida.cantidad, partida.precioUnitario, borrador.ivaPct, false);
+        return {
+          id_producto: partida.idProducto,
+          descripcion_registro: partida.descripcion,
+          cantidad: partida.cantidad,
+          unidad_medida: partida.unidad,
+          precio_unitario: linea.precio_unitario,
+          iva_porcentaje: borrador.ivaPct,
+          subtotal_item: linea.subtotal_item,
+          total_item: linea.total_item,
+        };
+      }),
+  };
 }
 
 export type Importes = { subtotal: number; iva: number; total: number };

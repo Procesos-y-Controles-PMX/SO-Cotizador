@@ -6,12 +6,14 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import CotizacionForm from "@/components/cotizacion/CotizacionForm";
 import PageHeader from "@/components/ui/PageHeader";
 import { ALERT_WARNING, BTN_SECONDARY } from "@/components/ui/contentStyles";
+import { useBorrador } from "@/contexts/BorradorContext";
 import { getCurrentUser } from "@/lib/auth";
 import {
   canDuplicateCotizacion,
   cotizacionToFormInitial,
   type CotizacionFormInitial,
 } from "@/lib/cotizacion/cotizacionToFormInitial";
+import { aFormInitial, leerBorrador } from "@/lib/borrador/model";
 import { getCotizacionById } from "@/lib/queries/cotizaciones";
 
 type CopyLoadState =
@@ -25,7 +27,23 @@ function NuevaCotizacionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const copiarId = searchParams.get("copiar");
+  const desdeBorrador = searchParams.get("desdeBorrador") === "1";
   const user = useMemo(() => getCurrentUser(), []);
+  const { descartar } = useBorrador();
+
+  /**
+   * La barra manda su borrador por aquí cuando el usuario necesita lo que ella
+   * no cubre: crear cliente u obra, importar Excel, referencia de pago o
+   * términos. Viaja por localStorage, no por la URL: son partidas completas y
+   * no caben en un query string.
+   */
+  const [initialBorrador, setInitialBorrador] = useState<CotizacionFormInitial | null>(null);
+
+  useEffect(() => {
+    if (!desdeBorrador) return;
+    const borrador = leerBorrador();
+    if (borrador) setInitialBorrador(aFormInitial(borrador));
+  }, [desdeBorrador]);
   const [copyState, setCopyState] = useState<CopyLoadState>({ status: "idle" });
 
   useEffect(() => {
@@ -90,19 +108,30 @@ function NuevaCotizacionContent() {
   }
 
   const isCopy = copyState.status === "ready";
+  const initial = isCopy ? copyState.initial : (initialBorrador ?? undefined);
 
   return (
     <section className="space-y-4">
       <PageHeader
         eyebrow="Cotizador"
         title={isCopy ? "Duplicar cotización" : "Nueva cotización"}
-        subtitle={isCopy ? `Basada en ${copyState.sourceFolio}` : "Completa los datos para generar una nueva cotización"}
+        subtitle={
+          isCopy
+            ? `Basada en ${copyState.sourceFolio}`
+            : initialBorrador
+              ? "Continúa la cotización que traías en la barra"
+              : "Completa los datos para generar una nueva cotización"
+        }
       />
       <CotizacionForm
         mode="create"
-        initial={isCopy ? copyState.initial : undefined}
+        initial={initial}
         copySourceFolio={isCopy ? copyState.sourceFolio : undefined}
-        onSaved={(id) => router.push(`/cotizaciones/${id}`)}
+        onSaved={(id) => {
+          // El borrador ya se convirtió en folio: la barra no debe seguir mostrándolo.
+          if (desdeBorrador) descartar();
+          router.push(`/cotizaciones/${id}`);
+        }}
       />
     </section>
   );

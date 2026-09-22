@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { Building2, ChevronDown, MapPin, Package, Trash2, UserRound } from "lucide-react";
+import { Building2, ChevronDown, FileText, MapPin, Package, Trash2, UserRound } from "lucide-react";
 import SearchCombobox, { type SearchComboboxOption } from "@/components/ui/SearchCombobox";
 import { FIELD_INPUT, FIELD_LABEL } from "@/components/ui/contentStyles";
 import { listClientes } from "@/lib/queries/clientes";
@@ -25,8 +26,14 @@ import {
 } from "@/lib/borrador/model";
 
 const COLS = "grid-cols-[minmax(0,1fr)_5rem_7rem_7rem_2.25rem]";
+/**
+ * `neu-field` es la superficie hundida de clay — la misma de los campos del
+ * formulario. Antes decía `neu-inset`, que no existe en clay, así que los
+ * valores editables se veían como texto plano y no se distinguían del importe,
+ * que sí es calculado.
+ */
 const INPUT =
-  "neu-inset h-9 w-full rounded-sm px-2 text-right text-sm tabular-nums text-fg outline-none focus:ring-1 focus:ring-brand";
+  "neu-field h-9 w-full rounded-sm px-2 text-right text-sm tabular-nums text-fg outline-none focus:ring-2 focus:ring-brand-tint";
 
 /**
  * La barra expandida: todo el proceso de la cotización sin salir de la pantalla.
@@ -271,6 +278,20 @@ export default function BorradorSheet({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-6 gap-y-2 border-t border-line-subtle px-4 py-2.5">
+        {/*
+          La barra cubre el camino corto. Lo que no cubre —dar de alta un
+          cliente u obra, importar el Excel, referencia de pago o términos—
+          vive en el formulario, y el borrador se va con el usuario.
+        */}
+        <Link
+          href="/cotizaciones/nueva?desdeBorrador=1"
+          onClick={onColapsar}
+          className="mr-auto inline-flex items-center gap-1.5 text-xs text-fg-subtle underline-offset-4 transition-colors hover:text-brand hover:underline"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Abrir formulario completo
+        </Link>
+
         <Importe label="Subtotal" valor={subtotal} />
         <Importe label={`IVA ${borrador.ivaPct}%`} valor={iva} />
         <Importe label="Total" valor={total} fuerte />
