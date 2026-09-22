@@ -63,11 +63,12 @@ body {
    `neu-popover` se pinta con `--neu-bg`, que `.neu-dark-canvas` ya
    redefine, así que en teoría hereda oscuro — pero en el preview sale
    claro y no logré aislar por qué. Se ancla explícitamente a la paleta
-   oscura, que no depende de esa herencia. Sólo aplica dentro de un
-   contenedor oscuro, así que los desplegables del resto de la app no
-   se ven afectados.
+   oscura, que no depende de esa herencia. Cubre los dos casos donde
+   debe verse oscuro: dentro de un contenedor oscuro, y en modo oscuro
+   completo — la barra inferior ya no fuerza lo primero.
    ------------------------------------------------------------------ */
-.neu-dark-canvas .neu-popover {
+.neu-dark-canvas .neu-popover,
+.dark .neu-popover {
   background: var(--clay-dark-bg);
   color: var(--fg);
 }

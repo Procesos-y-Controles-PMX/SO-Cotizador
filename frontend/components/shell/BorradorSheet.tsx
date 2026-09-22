@@ -57,7 +57,7 @@ export default function BorradorSheet({
   const puedeGuardar = listaParaGuardar(borrador) && !guardando;
 
   return (
-    <div className={cn("neu-dark-canvas shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]", "flex h-[min(44vh,30rem)] flex-col overflow-hidden rounded-lg")}>
+    <div className={cn("neu-raised", "flex h-[min(44vh,30rem)] flex-col overflow-hidden rounded-lg")}>
       <div
         className="flex h-12 shrink-0 items-center justify-between gap-3 px-4 text-white"
         style={{

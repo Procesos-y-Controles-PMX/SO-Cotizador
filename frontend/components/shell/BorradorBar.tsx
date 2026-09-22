@@ -23,7 +23,7 @@ export default function BorradorBar({
 }) {
   if (!borrador) {
     return (
-      <div className={cn("neu-dark-canvas shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]", "mt-2 flex h-14 shrink-0 items-center justify-between gap-3 rounded-lg px-4")}>
+      <div className={cn("neu-raised", "mt-2 flex h-14 shrink-0 items-center justify-between gap-3 rounded-lg px-4")}>
         <p className="truncate text-sm text-fg-subtle">
           No hay ninguna cotización en curso.
         </p>
@@ -45,7 +45,7 @@ export default function BorradorBar({
   const ultima = borrador.partidas[partidas - 1];
 
   return (
-    <div className={cn("neu-dark-canvas shadow-[0_10px_30px_-18px_rgba(0,0,0,0.65)]", "relative mt-2 flex h-16 shrink-0 items-center gap-4 rounded-lg px-3")}>
+    <div className={cn("neu-raised", "relative mt-2 flex h-16 shrink-0 items-center gap-4 rounded-lg px-3")}>
       {/* Izquierda: qué es. Ocupa el lugar de la carátula del álbum y, como
           ella, es lo que abre la vista completa. */}
       <button
