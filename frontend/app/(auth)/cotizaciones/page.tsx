@@ -41,7 +41,6 @@ import { PAGE_SIZE } from "@/lib/pagination";
 import { cn, money } from "@/lib/utils";
 
 export default function CotizacionesPage() {
-  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<CotizacionWithRelations[]>([]);
@@ -61,12 +60,12 @@ export default function CotizacionesPage() {
   const loadRows = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!user) return;
     setLoading(true);
-    const result = await listCotizaciones(user, search, { page, pageSize: PAGE_SIZE });
+    const result = await listCotizaciones(user, "", { page, pageSize: PAGE_SIZE });
     if (signal?.cancelled) return;
     setRows(result.rows);
     setTotal(result.total);
     setLoading(false);
-  }, [search, user, page]);
+  }, [user, page]);
 
   useEffect(() => {
     const signal = { cancelled: false };
@@ -125,7 +124,7 @@ export default function CotizacionesPage() {
     setZipLoading(true);
     setZipProgress(null);
     try {
-      const exportRows = await listCotizaciones(user, search, { unlimited: true });
+      const exportRows = await listCotizaciones(user, "", { unlimited: true });
       await downloadCotizacionesPdfZip(exportRows, scope, (current, total) => {
         setZipProgress({ current, total });
       });
@@ -232,7 +231,7 @@ export default function CotizacionesPage() {
                 if (!user) return;
                 setExcelLoading(true);
                 try {
-                  const exportRows = await listCotizaciones(user, search, { unlimited: true });
+                  const exportRows = await listCotizaciones(user, "", { unlimited: true });
                   await downloadHistorialCotizacionesExcel(exportRows);
                 } catch {
                   toast.error("No se pudo generar el Excel del historial.");
@@ -248,16 +247,6 @@ export default function CotizacionesPage() {
             </Link>
           </>
         }
-      />
-
-      <input
-        className={FIELD_INPUT}
-        placeholder="Buscar por folio, obra, cliente o sucursal"
-        value={search}
-        onChange={(event) => {
-          setSearch(event.target.value);
-          setPage(1);
-        }}
       />
 
       {/* Mobile — card list */}

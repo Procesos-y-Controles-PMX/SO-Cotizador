@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, PanelLeftClose, Search, X } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -160,6 +161,7 @@ function Shell({ children }: { children: ReactNode }) {
     useBorrador();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [meshReady, setMeshReady] = useState(false);
   const ambientAnimated = isOwnerAdminEmail(user?.email);
 
@@ -615,22 +617,34 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="hidden lg:contents">
-          {expandido && borrador ? (
-            <BorradorSheet
-              borrador={borrador}
-              onCambio={aplicar}
-              onColapsar={() => setExpandido(false)}
-              onGuardar={guardar}
-              guardando={guardando}
-            />
-          ) : (
-            <BorradorBar
-              borrador={borrador}
-              onNuevo={empezar}
-              onDescartar={descartar}
-              onExpandir={() => setExpandido(true)}
-            />
-          )}
+          <BorradorBar
+            borrador={borrador}
+            onNuevo={empezar}
+            onDescartar={descartar}
+            onExpandir={() => setExpandido(true)}
+          />
+
+          <AnimatePresence>
+            {expandido && borrador ? (
+              <motion.div
+                key="borrador-sheet"
+                className="absolute inset-x-2 bottom-2 z-40"
+                initial={reduceMotion ? false : { y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={reduceMotion ? undefined : { y: "100%", opacity: 0 }}
+                // Misma curva y duración que el colapso de las columnas.
+                transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+              >
+                <BorradorSheet
+                  borrador={borrador}
+                  onCambio={aplicar}
+                  onColapsar={() => setExpandido(false)}
+                  onGuardar={guardar}
+                  guardando={guardando}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
 
         {selected && detalleAbierto ? (
