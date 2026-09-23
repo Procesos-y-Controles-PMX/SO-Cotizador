@@ -1,10 +1,8 @@
 "use client";
 
-import { NoiseField } from "@promexma/ui";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAmbientGrid } from "@/contexts/AmbientGridContext";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 const RING_SIZE = {
   xs: "h-4 w-4",
@@ -81,10 +79,7 @@ function measureLandingHeight(slot: HTMLElement): number {
 
 /**
  * Fallback when the shell ambient field isn't mounted (mobile / bare routes).
- * Shows NoiseField locally — same language as the app canvas — unless the
- * ambient animation is gated off for this user, in which case it matches the
- * flat canvas instead. Without that check the fallback would hand the
- * animation back to exactly the users the gate exists to spare.
+ * Matches the flat app canvas — the animated field stays on Portal.
  */
 function LocalAmbientField({
   label,
@@ -97,13 +92,6 @@ function LocalAmbientField({
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const [landingH, setLandingH] = useState<number | undefined>(undefined);
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const isDark = resolvedTheme !== "light";
-  /* No provider at all (login, bare routes) means no gate — keep the field. */
-  const ambient = useAmbientGrid();
-  const animated = ambient?.animated !== false;
 
   useLayoutEffect(() => {
     const slot = slotRef.current;
@@ -134,22 +122,10 @@ function LocalAmbientField({
       aria-busy="true"
       aria-label={label ?? "Cargando"}
     >
-      {animated ? (
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <NoiseField
-            key={mounted ? `${resolvedTheme}-${ambient?.fieldProps ? "custom" : "default"}` : "light"}
-            className="absolute inset-0"
-            color={isDark ? [255, 255, 255] : [52, 80, 122]}
-            maxOpacity={isDark ? 0.5 : 0.7}
-            {...ambient?.fieldProps}
-          />
-        </div>
-      ) : (
-        <div
-          className="pointer-events-none absolute inset-0 bg-[var(--ambient-flat)]"
-          aria-hidden
-        />
-      )}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[var(--ambient-flat)]"
+        aria-hidden
+      />
       <div className="relative z-10 flex flex-col items-center gap-4 px-6">
         {label ? (
           <p className="text-center text-sm font-medium text-fg-subtle">{label}</p>

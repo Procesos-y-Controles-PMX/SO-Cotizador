@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { CustomAmbientNoise } from "@/lib/ambient-noise";
 
 export type SpinnerOrigin = [number, number];
 
@@ -24,13 +23,10 @@ type AmbientGridContextValue = {
   /** True while at least one loader requested the canvas spinner. */
   spinner: boolean;
   /**
-   * Whether this user gets the animated ambient field at all. Off unless
-   * they are the owner or have a custom profile, and loaders honor it so a
-   * local fallback field does not smuggle the animation back in.
+   * Whether this user gets the animated ambient field. Off in this app —
+   * the field stays on Portal — so loaders use the flat canvas.
    */
   animated: boolean;
-  /** Extra NoiseField props for a per-user profile, if any. */
-  fieldProps: CustomAmbientNoise | null;
   /** Shell ambient mesh is mounted and can host the spinner. */
   meshReady: boolean;
   /** Orbit center as fractions of the ambient clip box. */
@@ -47,13 +43,11 @@ const AmbientGridContext = createContext<AmbientGridContextValue | null>(null);
 
 export function AmbientGridProvider({
   meshReady,
-  animated = true,
-  fieldProps = null,
+  animated = false,
   children,
 }: {
   meshReady: boolean;
   animated?: boolean;
-  fieldProps?: CustomAmbientNoise | null;
   children: ReactNode;
 }) {
   const [count, setCount] = useState(0);
@@ -82,12 +76,11 @@ export function AmbientGridProvider({
       spinner: count > 0,
       meshReady: meshReady && animated,
       animated,
-      fieldProps,
       spinnerOrigin,
       acquireSpinner,
       setSpinnerOrigin,
     }),
-    [count, meshReady, animated, fieldProps, spinnerOrigin, acquireSpinner, setSpinnerOrigin],
+    [count, meshReady, animated, spinnerOrigin, acquireSpinner, setSpinnerOrigin],
   );
 
   return (
